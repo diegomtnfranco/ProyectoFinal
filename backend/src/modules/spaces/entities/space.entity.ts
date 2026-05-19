@@ -37,10 +37,10 @@ export class Space {
   isReserved!: boolean;
 
   @Column({ name: 'reserved_until', type: 'timestamp with time zone', nullable: true })
-  reservedUntil!: Date | null;
+  reservedUntil?: Date | null;
 
   @Column({ name: 'occupied_since', type: 'timestamp with time zone', nullable: true })
-  occupiedSince!: Date | null;
+  occupiedSince?: Date | null;
 
   @Column({ name: 'allows_reservations', default: false })
   allowsReservations!: boolean;
@@ -52,7 +52,7 @@ export class Space {
   occupiedByVehicleType?: VehicleType;
 
   @Column({ type: 'jsonb', default: {} })
-  metadata!: {
+  metadata?: {
     widthMeters?: number;
     lengthMeters?: number;
     hasEvCharger?: boolean;
