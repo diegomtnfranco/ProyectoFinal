@@ -14,6 +14,7 @@ import { UserRole } from 'src/modules/users/entities/user.entity';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
 import { Roles } from './decorators/roles.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
 
 @Controller('auth')
 export class AuthController {
@@ -117,6 +118,16 @@ export class AuthController {
   async verifyEmail(@Body() verifyDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyDto.token);
   }
+
+  /**
+ * Registro completo de dueño con creación de estacionamiento
+ * POST /auth/register/owner-complete
+ */
+@Public()
+@Post('register/owner-complete')
+async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
+  return this.authService.registerOwnerComplete(registerDto);
+}
 
   /**
    * Reenviar verificación de email
