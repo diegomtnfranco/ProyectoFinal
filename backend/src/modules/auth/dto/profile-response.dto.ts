@@ -23,8 +23,8 @@ export class ClientProfileDto {
 export class OwnerProfileDto {
   id!: string;
   businessName!: string;
-  cuit!: string;
-  phone!: string;
+  cuit?: string;
+  phone?: string;
   address?: string;
   isApproved!: boolean;
 }

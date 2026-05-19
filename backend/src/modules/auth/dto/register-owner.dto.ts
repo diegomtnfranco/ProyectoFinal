@@ -9,16 +9,23 @@ export class RegisterOwnerDto {
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   password!: string;
 
+  @IsString()
+  @MinLength(3, { message: 'El nombre debe tener al menos 3 caracteres' })
+  @MaxLength(80, { message: 'El nombre no puede tener más de 80 caracteres' })
+  name!: string;
+
   @IsString({ message: 'Debe proporcionar un nombre de negocio válido' })
   @MinLength(3, { message: 'El nombre de negocio debe tener al menos 3 caracteres' })
   @MaxLength(100, { message: 'El nombre de negocio no puede tener más de 100 caracteres' })
   businessName!: string;
 
   @IsCUIT({ message: 'Debe proporcionar un CUIT válido (formato: XX-XXXXXXXX-X)' })
-  cuit!: string;
+  @IsOptional()
+  cuit: string | undefined;
 
   //@IsPhoneNumber('AR', { message: 'Debe proporcionar un número de teléfono válido' })
   @IsString()
+  @IsOptional()
   phone!: string;
 
   @IsString()

@@ -23,6 +23,7 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
+import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
 
 @Injectable()
 export class AuthService {
@@ -516,6 +517,13 @@ export class AuthService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async registerOwnerComplete(registerDto: RegisterOwnerCompleteDto) {
+    // Aquí implementarías la lógica para registrar un dueño y crear su estacionamiento en un solo paso.
+    // Esto podría incluir validaciones adicionales, creación de usuario, perfil de dueño, y el estacionamiento asociado.
+    // Por simplicidad, este método se deja como un placeholder.
+    throw new InternalServerErrorException('Funcionalidad no implementada aún');
   }
 
   private sanitizeUser(user: User): Partial<User> {
