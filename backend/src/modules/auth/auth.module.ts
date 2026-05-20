@@ -13,6 +13,9 @@ import { ClientProfile } from '../client-profiles/entities/client-profile.entity
 import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 import { ParkingEmployee } from 'src/modules/parking-employees/entities/parking-employee.entity';
 import { NotificationsService } from 'src/modules/notifications/notifications.service';
+import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
+import { Rate } from '../rates/entities/rate.entity';
+import { Space } from '../spaces/entities/space.entity';
 
 @Module({
   imports: [
@@ -31,7 +34,7 @@ import { NotificationsService } from 'src/modules/notifications/notifications.se
       }),
       
     }),
-    TypeOrmModule.forFeature([User, ClientProfile, ParkingOwner, ParkingEmployee]),
+    TypeOrmModule.forFeature([User, ClientProfile, ParkingOwner, ParkingEmployee, Space, Rate, ParkingLot]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, NotificationsService],

@@ -23,6 +23,10 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
+import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
+import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
+import { Space, SpaceStatus } from '../spaces/entities/space.entity';
+import { VehicleType } from '../common/enums/vehicle-type.enum';
 
 @Injectable()
 export class AuthService {
@@ -37,6 +41,10 @@ export class AuthService {
     private parkingOwnerRepository: Repository<ParkingOwner>,
     @InjectRepository(ParkingEmployee)
     private parkingEmployeeRepository: Repository<ParkingEmployee>,
+    @InjectRepository(ParkingLot)
+    private parkingLotRepository: Repository<ParkingLot>,
+    @InjectRepository(Space)
+    private spaceRepository: Repository<Space>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private notificationsService: NotificationsService,
@@ -517,6 +525,142 @@ export class AuthService {
       await queryRunner.release();
     }
   }
+
+ async registerOwnerComplete(registerDto: RegisterOwnerCompleteDto) {
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    // 1. Verificar si el email ya existe
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+    if (existingUser) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    // 2. Verificar si el CUIT ya existe
+    if (registerDto.cuit) {
+      const existingCuit = await this.parkingOwnerRepository.findOne({
+        where: { cuit: registerDto.cuit },
+      });
+      if (existingCuit) {
+        throw new ConflictException('El CUIT ya está registrado');
+      }
+    }
+
+    const verificationToken = this.generateVerificationToken();
+
+    // 3. Crear usuario
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const user = this.userRepository.create({
+      email: registerDto.email,
+      passwordHash: hashedPassword,
+      role: UserRole.PARKING_OWNER,
+      isVerified: false,
+      isActive: true,
+      verificationToken,
+    });
+    await queryRunner.manager.save(user);
+
+    // 4. Crear perfil de dueño
+    const parkingOwner = this.parkingOwnerRepository.create({
+      userId: user.id,
+      name: registerDto.name,
+      businessName: registerDto.businessName,
+      cuit: registerDto.cuit,
+      phone: registerDto.phone,
+      address: registerDto.address,
+      isApproved: false,
+    });
+    await queryRunner.manager.save(parkingOwner);
+
+    // 5. Crear estacionamiento
+    const parkingLot = this.parkingLotRepository.create({
+      ownerId: parkingOwner.id,
+      name: registerDto.parkingName || registerDto.businessName,
+      address: registerDto.address || 'Dirección pendiente',
+      latitude: registerDto.latitude,
+      longitude: registerDto.longitude,
+      openTime: registerDto.openTime,
+      closeTime: registerDto.closeTime,
+      settings: {
+        allowOnlineReservations: registerDto.allowOnlineReservations ?? true,
+        cancellationMinutesBefore: 30,
+        reservationHoldMinutes: 15,
+      },
+      isActive: true,
+    });
+    await queryRunner.manager.save(parkingLot);
+
+    // 6. Crear espacios (TODOS admiten TODOS los tipos de vehículo)
+    const spaces: Space[] = [];
+    const totalSpaces = registerDto.totalSpaces;
+
+    for (let i = 1; i <= totalSpaces; i++) {
+      const space = new Space(); // ← Crear instancia de Space
+      space.parkingLotId = parkingLot.id;
+      space.spaceNumber = `${i}`.padStart(3, '0');
+      space.allowedVehicleTypes = [ VehicleType.CAR, VehicleType.TRUCK, VehicleType.MOTORCYCLE, VehicleType.VAN ];
+      space.status = SpaceStatus.AVAILABLE;
+      space.isActive = true;
+      space.isReserved = false;
+      space.allowsReservations = true;
+      space.metadata = {
+        floor: Math.ceil(i / 20),
+        zone: i <= totalSpaces / 2 ? 'Norte' : 'Sur',
+      };
+      
+      spaces.push(space);
+    }
+
+
+    await queryRunner.manager.save(spaces);
+
+    // 7. Enviar email de verificación
+    await this.notificationsService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+      registerDto.businessName,
+    );
+
+    await queryRunner.commitTransaction();
+
+    // 8. Generar token JWT
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    }, {
+      expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
+      secret: this.configService.get('JWT_SECRET'),
+    });
+
+    return {
+      user: this.sanitizeUser(user),
+      access_token: token,
+      parkingLot: {
+        id: parkingLot.id,
+        name: parkingLot.name,
+        totalSpaces: spaces.length,
+        spacesRange: {
+          from: '001',
+          to: `${totalSpaces}`.padStart(3, '0'),
+        },
+      },
+      requiresVerification: true,
+      requiresApproval: true,
+      message: 'Estacionamiento creado exitosamente. Se ha enviado un email de verificación. Tu cuenta será revisada por un administrador.',
+    };
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    this.logger.error('Error en registerOwnerComplete:', error);
+    throw error;
+  } finally {
+    await queryRunner.release();
+  }
+}
 
   private sanitizeUser(user: User): Partial<User> {
     const { passwordHash, verificationToken, resetPasswordToken, ...safeUser } = user;

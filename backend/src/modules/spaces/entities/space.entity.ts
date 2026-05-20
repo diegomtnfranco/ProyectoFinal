@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany, CreateDateColumn } from 'typeorm';
 import { ParkingLot } from '../../parking-lots/entities/parking-lot.entity';
 import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
@@ -33,8 +33,26 @@ export class Space {
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
+  @Column({ name: 'is_reserved', default: false })
+  isReserved!: boolean;
+
+  @Column({ name: 'reserved_until', type: 'timestamp with time zone', nullable: true })
+  reservedUntil?: Date | null;
+
+  @Column({ name: 'occupied_since', type: 'timestamp with time zone', nullable: true })
+  occupiedSince?: Date | null;
+
+  @Column({ name: 'allows_reservations', default: false })
+  allowsReservations!: boolean;
+
+  @Column({ nullable: true })
+  occupiedByVehiclePlate?: string;
+
+  @Column({ type: 'enum', enum: VehicleType, nullable: true })
+  occupiedByVehicleType?: VehicleType;
+
   @Column({ type: 'jsonb', default: {} })
-  metadata!: {
+  metadata?: {
     widthMeters?: number;
     lengthMeters?: number;
     hasEvCharger?: boolean;

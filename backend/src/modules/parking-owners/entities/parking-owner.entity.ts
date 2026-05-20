@@ -13,15 +13,18 @@ export class ParkingOwner {
   @OneToOne(() => User)
   @JoinColumn({ name: 'user_id' })
   user!: User;
+  
+  @Column()
+  name!: string;
 
   @Column({ name: 'business_name' })
   businessName!: string;  // ← camelCase
 
-  @Column({ unique: true })
-  cuit!: string;
+  @Column({ unique: true , nullable: true })
+  cuit?: string;
 
-  @Column()
-  phone!: string;
+  @Column({ nullable: true })
+  phone?: string;
 
   @Column({ nullable: true })
   address?: string;

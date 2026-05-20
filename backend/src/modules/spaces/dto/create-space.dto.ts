@@ -17,6 +17,15 @@ export class CreateSpaceDto {
   @IsOptional()
   status?: SpaceStatus;
 
+  @IsBoolean({
+    message: 'Debe indicarse si el espacio permite reservas',
+  })
+  allowsReservations!: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isReserved?: boolean;
+
   @IsObject()
   @IsOptional()
   metadata?: {
