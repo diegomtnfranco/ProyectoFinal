@@ -26,7 +26,6 @@ function LoginForm() {
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
 
-      
       navigate('/client')
     } catch (err) {
       setError('Credenciales inválidas')
