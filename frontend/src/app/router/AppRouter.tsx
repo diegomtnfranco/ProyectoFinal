@@ -7,8 +7,13 @@ import ClientLayout from '../layouts/client-layout'
 
 import ParkingListPage from '../../features/parking-lots/pages/ParkingListPage'
 import ParkingDetailsPage from '../../features/parking-lots/pages/ParkingDetailsPage'
+
 import OwnerLayout from '../layouts/owner-layout'
 import DashboardOwner from '../../features/owner/Dashboard'
+// import RatesPage from '../../features/owner/Rates'
+
+import CreateCompanyForm from '../../features/auth/components/CreateCompanyForm'
+import CompanyLocationForm from '../../features/auth/components/CompanyLocationForm'
 
 function AppRouter() {
   return (
@@ -26,9 +31,13 @@ function AppRouter() {
         </Route>
 
         {/* OWNER */}
+        <Route path='/create-company' element={<CreateCompanyForm />} />
+        <Route path='/company-location' element={<CompanyLocationForm />} />
+
         <Route path='/owner' element={<OwnerLayout />}>
           <Route index element={<Navigate to='parking' replace />} />
-          <Route path='parking' element={<DashboardOwner />} />          
+          <Route path='parking' element={<DashboardOwner />} />
+          {/* <Route path='rates' element={<RatesPage />} /> */}
           <Route path='users' element={<DashboardOwner />} />
           <Route path='reports' element={<DashboardOwner />} />
           <Route path='settings' element={<DashboardOwner />} />

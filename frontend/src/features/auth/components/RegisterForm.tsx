@@ -53,7 +53,7 @@ function RegisterForm() {
 
       {/* Selector de Rol */}
       <div className='flex gap-4'>
-        <button
+        {/* <button
           type='button'
           onClick={() => setRole('driver')}
           className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${
@@ -63,8 +63,8 @@ function RegisterForm() {
           }`}
         >
           Conductor
-        </button>
-        <button
+        </button> */}
+        {/* <button
           type='button'
           onClick={() => setRole('owner')}
           className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${
@@ -74,7 +74,7 @@ function RegisterForm() {
           }`}
         >
           Operador
-        </button>
+        </button> */}
       </div>
 
       <div className='flex flex-col gap-2'>
@@ -128,7 +128,14 @@ function RegisterForm() {
         {loading ? 'Creando cuenta...' : 'Registrarme'}
       </button>
 
-      <p className='text-center text-sm text-gray-500'>
+      <button
+        type='button'
+        onClick={() => navigate('/create-company')}
+        className='border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-semibold py-3 rounded-xl'
+      >
+        Crear empresa
+      </button>
+      {/* <p className='text-center text-sm text-gray-500'>
         ¿Ya tenés cuenta?{' '}
         <span 
           onClick={() => navigate('/')} 
@@ -136,7 +143,7 @@ function RegisterForm() {
         >
           Ingresá acá
         </span>
-      </p>
+      </p> */}
     </form>
   )
 }
