@@ -13,22 +13,32 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('') 
+
+       if (!email.trim() || !password.trim()) {
+      setError('Por favor, completá todos los campos para ingresar.')
+      return
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('El formato del correo electrónico no es válido.')
+      return
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
+      return
+    }
 
     try {
       setLoading(true)
-      setError('')
-
-      const data = await login({
-        email,
-        password,
-      })
+      const data = await login({ email, password })
 
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
 
       navigate('/client')
     } catch (err) {
-      setError('Credenciales inválidas')
+      //  error que salta si el backend rechaza el login o está apagado
+      setError('Credenciales inválidas o error de conexión.')
     } finally {
       setLoading(false)
     }
@@ -37,6 +47,7 @@ function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className='bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6'
     >
       <div>
@@ -66,6 +77,19 @@ function LoginForm() {
           required
           className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all'
         />
+        
+        {}
+        <div className='flex justify-end mt-1'>
+          <button
+            type='button'
+            onClick={() => navigate('/forgot-password')}
+            className='text-sm text-blue-600 font-medium hover:underline'
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+        {/* contraseña olvidada */}
+        
       </div>
 
       {error && (
@@ -82,7 +106,6 @@ function LoginForm() {
         {loading ? 'Ingresando...' : 'Ingresar'}
       </button>
 
-      
       <div className='text-center mt-2'>
         <p className='text-gray-500 text-sm'>
           ¿No tenés cuenta?{' '}
