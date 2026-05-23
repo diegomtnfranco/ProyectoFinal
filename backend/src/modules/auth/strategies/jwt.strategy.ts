@@ -37,6 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile'],
     });
 
+    console.log(user);
     if (!user) {
       throw new UnauthorizedException('Usuario no encontrado');
     }

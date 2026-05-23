@@ -20,15 +20,15 @@ export class SpacesController {
     return this.spacesService.create(createSpaceDto, user.id, user.role);
   }
 
-  @Public()
   @Get()
+  @Roles(UserRole.ADMIN)
   findAll() {
     return this.spacesService.findAll();
   }
 
-  @Public()
   @Get('parking-lot/:parkingLotId')
-  findByParkingLot(@Param('parkingLotId', ParseUUIDPipe) parkingLotId: string) {
+  @Roles(UserRole.ADMIN, UserRole.PARKING_OWNER, UserRole.PARKING_EMPLOYEE)
+  findByParkingLot(@Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,@CurrentUser() user: any) {
     return this.spacesService.findByParkingLot(parkingLotId);
   }
 

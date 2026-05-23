@@ -11,10 +11,6 @@ export class FilterReservationsDto {
   @IsOptional()
   spaceId?: string;
 
-  @IsUUID()
-  @IsOptional()
-  parkingLotId?: string;
-
   @IsEnum(ReservationStatus)
   @IsOptional()
   status?: ReservationStatus;

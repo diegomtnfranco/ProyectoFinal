@@ -1,13 +1,9 @@
-import { IsUUID, IsEnum, IsString, IsDateString, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsUUID, IsEnum, IsString, IsDateString } from 'class-validator';
 import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
 export class CreateReservationDto {
   @IsUUID()
-  @IsOptional()
-  clientId?: string;  // Opcional: si se omite, se toma del usuario autenticado
-
-  @IsUUID()
-  spaceId!: string;
+  parkingLotId!: string;  // ← Cambiar: el cliente elige el estacionamiento, no el espacio
 
   @IsEnum(VehicleType)
   vehicleType!: VehicleType;
@@ -20,9 +16,4 @@ export class CreateReservationDto {
 
   @IsDateString()
   endTime!: string;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  totalAmount?: number;  // Opcional: se calcula automáticamente
 }

@@ -1,19 +1,21 @@
 import { Module } from '@nestjs/common';
-import { ReservationsService } from './reservations.service';
-import { ReservationsController } from './reservations.controller';
-import { Reservation } from './entities/reservation.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClientProfile } from 'src/modules/client-profiles/entities/client-profile.entity';
-import { ParkingEmployee } from 'src/modules/parking-employees/entities/parking-employee.entity';
-import { ParkingLot } from 'src/modules/parking-lots/entities/parking-lot.entity';
-import { Space } from 'src/modules/spaces/entities/space.entity';
-import { Rate } from 'src/modules/rates/entities/rate.entity';
+import { ReservationsController } from './reservations.controller';
+import { ReservationsService } from './reservations.service';
+import { Reservation } from './entities/reservation.entity';
+import { Space } from '../spaces/entities/space.entity';
+import { ClientProfile } from '../client-profiles/entities/client-profile.entity';
+import { RatesModule } from '../rates/rates.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([Reservation, Space, ClientProfile]),
+    RatesModule,
+    NotificationsModule,
+  ],
   controllers: [ReservationsController],
   providers: [ReservationsService],
-  imports: [
-      TypeOrmModule.forFeature([Reservation,Space,ClientProfile,ParkingEmployee,ParkingLot,Rate])
-    ],
+  exports: [ReservationsService],
 })
 export class ReservationsModule {}

@@ -45,11 +45,11 @@ export class Space {
   @Column({ name: 'allows_reservations', default: false })
   allowsReservations!: boolean;
 
-  @Column({ nullable: true })
-  occupiedByVehiclePlate?: string;
+  @Column({ name: 'occupied_by_vehicle_plate', type: 'varchar', nullable: true })
+  occupiedByVehiclePlate?: string | null;
 
-  @Column({ type: 'enum', enum: VehicleType, nullable: true })
-  occupiedByVehicleType?: VehicleType;
+  @Column({ name: 'occupied_by_vehicle_type', type: 'enum', enum: VehicleType, nullable: true })
+  occupiedByVehicleType?: VehicleType | null;
 
   @Column({ type: 'jsonb', default: {} })
   metadata?: {
