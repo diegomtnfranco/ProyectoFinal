@@ -6,6 +6,7 @@ import { createParamDecorator, ExecutionContext, InternalServerErrorException } 
  */
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {
+    console.log('llego aqui', data);
     const request = ctx.switchToHttp().getRequest();
     const user = request.user;
 

@@ -6,6 +6,10 @@ import { CreateParkingLotDto } from './dto/create-parking-lot.dto';
 import { UpdateParkingLotDto } from './dto/update-parking-lot.dto';
 import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 import { UserRole } from '../users/entities/user.entity';
+import { ParkingLotOwnerResponseDto, SpaceOwnerDto } from './dto/parking-lot-owner-response.dto';
+import { Rate } from '../rates/entities/rate.entity';
+import { VehicleType } from '../common/enums/vehicle-type.enum';
+
 
 @Injectable()
 export class ParkingLotsService {
@@ -14,6 +18,8 @@ export class ParkingLotsService {
     private parkingLotRepository: Repository<ParkingLot>,
     @InjectRepository(ParkingOwner)
     private parkingOwnerRepository: Repository<ParkingOwner>,
+    @InjectRepository(Rate)
+    private rateRepository: Repository<Rate>,
   ) {}
 
   async create(createDto: CreateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
@@ -164,4 +170,73 @@ export class ParkingLotsService {
     
     return { total, available, occupied, reserved };
   }
+
+  async getOwnerParkingLot(ownerId: string): Promise<ParkingLotOwnerResponseDto> {
+  // 1. Obtener el perfil del dueño
+  const owner = await this.parkingOwnerRepository.findOne({
+    where: { userId: ownerId },
+  });
+
+  if (!owner) {
+    throw new NotFoundException('Perfil de dueño no encontrado');
+  }
+
+  // 2. Obtener el parking lot (solo uno para MVP)
+  const parkingLot = await this.parkingLotRepository.findOne({
+    where: { ownerId: owner.id, isActive: true },
+    relations: ['spaces'],
+  });
+
+  if (!parkingLot) {
+    throw new NotFoundException('No tienes ningún estacionamiento registrado');
+  }
+
+  // 3. Calcular estadísticas
+  const spaces = parkingLot.spaces || [];
+  const totalSpaces = spaces.length;
+  const availableSpaces = spaces.filter(s => s.status === 'available').length;
+  const occupiedSpaces = spaces.filter(s => s.status === 'occupied').length;
+  const reservedSpaces = spaces.filter(s => s.status === 'reserved').length;
+  const maintenanceSpaces = spaces.filter(s => s.status === 'maintenance').length;
+
+  // 4. Mapear espacios para el frontend
+  const spacesDto: SpaceOwnerDto[] = spaces.map(space => ({
+    id: space.id,
+    spaceNumber: space.spaceNumber,
+    status: space.status,
+    allowedVehicleTypes: space.allowedVehicleTypes,
+    isReserved: space.isReserved,
+    reservedUntil: space.reservedUntil,
+    occupiedSince: space.occupiedSince,
+    occupiedByVehiclePlate: space.occupiedByVehiclePlate,
+    metadata: space.metadata,
+  }));
+
+  // 5. Obtener tarifas (opcional)
+  const rates = await this.rateRepository.find({
+    where: { parkingLotId: parkingLot.id, isActive: true },
+    select: ['vehicleType', 'pricePerHour'],
+  });
+
+  return {
+    id: parkingLot.id,
+    name: parkingLot.name,
+    address: parkingLot.address,
+    latitude: parkingLot.latitude,
+    longitude: parkingLot.longitude,
+    openTime: parkingLot.openTime,
+    closeTime: parkingLot.closeTime,
+    settings: parkingLot.settings,
+    isActive: parkingLot.isActive,
+    stats: {
+      totalSpaces,
+      availableSpaces,
+      occupiedSpaces,
+      reservedSpaces,
+      maintenanceSpaces,
+    },
+    spaces: spacesDto,
+    rates,
+  };
+}
 }

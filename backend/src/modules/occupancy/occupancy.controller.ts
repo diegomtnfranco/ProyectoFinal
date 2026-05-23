@@ -1,34 +1,64 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { OccupancyService } from './occupancy.service';
-import { CreateOccupancyDto } from './dto/create-occupancy.dto';
-import { UpdateOccupancyDto } from './dto/update-occupancy.dto';
+import { CheckInDto } from './dto/check-in.dto';
+import { CheckOutDto } from './dto/check-out.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('occupancy')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OccupancyController {
   constructor(private readonly occupancyService: OccupancyService) {}
 
-  @Post()
-  create(@Body() createOccupancyDto: CreateOccupancyDto) {
-    return this.occupancyService.create(createOccupancyDto);
+  /**
+   * Registrar check-in (ocupar espacio)
+   * POST /occupancy/check-in
+   */
+  @Post('check-in')
+  @Roles(UserRole.PARKING_OWNER, UserRole.PARKING_EMPLOYEE, UserRole.ADMIN)
+  async checkIn(
+    @Body() checkInDto: CheckInDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.occupancyService.checkIn(checkInDto, user.id, user.role);
   }
 
-  @Get()
-  findAll() {
-    return this.occupancyService.findAll();
+  /**
+   * Registrar check-out (liberar espacio)
+   * POST /occupancy/check-out
+   */
+  @Post('check-out')
+  @Roles(UserRole.PARKING_OWNER, UserRole.PARKING_EMPLOYEE, UserRole.ADMIN)
+  async checkOut(
+    @Body() checkOutDto: CheckOutDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.occupancyService.checkOut(checkOutDto, user.id, user.role);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.occupancyService.findOne(+id);
+  /**
+   * Ver ocupaciones activas de un estacionamiento
+   * GET /occupancy/active/:parkingLotId
+   */
+  @Get('active/:parkingLotId')
+  @Roles(UserRole.PARKING_OWNER, UserRole.PARKING_EMPLOYEE, UserRole.ADMIN)
+  async getActiveOccupancies(
+    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.occupancyService.getActiveOccupancies(parkingLotId, user.id, user.role);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOccupancyDto: UpdateOccupancyDto) {
-    return this.occupancyService.update(+id, updateOccupancyDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.occupancyService.remove(+id);
+  /**
+   * Ver historial de ocupaciones de un espacio
+   * GET /occupancy/history/:spaceId
+   */
+  @Get('history/:spaceId')
+  @Roles(UserRole.PARKING_OWNER, UserRole.PARKING_EMPLOYEE, UserRole.ADMIN)
+  async getSpaceHistory(@Param('spaceId', ParseUUIDPipe) spaceId: string) {
+    return this.occupancyService.getSpaceHistory(spaceId);
   }
 }

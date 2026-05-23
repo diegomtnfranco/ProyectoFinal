@@ -133,4 +133,43 @@ export class NotificationsService {
   });
 }
 
+async sendNewReservationNotification(ownerEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: ownerEmail,
+    subject: 'Nueva reserva - Parking App',
+    html: `
+      <h1>¡Nueva reserva!</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>Desde: ${new Date(data.startTime).toLocaleString()}</p>
+      <p>Hasta: ${new Date(data.endTime).toLocaleString()}</p>
+      <p>Patente: ${data.vehiclePlate}</p>
+    `,
+  });
+}
+
+async sendReservationConfirmedNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Reserva confirmada - Parking App',
+    html: `
+      <h1>¡Tu reserva ha sido confirmada!</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>Desde: ${new Date(data.startTime).toLocaleString()}</p>
+      <p>Hasta: ${new Date(data.endTime).toLocaleString()}</p>
+    `,
+  });
+}
+
+async sendReservationCancelledNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Reserva cancelada - Parking App',
+    html: `
+      <h1>Tu reserva ha sido cancelada</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>Motivo: ${data.reason}</p>
+    `,
+  });
+}
+
 }

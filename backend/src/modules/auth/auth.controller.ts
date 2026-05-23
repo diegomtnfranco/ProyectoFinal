@@ -148,14 +148,6 @@ async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
   async registerEmployee(@Body() registerDto: RegisterEmployeeDto, @CurrentUser('id') ownerId: string) {
     return this.authService.registerEmployee(registerDto, ownerId);
   }
-
-
-@Get('profile')
-@UseGuards(JwtAuthGuard)
-async getUserProfile(@CurrentUser('id') userId: string) {
-  return this.authService.getUserProfile(userId);
-}
-
 /**
  * Actualizar mi perfil
  * PATCH /auth/profile

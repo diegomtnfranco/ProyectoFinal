@@ -35,6 +35,17 @@ export class ParkingLotsController {
     return this.parkingLotsService.findNearby(lat, lng, radius ? parseInt(radius) : 1000);
   }
 
+    /**
+   * Obtener el parking lot del dueño autenticado (solo uno)
+   * GET /parking-lots/my
+   */
+  @Get('my')
+  @Roles(UserRole.PARKING_OWNER)
+  async getMyParkingLot(@CurrentUser('id', ParseUUIDPipe) userId: string) {
+    console.log('llego', userId);
+    return this.parkingLotsService.getOwnerParkingLot(userId);
+  }
+
   @Public()
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {

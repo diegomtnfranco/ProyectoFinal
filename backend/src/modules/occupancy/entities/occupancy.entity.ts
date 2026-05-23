@@ -1,84 +1,62 @@
-// src/modules/occupancy/entities/active-occupancy.entity.ts
 import { 
   Entity, 
   Column, 
   PrimaryGeneratedColumn, 
   ManyToOne, 
-  JoinColumn,
-  OneToOne,
-  CreateDateColumn,
-  UpdateDateColumn
+  JoinColumn, 
+  CreateDateColumn, 
+  UpdateDateColumn 
 } from 'typeorm';
-import { Reservation } from '../../reservations/entities/reservation.entity';
 import { Space } from '../../spaces/entities/space.entity';
-import { ClientProfile } from '../../client-profiles/entities/client-profile.entity';
+import { Reservation } from '../../reservations/entities/reservation.entity';
+import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
-export enum OccupancyStatus {
-  ACTIVE = 'active',
-  CHECKING_OUT = 'checking_out',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
-}
-
-@Entity('active_occupancies')
-export class ActiveOccupancy {
+@Entity('occupancies')
+export class Occupancy {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  reservation_id!: string;
-
-  @OneToOne(() => Reservation)
-  @JoinColumn({ name: 'reservation_id' })
-  reservation!: Reservation;
-
-  @Column({ type: 'uuid' })
-  space_id!: string;
+  @Column({ name: 'space_id', type: 'uuid' })
+  spaceId!: string;
 
   @ManyToOne(() => Space)
   @JoinColumn({ name: 'space_id' })
   space!: Space;
 
-  @Column({ type: 'uuid' })
-  client_id!: string;
+  @Column({ name: 'reservation_id', type: 'uuid', nullable: true })
+  reservationId?: string;
 
-  @ManyToOne(() => ClientProfile)
-  @JoinColumn({ name: 'client_id' })
-  client!: ClientProfile;
+  @ManyToOne(() => Reservation, { nullable: true })
+  @JoinColumn({ name: 'reservation_id' })
+  reservation?: Reservation;
 
-  @Column({ type: 'timestamp' })
-  check_in_time!: Date;
+  @Column({ name: 'vehicle_plate' })
+  vehiclePlate!: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  check_out_time!: Date;
+  @Column({ type: 'enum', enum: VehicleType })
+  vehicleType!: VehicleType;
 
-  @Column({ type: 'enum', enum: OccupancyStatus, default: OccupancyStatus.ACTIVE })
-  status!: OccupancyStatus;
+  @Column({ name: 'check_in_time', type: 'timestamp' })
+  checkInTime!: Date;
 
-  @Column({ type: 'jsonb', nullable: true })
-  check_in_metadata!: {
-    method: 'qrcode' | 'manual' | 'auto';
-    verified_by?: string;
-    vehicle_plate_verified: boolean;
-    photo_reference?: string;
-  };
+  @Column({ name: 'check_out_time', type: 'timestamp', nullable: true })
+  checkOutTime?: Date;
 
-  @Column({ type: 'jsonb', nullable: true })
-  check_out_metadata!: {
-    final_amount?: number;
-    payment_method?: string;
-    photo_reference?: string;
-    verified_by?: string;
-  };
+  @Column({ name: 'checked_in_by', type: 'uuid' })
+  checkedInBy!: string;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @Column({ name: 'checked_out_by', type: 'uuid', nullable: true })
+  checkedOutBy?: string;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  totalAmount?: number;
 
-    constructor(partial: Partial<ActiveOccupancy>) {   
-        Object.assign(this, partial);
+  @Column({ default: false })
+  isCompleted!: boolean;
 
-    }
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
 }
