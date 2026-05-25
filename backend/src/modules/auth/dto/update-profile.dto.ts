@@ -1,36 +1,75 @@
-import { IsEmail, IsOptional, IsString, MinLength, IsPhoneNumber, IsEnum, IsUUID, IsObject } from 'class-validator';
+// src/auth/dto/update-profile.dto.ts
+import { IsEmail, IsOptional, IsString, MinLength, IsPhoneNumber, IsEnum, IsObject, IsUrl } from 'class-validator';
 import { VehicleTypeEnum } from '../../client-profiles/entities/client-profile.entity';
+import { ApiProperty } from '@nestjs/swagger';
 
 // Datos comunes de usuario
 class UpdateUserDataDto {
+  @ApiProperty({ 
+    example: 'nuevo.email@example.com', 
+    description: 'Nuevo email del usuario',
+    required: false 
+  })
   @IsEmail()
   @IsOptional()
   email?: string;
 
+  @ApiProperty({ 
+    example: 'NuevaPassword123!', 
+    description: 'Nueva contraseña (mínimo 6 caracteres)',
+    minLength: 6,
+    required: false 
+  })
   @IsString()
   @MinLength(6)
   @IsOptional()
   password?: string;
 
-  @IsString()
+  @ApiProperty({ 
+    example: 'https://example.com/avatar.jpg', 
+    description: 'URL del avatar',
+    required: false 
+  })
+  @IsUrl()
   @IsOptional()
   avatarUrl?: string;
 }
 
 // Datos específicos de cliente
 class UpdateClientDataDto {
+  @ApiProperty({ 
+    example: 'Juan Carlos', 
+    description: 'Nuevo nombre del cliente',
+    required: false 
+  })
   @IsString()
   @IsOptional()
   name?: string;
 
+  @ApiProperty({ 
+    example: '+5493819999999', 
+    description: 'Nuevo teléfono de contacto',
+    required: false 
+  })
   @IsPhoneNumber()
   @IsOptional()
   phone?: string;
 
+  @ApiProperty({ 
+    example: 'XYZ789', 
+    description: 'Patente por defecto',
+    required: false 
+  })
   @IsString()
   @IsOptional()
   defaultVehiclePlate?: string;
 
+  @ApiProperty({ 
+    enum: VehicleTypeEnum, 
+    example: 'car', 
+    description: 'Tipo de vehículo por defecto',
+    required: false 
+  })
   @IsEnum(VehicleTypeEnum)
   @IsOptional()
   defaultVehicleType?: VehicleTypeEnum;
@@ -38,14 +77,29 @@ class UpdateClientDataDto {
 
 // Datos específicos de dueño de parking
 class UpdateOwnerDataDto {
+  @ApiProperty({ 
+    example: 'Garaje Centro Actualizado SRL', 
+    description: 'Nueva razón social',
+    required: false 
+  })
   @IsString()
   @IsOptional()
   businessName?: string;
 
+  @ApiProperty({ 
+    example: '+5493818888888', 
+    description: 'Nuevo teléfono de contacto',
+    required: false 
+  })
   @IsString()
   @IsOptional()
   phone?: string;
 
+  @ApiProperty({ 
+    example: 'Av. Nueva 456', 
+    description: 'Nueva dirección',
+    required: false 
+  })
   @IsString()
   @IsOptional()
   address?: string;
@@ -53,14 +107,29 @@ class UpdateOwnerDataDto {
 
 // DTO principal unificado
 export class UpdateProfileDto {
+  @ApiProperty({ 
+    type: UpdateUserDataDto, 
+    description: 'Datos del usuario a actualizar',
+    required: false 
+  })
   @IsObject()
   @IsOptional()
   user?: UpdateUserDataDto;
 
+  @ApiProperty({ 
+    type: UpdateClientDataDto, 
+    description: 'Datos del perfil de cliente a actualizar',
+    required: false 
+  })
   @IsObject()
   @IsOptional()
   client?: UpdateClientDataDto;
 
+  @ApiProperty({ 
+    type: UpdateOwnerDataDto, 
+    description: 'Datos del perfil de dueño a actualizar',
+    required: false 
+  })
   @IsObject()
   @IsOptional()
   owner?: UpdateOwnerDataDto;

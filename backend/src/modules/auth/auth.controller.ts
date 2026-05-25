@@ -15,7 +15,12 @@ import { RegisterEmployeeDto } from './dto/register-employee.dto';
 import { Roles } from './decorators/roles.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,7 +33,20 @@ export class AuthController {
    * POST /auth/register/client
    */
   @Public()
+  @HttpCode(201)
   @Post('register/client')
+  @ApiOperation({ 
+    summary: 'Registrar un nuevo cliente',
+    description: 'Registra un nuevo cliente con email, contraseña, nombre y datos opcionales como teléfono y vehículo por defecto. Se envía un email de verificación.'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Cliente registrado exitosamente',
+    type: RegisterResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Datos de registro inválidos o email ya registrado' })
+  @ApiResponse({ status: 409, description: 'El email ya está registrado' })
+  @ApiBody({ type: RegisterClientDto })
   async registerClient(@Body() registerDto: RegisterClientDto) {
     return this.authService.registerClient(registerDto);
   }
@@ -38,7 +56,20 @@ export class AuthController {
    * POST /auth/register/owner
    */
   @Public()
+  @HttpCode(201)
   @Post('register/owner')
+  @ApiOperation({ 
+    summary: 'Registrar un nuevo dueño de estacionamiento',
+    description: 'Registra un nuevo dueño de estacionamiento con email, contraseña, nombre, nombre de negocio y datos opcionales. La cuenta requiere aprobación del administrador.'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Dueño de estacionamiento registrado exitosamente, requiere aprobación',
+    type: RegisterResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
+  @ApiResponse({ status: 409, description: 'El email ya está registrado' })
+  @ApiBody({ type: RegisterOwnerDto })
   async registerOwner(@Body() registerDto: RegisterOwnerDto) {
     return this.authService.registerOwner(registerDto);
   }
@@ -50,8 +81,19 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post('login')
+  @ApiOperation({ 
+    summary: 'Iniciar sesión',
+    description: 'Autentica un usuario con email y contraseña. Retorna el usuario y un token JWT válido por 24 horas.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Inicio de sesión exitoso',
+    type: LoginResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
+  @ApiResponse({ status: 400, description: 'Email o contraseña ausentes' })
+  @ApiBody({ type: LoginDto })
   async login(@Body() loginDto: LoginDto) {
-    console.log(loginDto)
     return this.authService.login(loginDto);
   }
 
@@ -61,6 +103,18 @@ export class AuthController {
    */
   @Get('profile')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener perfil del usuario autenticado',
+    description: 'Obtiene la información completa del perfil del usuario autenticado, incluyendo datos específicos según su rol'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Perfil obtenido exitosamente',
+    type: ProfileResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async getProfile(@CurrentUser('id', ParseUUIDPipe) userId: string) {
     return this.authService.getProfile(userId);
   }
@@ -114,7 +168,15 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(200)
   @Post('verify-email')
+  @ApiOperation({ 
+    summary: 'Verificar dirección de email',
+    description: 'Verifica la dirección de email del usuario usando el token enviado por correo'
+  })
+  @ApiResponse({ status: 200, description: 'Email verificado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Token de verificación inválido o expirado' })
+  @ApiBody({ type: VerifyEmailDto })
   async verifyEmail(@Body() verifyDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyDto.token);
   }
@@ -124,7 +186,20 @@ export class AuthController {
  * POST /auth/register/owner-complete
  */
 @Public()
+@HttpCode(201)
 @Post('register/owner-complete')
+@ApiOperation({ 
+  summary: 'Registro completo de dueño con creación de estacionamiento',
+  description: 'Registra un nuevo dueño de estacionamiento y crea su estacionamiento asociado en un solo paso'
+})
+@ApiResponse({ 
+  status: 201, 
+  description: 'Dueño de estacionamiento registrado y estacionamiento creado exitosamente',
+  type: RegisterResponseDto
+})
+@ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
+@ApiResponse({ status: 409, description: 'El email ya está registrado' })
+@ApiBody({ type: RegisterOwnerCompleteDto })
 async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
   return this.authService.registerOwnerComplete(registerDto);
 }
@@ -134,7 +209,15 @@ async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
    * POST /auth/resend-verification
    */
   @Public()
+  @HttpCode(200)
   @Post('resend-verification')
+  @ApiOperation({ 
+    summary: 'Reenviar verificación de email',
+    description: 'Reenvía el email de verificación al usuario si aún no ha verificado su email'
+  })
+  @ApiResponse({ status: 200, description: 'Email de verificación reenviado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Email no válido o usuario no encontrado' })
+  @ApiBody({ type: ResendVerificationDto })
   async resendVerification(@Body() resendDto: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(resendDto.email);
   }
@@ -143,8 +226,24 @@ async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
    * Registrar empleado (solo dueño de parking)
    * POST /auth/register/employee
    */
+  @HttpCode(201)
   @Post('register/employee')
   @Roles(UserRole.PARKING_OWNER)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Registrar un nuevo empleado',
+    description: 'Registra un nuevo empleado para el estacionamiento del dueño autenticado. Solo los propietarios de estacionamiento pueden crear empleados.'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Empleado registrado exitosamente',
+    type: RegisterResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'No autorizado (solo propietarios)' })
+  @ApiBody({ type: RegisterEmployeeDto })
   async registerEmployee(@Body() registerDto: RegisterEmployeeDto, @CurrentUser('id') ownerId: string) {
     return this.authService.registerEmployee(registerDto, ownerId);
   }
@@ -154,6 +253,20 @@ async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
  */
 @Patch('profile')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
+@ApiOperation({ 
+  summary: 'Actualizar mi perfil',
+  description: 'Actualiza la información de mi perfil, incluyendo datos personales y datos específicos según mi rol (cliente, propietario, empleado)'
+})
+@ApiResponse({ 
+  status: 200, 
+  description: 'Perfil actualizado exitosamente',
+  type: ProfileResponseDto
+})
+@ApiResponse({ status: 400, description: 'Datos de actualización inválidos' })
+@ApiResponse({ status: 401, description: 'No autenticado' })
+@ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+@ApiBody({ type: UpdateProfileDto })
 async updateProfile(
   @CurrentUser('id') userId: string,
   @Body() updateDto: UpdateProfileDto,
