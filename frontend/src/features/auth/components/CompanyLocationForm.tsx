@@ -10,7 +10,7 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 
-import L, { LatLngExpression } from 'leaflet'
+import L, { type LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 // Fix íconos leaflet
