@@ -1,45 +1,58 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-// a conectar a auth.service.ts
-// import { register } from '../services/auth.service'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../../stores';
+import { type RegisterClientDto } from '../../../types/auth.types';
 
 function RegisterForm() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const { registerClient, isLoading } = useAuthStore();
 
-  
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'driver' | 'owner'>('driver')
-
-  
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setError('');
+
+    // Validaciones básicas
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Por favor, completá todos los campos.');
+      return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('El formato del correo electrónico no es válido.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
 
     try {
-      setLoading(true)
-      setError('')
+      const registerData: RegisterClientDto = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim() || 'pendiente',
+      };
 
-      //  cuando Diego lo habilite:
-      /*
-      const data = await register({ name, email, password, role })
-      localStorage.setItem('token', data.access_token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      */
-      
-      // Simulación temporal
-      console.log('Registrando:', { name, email, password, role })
-      navigate('/')
-      
+      await registerClient(registerData);
+      navigate('/');
     } catch (err) {
-      setError('Error al crear la cuenta. Intente nuevamente.')
-    } finally {
-      setLoading(false)
+      const errorMessage = typeof err === 'string' ? err : '';
+      
+      if (errorMessage.includes('email') || errorMessage.includes('registrado')) {
+        setError('Este email ya está registrado. ¿Querés iniciar sesión?');
+      } else if (errorMessage.includes('verificar')) {
+        setError('Te enviamos un email de verificación. Revisá tu bandeja de entrada.');
+      } else {
+        setError(errorMessage || 'Error al crear la cuenta. Intente nuevamente.');
+      }
     }
-  }
+  };
 
   return (
     <form
@@ -51,7 +64,7 @@ function RegisterForm() {
         <p className='text-gray-500'>Unite a EstacionamientoTUC</p>
       </div>
 
-      {/* Selector de Rol */}
+      {/* Selector de Rol - Comentado pero mantenido */}
       <div className='flex gap-4'>
         {/* <button
           type='button'
@@ -85,7 +98,8 @@ function RegisterForm() {
           onChange={(e) => setName(e.target.value)}
           placeholder='Juan Pérez'
           required
-          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500'
+          disabled={isLoading}
+          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
         />
       </div>
 
@@ -97,7 +111,8 @@ function RegisterForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder='ejemplo@mail.com'
           required
-          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500'
+          disabled={isLoading}
+          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
         />
       </div>
 
@@ -110,31 +125,34 @@ function RegisterForm() {
           placeholder='********'
           required
           minLength={6}
-          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500'
+          disabled={isLoading}
+          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
         />
       </div>
 
       {error && (
-        <div className='bg-red-100 text-red-600 p-3 rounded-xl'>
+        <div className='bg-red-100 text-red-600 p-3 rounded-xl text-sm'>
           {error}
         </div>
       )}
 
       <button
         type='submit'
-        disabled={loading}
-        className='bg-blue-500 hover:bg-blue-600 transition-all text-white font-semibold py-3 rounded-xl'
+        disabled={isLoading}
+        className='bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 transition-all text-white font-semibold py-3 rounded-xl'
       >
-        {loading ? 'Creando cuenta...' : 'Registrarme'}
+        {isLoading ? 'Creando cuenta...' : 'Registrarme'}
       </button>
 
       <button
         type='button'
         onClick={() => navigate('/create-company')}
         className='border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-semibold py-3 rounded-xl'
+        disabled={isLoading}
       >
         Crear empresa
       </button>
+      
       {/* <p className='text-center text-sm text-gray-500'>
         ¿Ya tenés cuenta?{' '}
         <span 
@@ -145,7 +163,7 @@ function RegisterForm() {
         </span>
       </p> */}
     </form>
-  )
+  );
 }
 
-export default RegisterForm
+export default RegisterForm;

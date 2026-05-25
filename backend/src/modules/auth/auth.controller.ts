@@ -94,7 +94,10 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Email o contraseña ausentes' })
   @ApiBody({ type: LoginDto })
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+    console.log(loginDto)
+    const response =  this.authService.login(loginDto);
+    console.log(response)
+    return response
   }
 
   /**
@@ -201,6 +204,7 @@ export class AuthController {
 @ApiResponse({ status: 409, description: 'El email ya está registrado' })
 @ApiBody({ type: RegisterOwnerCompleteDto })
 async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
+  console.log(registerDto)
   return this.authService.registerOwnerComplete(registerDto);
 }
 
