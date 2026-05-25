@@ -1,4 +1,4 @@
-import {  CarFront, Motorbike, ParkingMeter, Van } from 'lucide-react';
+import {  CarFront, Motorbike, ParkingMeter, Van, CalendarCheck } from 'lucide-react';
 import {  type Space } from '../../types/parking.types';
 import {VehicleType, SpaceStatus} from '../../types/auth.types'
 import ParkingMap from '../../shared/components/parking/ParkingMap';
