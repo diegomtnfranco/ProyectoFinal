@@ -1,5 +1,6 @@
-import {  CarFront, Motorbike, ParkingMeter, Van, CalendarCheck  } from 'lucide-react';
-import { SpaceStatus, type Space ,VehicleType} from '../../types/parking.types';
+import {  CarFront, Motorbike, ParkingMeter, Van } from 'lucide-react';
+import {  type Space } from '../../types/parking.types';
+import {VehicleType, SpaceStatus} from '../../types/auth.types'
 import ParkingMap from '../../shared/components/parking/ParkingMap';
 import ReservationPanel from '../../shared/components/reservation/ReservationPanel';
 
@@ -10,15 +11,16 @@ for (let i = 1; i <= 80; i++) {
     id: i.toString(),
     spaceNumber: `P-${i}`,
     status: (esPar) ? SpaceStatus.OCCUPIED : SpaceStatus.AVAILABLE,
-    occupiedByvehicleType: (esPar) ? ( i>10 ? VehicleType.CAR : i <4 ? VehicleType.MOTORCYCLE : VehicleType.TRUCK) : undefined,
-    allowsReservations: (esPar),
+    allowedVehicleTypes:[VehicleType.CAR,VehicleType.TRUCK,VehicleType.MOTORCYCLE,VehicleType.VAN],
+    occupiedByVehicleType: (esPar) ? ( i>10 ? VehicleType.CAR : i <4 ? VehicleType.MOTORCYCLE : VehicleType.TRUCK) : undefined,
+    allowReservations: (esPar),
     isReserved: (i % 5 === 0)
   };
   spacesList.push(space);
 }
 
 const spacesByVehicle = Object.groupBy(spacesList, (space) => {
-  return space.occupiedByvehicleType ?? 'NONE';
+  return space.occupiedByVehicleType ?? 'NONE';
 });
 const DashboardOwner: React.FC = () => {
  console.log(spacesByVehicle)

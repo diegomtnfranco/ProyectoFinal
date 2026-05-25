@@ -1,61 +1,119 @@
-// import { create } from 'zustand';
-// import authService from '../services/auth.service';
-// import { AuthState, LoginData, RegisterClientData, RegisterOwnerData, UpdateProfileData } from '../types/auth.types';
-// import { User } from '../types/user.types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { authService } from '../services/auth.service';
+import type { UserResponseDto, LoginDto, UpdateProfileDto, RegisterClientDto, RegisterOwnerCompleteResponseDto, RegisterOwnerCompleteDto } from '../types/auth.types';
 
-// const useAuthStore = create<AuthState>((set) => ({
-//   user: null,
-//   token: localStorage.getItem('parking_token'),
-//   isLoading: false,
-//   login: async (email: string, password: string) => {
-//     set({ isLoading: true });
-//     try {
-//       const result = await authService.login({ email, password });
-//       localStorage.setItem('parking_token', result.token);
-//       set({ user: result.user, token: result.token });
-//     } finally {
-//       set({ isLoading: false });
-//     }
-//   },
-//   registerClient: async (data: RegisterClientData) => {
-//     set({ isLoading: true });
-//     try {
-//       await authService.registerClient(data);
-//     } finally {
-//       set({ isLoading: false });
-//     }
-//   },
-//   registerOwner: async (data: RegisterOwnerData) => {
-//     set({ isLoading: true });
-//     try {
-//         console.log(data)
-//       await authService.registerOwner(data);
-//     } finally {
-//       set({ isLoading: false });
-//     }
-//   },
-//   logout: () => {
-//     localStorage.removeItem('parking_token');
-//     set({ user: null, token: null });
-//   },
-//   getProfile: async () => {
-//     set({ isLoading: true });
-//     try {
-//       const user = await authService.getProfile();
-//       set({ user });
-//     } finally {
-//       set({ isLoading: false });
-//     }
-//   },
-//   updateProfile: async (data: UpdateProfileData) => {
-//     set({ isLoading: true });
-//     try {
-//       const user = await authService.updateProfile(data);
-//       set({ user });
-//     } finally {
-//       set({ isLoading: false });
-//     }
-//   }
-// }));
+interface AuthState {
 
-// export default useAuthStore;
+    user: UserResponseDto | null;
+    token: string | null;
+    isLoading: boolean;
+    error: string | null;
+    lastRegisterResponse: RegisterOwnerCompleteResponseDto | null;
+    // Acciones
+    login: (credentials: LoginDto) => Promise<void>;
+    registerClient: (data: RegisterClientDto) => Promise<void>;
+    registerOwnerComplete: (data: RegisterOwnerCompleteDto) => Promise<RegisterOwnerCompleteResponseDto>;
+    logout: () => void;
+    updateProfile: (data: UpdateProfileDto) => Promise<void>;
+    getProfile: () => Promise<void>;
+    clearError: () => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set, get) => ({
+            // Estado inicial
+            user: null,
+            token: null,
+            isLoading: false,
+            error: null,
+            lastRegisterResponse: null,
+
+            // Login
+            login: async (credentials) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await authService.login(credentials);
+                    set({
+                        user: response.user,
+                        token: response.access_token,
+                        isLoading: false,
+                    });
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
+            registerClient: async (data) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await authService.registerClient(data);
+                    // No hacer login automático, solo redirigir al login
+                    set({ isLoading: false });
+                    // Opcional: guardar mensaje de éxito
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
+
+            registerOwnerComplete: async (data) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await authService.registerOwnerComplete(data);
+                    set({
+                        lastRegisterResponse: response,
+                        isLoading: false
+                    });
+                    return response;
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
+
+
+            // Logout
+            logout: () => {
+                authService.logout();
+                set({ user: null, token: null, error: null });
+            },
+
+            // Actualizar perfil
+            updateProfile: async (data) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await authService.updateProfile(data);
+                    set({ user: response.user, isLoading: false });
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
+
+            // Obtener perfil
+            getProfile: async () => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await authService.getProfile();
+                    set({ user: response.user, isLoading: false });
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
+
+            // Limpiar error
+            clearError: () => set({ error: null }),
+        }),
+        {
+            name: 'auth-storage',
+            partialize: (state) => ({
+                user: state.user,
+                token: state.token,
+                lastRegisterResponse: state.lastRegisterResponse
+            }),
+        }
+    )
+);

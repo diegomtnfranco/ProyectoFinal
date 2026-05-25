@@ -7,6 +7,8 @@ import { CreateEmployeeDto } from './dto/create-parking-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-parking-employee.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
+import { Space, SpaceStatus } from '../spaces/entities/space.entity';
+import { EmployeeParkingLotResponseDto, EmployeeSpaceDto } from './dto/employee-parking-lot-response.dto';
 
 @Injectable()
 export class ParkingEmployeesService {
@@ -17,6 +19,8 @@ export class ParkingEmployeesService {
     private userRepository: Repository<User>,
     @InjectRepository(ParkingLot)
     private parkingLotRepository: Repository<ParkingLot>,
+    @InjectRepository(Space)
+    private spaceRepository: Repository<Space>,
   ) {}
 
   async create(createDto: CreateEmployeeDto, ownerId: string): Promise<ParkingEmployee> {
@@ -133,6 +137,74 @@ export class ParkingEmployeesService {
       where: { employeeCode },
       relations: ['user', 'parkingLot'],
     });
+  }
+
+  async getMyParkingLot(userId: string): Promise<EmployeeParkingLotResponseDto> {
+    // 1. Buscar el perfil del empleado
+    const employee = await this.employeeRepository.findOne({
+      where: { userId, isActive: true },
+      relations: ['parkingLot'],
+    });
+
+    if (!employee) {
+      throw new NotFoundException('No tienes un perfil de empleado activo');
+    }
+
+    if (!employee.parkingLot) {
+      throw new NotFoundException('No estás asignado a ningún estacionamiento');
+    }
+
+    const parkingLot = employee.parkingLot;
+
+    // 2. Obtener todos los espacios de este estacionamiento
+    const spaces = await this.spaceRepository.find({
+      where: { parkingLotId: parkingLot.id, isActive: true },
+    });
+
+    // 3. Calcular estadísticas
+    const totalSpaces = spaces.length;
+    const availableSpaces = spaces.filter(s => s.status === SpaceStatus.AVAILABLE).length;
+    const occupiedSpaces = spaces.filter(s => s.status === SpaceStatus.OCCUPIED).length;
+    const reservedSpaces = spaces.filter(s => s.status === SpaceStatus.RESERVED).length;
+    const maintenanceSpaces = spaces.filter(s => s.status === SpaceStatus.MAINTENANCE).length;
+
+    // 4. Mapear espacios (solo lo que el empleado necesita ver)
+    const spacesDto: EmployeeSpaceDto[] = spaces.map(space => ({
+      id: space.id,
+      spaceNumber: space.spaceNumber,
+      status: space.status,
+      allowedVehicleTypes: space.allowedVehicleTypes,
+      isReserved: space.isReserved,
+      reservedUntil: space.reservedUntil,
+      occupiedSince: space.occupiedSince,
+      occupiedByVehiclePlate: space.occupiedByVehiclePlate,
+      metadata: {
+        floor: space.metadata?.floor,
+        zone: space.metadata?.zone,
+        widthMeters: space.metadata?.widthMeters,
+        lengthMeters: space.metadata?.lengthMeters,
+        hasEvCharger: space.metadata?.hasEvCharger,
+        isCovered: space.metadata?.isCovered,
+      },
+    }));
+
+    return {
+      id: parkingLot.id,
+      name: parkingLot.name,
+      address: parkingLot.address,
+      latitude: parkingLot.latitude,
+      longitude: parkingLot.longitude,
+      openTime: parkingLot.openTime,
+      closeTime: parkingLot.closeTime,
+      stats: {
+        totalSpaces,
+        availableSpaces,
+        occupiedSpaces,
+        reservedSpaces,
+        maintenanceSpaces,
+      },
+      spaces: spacesDto,
+    };
   }
 
   async update(id: string, updateDto: UpdateEmployeeDto, ownerId: string): Promise<ParkingEmployee> {

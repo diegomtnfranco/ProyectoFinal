@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-import type { ParkingLot } from '../types/parking.types'
+import type { ParkingLot } from '../../../types/parking.types'
 
 interface Props {
   parking: ParkingLot

@@ -34,6 +34,17 @@ export class ParkingEmployeesController {
     return this.employeesService.findByUserId(userId);
   }
 
+
+  
+  /**
+   * Obtener el estacionamiento donde trabaja el empleado
+   * GET /employee/my-parking-lot
+   */
+  @Get('my-parking-lot')
+  async getMyParkingLot(@CurrentUser('id') userId: string) {
+    return this.employeesService.getMyParkingLot(userId);
+  }
+
   @Get(':id')
   @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
