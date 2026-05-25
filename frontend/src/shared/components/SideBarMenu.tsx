@@ -9,7 +9,7 @@ export interface OpcionMenu {
 
 const OwnerOptions: OpcionMenu[] = [
   {
-    name: 'Parking',
+    name: 'Espacios',
     path: '/owner/parking',
     icon: ParkingMeter,
   },
@@ -23,16 +23,8 @@ const OwnerOptions: OpcionMenu[] = [
     path: '/owner/users',
     icon: UserRoundCog,
   },
-  {
-    name: 'Reportes',
-    path: '/owner/reports',
-    icon: ChartSpline,
-  },
-  {
-    name: 'Configuración',
-    path: '/owner/settings',
-    icon: TableConfig,
-  }
+  
+  
 ]
 
 const SideBarMenu = () => {
