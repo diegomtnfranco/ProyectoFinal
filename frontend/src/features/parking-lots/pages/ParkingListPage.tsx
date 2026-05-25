@@ -3,7 +3,7 @@ import ParkingCard from '../components/ParkingCard'
 
 import ParkingPhoto from '../../../assets/logos/Parking-Logo.jpg'
 
-import type { ParkingLot } from '../types/parking.types'
+import type { ParkingLot } from '../../../types/parking.types'
 
 const parkingLots: ParkingLot[] = [
   {

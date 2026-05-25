@@ -2,7 +2,8 @@ import {
   IsEmail, IsString, MinLength, IsOptional, 
   IsLatitude, IsLongitude, IsMilitaryTime, 
   IsNumber, Min, Max, IsBoolean, 
-  MaxLength, Matches
+  MaxLength, Matches,
+  IsPositive
 } from 'class-validator';
 import { IsCUIT } from '../../parking-owners/common/decorators/is-cuit.decorator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -134,6 +135,7 @@ export class RegisterOwnerCompleteDto {
     required: true 
   })
   @IsNumber()
+  @IsPositive()
   @Min(1)
   @Max(150, { message: 'El número máximo de espacios permitido es 150' })
   totalSpaces!: number;
