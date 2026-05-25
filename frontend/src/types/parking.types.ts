@@ -193,6 +193,7 @@ export interface Occupancy {
   checkedOutBy?: string;
   totalAmount?: number;
   isCompleted: boolean;
+  reservationId?: string;  // ← AGREGO
 }
 
 export interface CheckInDto {
@@ -219,6 +220,9 @@ export interface ActiveOccupancy {
   checkInTime: string;
   checkedInBy: string;
   totalAmount?: number;
+  isCompleted?: boolean;  // ← AGREGO
+  hasReservation: boolean;   // ← AGREGO
+  reservationId?: string;    // ← AGREGO
 }
 
 // ============================================

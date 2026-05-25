@@ -16,4 +16,7 @@ export class ActiveOccupancyResponseDto {
   checkInTime!: Date;
   checkedInBy!: string;
   totalAmount?: number;
+  isCompleted!:boolean;
+  hasReservation!: boolean;  // ← AGREGAR: indica si está vinculada a una reserva
+  reservationId?: string;    // ← AGREGAR: ID de la reserva asociada
 }

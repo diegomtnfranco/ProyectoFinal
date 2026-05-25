@@ -1,31 +1,260 @@
-import { CarFront, Motorbike, ParkingMeter, Van } from 'lucide-react';
-import {  type Space } from '../../../types/parking.types';
-import {VehicleType,SpaceStatus} from '../../../types/auth.types'
-const SpaceCard = ({ space }: { space: Space }) => {
-    return (
-        <div
+// shared/components/parking/SpaceCard.tsx
+import { useState } from 'react';
+import { CarFront, Motorbike, ParkingMeter, Van, Wrench, CalendarCheck } from 'lucide-react';
+import { type Space } from '../../../types/parking.types';
+import { VehicleType, SpaceStatus } from '../../../types/auth.types';
+import { useSpacesStore } from '../../../stores/spacesStore';
+import { useUIStore } from '../../../stores/uiStore';
 
-            key={space.id}
-            className={`${space.status === SpaceStatus.OCCUPIED
-                    ? space.occupiedByVehicleType === VehicleType.CAR
-                        ? 'bg-blue-200'
-                        : space.occupiedByVehicleType === VehicleType.MOTORCYCLE
-                            ? 'bg-green-200'
-                            : 'bg-orange-200'
-                    : 'bg-gray-200'
-                } rounded-md p-2 text-center text-sm`}
-        >
-            <p className='bg-slate-50 font-mono font-thin rounded-md'>{space.spaceNumber}</p>
-            {space.status === SpaceStatus.OCCUPIED && (
-                <div className="text-slate-500 mt-1 w-full align-middle justify-content-center flex items-center gap-1 justify-center">
-                    {space.occupiedByVehicleType === VehicleType.CAR && <CarFront size={24} className="text-blue-500" />}
-                    {space.occupiedByVehicleType === VehicleType.MOTORCYCLE && <Motorbike size={24} className="text-green-800" />}
-                    {space.occupiedByVehicleType === VehicleType.TRUCK && <Van size={24} className="text-orange-800" />}
-                    {space.occupiedByVehicleType === undefined && <ParkingMeter size={24} className="text-slate-500" />}
-                </div>
-            )}
-        </div>
-    )
+interface SpaceCardProps {
+  space: Space;
+  onSpaceUpdate?: () => void;
 }
 
-export default SpaceCard
+// Definir el tipo correctamente
+type UserVehicleType = 'car' | 'truck' | 'motorcycle' | 'van';
+
+// Helper para validar tipo de vehículo
+const isValidVehicleType = (value: string): value is UserVehicleType => {
+  const validTypes: UserVehicleType[] = ['car', 'truck', 'motorcycle', 'van'];
+  return validTypes.includes(value as UserVehicleType);
+};
+
+const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
+  const [showActions, setShowActions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Usar solo spacesStore para todas las operaciones
+  const { updateSpaceStatus, occupySpace, liberateSpace } = useSpacesStore();
+  const { showNotification } = useUIStore();
+
+  const handleMouseEnter = () => setShowActions(true);
+  const handleMouseLeave = () => setShowActions(false);
+
+  // Obtener color según estado
+  const getStatusColor = () => {
+    switch (space.status) {
+      case SpaceStatus.AVAILABLE:
+        return 'bg-green-100 hover:bg-green-200 border-green-300';
+      case SpaceStatus.OCCUPIED:
+        return 'bg-red-100 border-red-300';
+      case SpaceStatus.RESERVED:
+        return 'bg-yellow-100 border-yellow-300';
+      case SpaceStatus.MAINTENANCE:
+        return 'bg-gray-300 border-gray-400';
+      default:
+        return 'bg-gray-100';
+    }
+  };
+
+  // Obtener icono según estado y tipo de vehículo
+  const getSpaceIcon = () => {
+    if (space.status === SpaceStatus.AVAILABLE) {
+      return <ParkingMeter size={28} className="text-green-600" />;
+    }
+    
+    if (space.status === SpaceStatus.RESERVED) {
+      return <CalendarCheck size={28} className="text-yellow-600" />;
+    }
+    
+    if (space.status === SpaceStatus.MAINTENANCE) {
+      return <Wrench size={28} className="text-gray-600" />;
+    }
+    
+    if (space.status === SpaceStatus.OCCUPIED) {
+      switch (space.occupiedByVehicleType) {
+        case VehicleType.CAR:
+          return <CarFront size={28} className="text-blue-600" />;
+        case VehicleType.MOTORCYCLE:
+          return <Motorbike size={28} className="text-green-600" />;
+        case VehicleType.TRUCK:
+          return <Van size={28} className="text-orange-600" />;
+        default:
+          return <ParkingMeter size={28} className="text-red-600" />;
+      }
+    }
+    
+    return <ParkingMeter size={28} className="text-gray-500" />;
+  };
+
+  // Obtener texto del estado
+  const getStatusText = () => {
+    switch (space.status) {
+      case SpaceStatus.AVAILABLE:
+        return 'Disponible';
+      case SpaceStatus.OCCUPIED:
+        return `Ocupado por ${space.occupiedByVehiclePlate || 'vehículo'}`;
+      case SpaceStatus.RESERVED:
+        return 'Reservado';
+      case SpaceStatus.MAINTENANCE:
+        return 'Mantenimiento';
+      default:
+        return '';
+    }
+  };
+
+  // Ocupar espacio (check-in) - Usando occupySpace del store
+  const handleOccupy = async () => {
+    setIsLoading(true);
+    try {
+      const plate = prompt('Ingrese la patente del vehículo:');
+      if (!plate) {
+        setIsLoading(false);
+        return;
+      }
+      
+      const vehicleTypeInput = prompt('Ingrese tipo de vehículo (car/truck/motorcycle/van):', 'car');
+      if (!vehicleTypeInput) {
+        setIsLoading(false);
+        return;
+      }
+      
+      // Validar tipo de vehículo
+      if (!isValidVehicleType(vehicleTypeInput)) {
+        showNotification('Tipo de vehículo inválido. Use: car, truck, motorcycle, van', 'error');
+        setIsLoading(false);
+        return;
+      }
+      
+      // ✅ Usar occupySpace del store
+      await occupySpace(space.id, plate.toUpperCase(), vehicleTypeInput);
+      
+      showNotification(`Espacio ${space.spaceNumber} ocupado correctamente`, 'success');
+      onSpaceUpdate?.();
+    } catch (error) {
+      showNotification(error as string, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Liberar espacio (check-out) - Usando liberateSpace del store
+  const handleLiberate = async () => {
+    setIsLoading(true);
+    try {
+      const confirm = window.confirm(`¿Confirmar salida del espacio ${space.spaceNumber}?`);
+      if (!confirm) {
+        setIsLoading(false);
+        return;
+      }
+      
+      // ✅ Usar liberateSpace del store
+      await liberateSpace(space.id);
+      
+      showNotification(`Espacio ${space.spaceNumber} liberado correctamente`, 'success');
+      onSpaceUpdate?.();
+    } catch (error) {
+      showNotification(error as string, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cambiar a mantenimiento
+  const handleMaintenance = async () => {
+    setIsLoading(true);
+    try {
+      await updateSpaceStatus(space.id, { status: SpaceStatus.MAINTENANCE });
+      showNotification(`Espacio ${space.spaceNumber} en mantenimiento`, 'info');
+      onSpaceUpdate?.();
+    } catch (error) {
+      showNotification(error as string, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cambiar a disponible
+  const handleAvailable = async () => {
+    setIsLoading(true);
+    try {
+      await updateSpaceStatus(space.id, { status: SpaceStatus.AVAILABLE });
+      showNotification(`Espacio ${space.spaceNumber} disponible`, 'success');
+      onSpaceUpdate?.();
+    } catch (error) {
+      showNotification(error as string, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // No mostrar acciones si está en mantenimiento
+  const showActionButtons = showActions && !isLoading;
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative rounded-md p-3 text-center transition-all duration-200
+        border-2 ${getStatusColor()}
+        ${isLoading ? 'opacity-50' : ''}
+      `}
+    >
+      {/* Número del espacio */}
+      <p className="bg-white/80 flex justify-center font-mono font-semibold rounded-md text-xs py-1 px-2 mb-1">
+        {space.spaceNumber}
+      </p>
+      
+      {/* Icono del espacio */}
+      <div className="flex justify-center my-2">
+        {getSpaceIcon()}
+      </div>
+      
+      {/* Estado */}
+      <p className="text-xs font-medium text-gray-700 truncate">
+        {getStatusText()}
+      </p>
+      
+      {/* Acciones (hover) */}
+      {showActionButtons && (
+        <div className="absolute inset-0 bg-black/70 rounded-md flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
+          {space.status === SpaceStatus.AVAILABLE && (
+            <button
+              onClick={handleOccupy}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all"
+            >
+              Ocupar
+            </button>
+          )}
+          
+          {space.status === SpaceStatus.OCCUPIED && (
+            <button
+              onClick={handleLiberate}
+              className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all"
+            >
+              Liberar
+            </button>
+          )}
+          
+          {space.status === SpaceStatus.RESERVED && (
+            <>
+              <button
+                onClick={handleOccupy}
+                className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all"
+              >
+                Check-in
+              </button>
+              <button
+                onClick={handleMaintenance}
+                className="bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all"
+              >
+                Mantenimiento
+              </button>
+            </>
+          )}
+          
+          {space.status === SpaceStatus.MAINTENANCE && (
+            <button
+              onClick={handleAvailable}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all"
+            >
+              Disponible
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SpaceCard;

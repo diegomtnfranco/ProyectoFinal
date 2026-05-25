@@ -190,32 +190,36 @@ export class OccupancyService {
   }
 
   async getActiveOccupancies(parkingLotId: string, userId: string, userRole: string): Promise<ActiveOccupancyResponseDto[]> {
-    // Verificar permisos
-    if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('No tienes permiso para ver ocupaciones activas');
-    }
-
-    const occupancies = await this.occupancyRepository.find({
-      where: { isCompleted: false, space: { parkingLotId } },
-      relations: ['space'],
-      order: { checkInTime: 'DESC' },
-    });
-
-    return occupancies.map(occ => ({
-      id: occ.id,
-      spaceId: occ.spaceId,
-      space: {
-        id: occ.space.id,
-        spaceNumber: occ.space.spaceNumber,
-        status: occ.space.status,
-      },
-      vehiclePlate: occ.vehiclePlate,
-      vehicleType: occ.vehicleType,
-      checkInTime: occ.checkInTime,
-      checkedInBy: occ.checkedInBy,
-      totalAmount: occ.totalAmount,
-    }));
+  // Verificar permisos
+  if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
+    throw new ForbiddenException('No tienes permiso para ver ocupaciones activas');
   }
+
+  const occupancies = await this.occupancyRepository.find({
+    where: { isCompleted: false, space: { parkingLotId } },
+    relations: ['space'],
+    order: { checkInTime: 'DESC' },
+  });
+
+  return occupancies.map(occ => ({
+    id: occ.id,
+    spaceId: occ.spaceId,
+    space: {
+      id: occ.space.id,
+      spaceNumber: occ.space.spaceNumber,
+      status: occ.space.status,
+    },
+    vehiclePlate: occ.vehiclePlate,
+    vehicleType: occ.vehicleType,
+    checkInTime: occ.checkInTime,
+    checkedInBy: occ.checkedInBy,
+    totalAmount: occ.totalAmount,
+    isCompleted: occ.isCompleted,  // ← AGREGAR
+    hasReservation: !!occ.reservationId,  // ← AGREGAR
+    reservationId: occ.reservationId,   
+  }));
+}
+
 
   async getSpaceHistory(spaceId: string): Promise<Occupancy[]> {
     return this.occupancyRepository.find({
