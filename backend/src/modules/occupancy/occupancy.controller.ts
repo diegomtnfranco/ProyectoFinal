@@ -49,7 +49,11 @@ export class OccupancyController {
     @Body() checkOutDto: CheckOutDto,
     @CurrentUser() user: any,
   ) {
-    return this.occupancyService.checkOut(checkOutDto, user.id, user.role);
+    console.log('llego al chec')
+
+    const response =  this.occupancyService.checkOut(checkOutDto, user.id, user.role);
+    
+    return response
   }
 
   /**

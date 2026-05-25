@@ -13,8 +13,6 @@ export class NotificationsService {
 
   async sendVerificationEmail(email: string, token: string, name: string): Promise<void> {
     
-    console.log(this.configService.get('EMAIL_USER'),
-            this.configService.get('EMAIL_PASSWORD'))
     const verificationUrl = `${this.configService.get('FRONTEND_URL')}/verify-email?token=${token}`;
     
     await this.mailerService.sendMail({

@@ -1,23 +1,6 @@
-// stores/occupancyStore.ts (corregido)
 import { create } from 'zustand';
 import { occupancyService } from '../services/occupancy.service';
-import  type{ ActiveOccupancy, Occupancy, CheckInDto } from '../types/parking.types';
-
-// Función para convertir Occupancy a ActiveOccupancy
-const toActiveOccupancy = (occupancy: Occupancy, spaceNumber?: string): ActiveOccupancy => ({
-  id: occupancy.id,
-  spaceId: occupancy.spaceId,
-  space: {
-    id: occupancy.spaceId,
-    spaceNumber: spaceNumber || '',
-    status: 'occupied',
-  },
-  vehiclePlate: occupancy.vehiclePlate,
-  vehicleType: occupancy.vehicleType,
-  checkInTime: occupancy.checkInTime,
-  checkedInBy: occupancy.checkedInBy,
-  totalAmount: occupancy.totalAmount,
-});
+import type { ActiveOccupancy, Occupancy, CheckInDto } from '../types/parking.types';
 
 interface OccupancyState {
   // Estado
@@ -56,7 +39,8 @@ export const useOccupancyStore = create<OccupancyState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const newOccupancy = await occupancyService.checkIn(data);
-      // Convertir Occupancy a ActiveOccupancy para mostrar en tiempo real
+      
+      // ✅ Convertir correctamente con todos los campos requeridos
       const activeOccupancy: ActiveOccupancy = {
         id: newOccupancy.id,
         spaceId: newOccupancy.spaceId,
@@ -70,7 +54,11 @@ export const useOccupancyStore = create<OccupancyState>((set, get) => ({
         checkInTime: newOccupancy.checkInTime,
         checkedInBy: newOccupancy.checkedInBy,
         totalAmount: newOccupancy.totalAmount,
+        hasReservation: !!(newOccupancy as any).reservationId,  // ← Verificar si tiene reserva
+        reservationId: (newOccupancy as any).reservationId,
+        isCompleted: false,
       };
+      
       set((state) => ({
         activeOccupancies: [...state.activeOccupancies, activeOccupancy],
         isLoading: false,

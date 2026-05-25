@@ -20,7 +20,6 @@ export class RatesService {
   async create(createDto: CreateRateDto, userId: string, userRole: string): Promise<Rate> {
     // Verificar permisos
 
-    console.log(userId, userRole)
     const parkingLot = await this.parkingLotRepository.findOne({
       where: { id: createDto.parkingLotId },
       relations: ['owner'],
@@ -30,7 +29,6 @@ export class RatesService {
       throw new NotFoundException(`Estacionamiento con ID ${createDto.parkingLotId} no encontrado`);
     }
 
-    console.log(parkingLot);
     // Si es PARKING_OWNER, verificar que el parking le pertenezca
     if (userRole === UserRole.PARKING_OWNER && parkingLot.owner.userId !== userId) {
       throw new ForbiddenException('No tienes permiso para agregar tarifas a este estacionamiento');
