@@ -17,6 +17,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {appConfig} from './modules/config/app.config';
 import { ParkingEmployeesModule } from './modules/parking-employees/parking-employees.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -47,7 +48,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ClientProfilesModule,
     CommonModule,
     ParkingEmployeesModule,
-    NotificationsModule
+    NotificationsModule,
+    WebsocketModule
     
 
   ],

@@ -197,7 +197,7 @@ export class OccupancyService {
 
   const occupancies = await this.occupancyRepository.find({
     where: { isCompleted: false, space: { parkingLotId } },
-    relations: ['space'],
+    relations: ['space', 'reservation'],
     order: { checkInTime: 'DESC' },
   });
 
@@ -216,7 +216,8 @@ export class OccupancyService {
     totalAmount: occ.totalAmount,
     isCompleted: occ.isCompleted,  // ← AGREGAR
     hasReservation: !!occ.reservationId,  // ← AGREGAR
-    reservationId: occ.reservationId,   
+    reservationId: occ.reservationId,  
+    clientName: occ.reservation?.client?.name,  
   }));
 }
 
