@@ -5,9 +5,10 @@ import { ParkingLotsController } from './parking-lots.controller';
 import { ParkingLot } from './entities/parking-lot.entity';
 import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 import { Rate } from '../rates/entities/rate.entity';
+import { Space } from '../spaces/entities/space.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ParkingLot, ParkingOwner, Rate])],
+  imports: [TypeOrmModule.forFeature([ParkingLot, ParkingOwner, Rate,Space])],
   controllers: [ParkingLotsController],
   providers: [ParkingLotsService],
   exports: [ParkingLotsService],
