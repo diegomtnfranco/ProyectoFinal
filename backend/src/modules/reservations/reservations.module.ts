@@ -7,12 +7,15 @@ import { Space } from '../spaces/entities/space.entity';
 import { ClientProfile } from '../client-profiles/entities/client-profile.entity';
 import { RatesModule } from '../rates/rates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WebsocketModule } from '../websocket/websocket.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Reservation, Space, ClientProfile]),
     RatesModule,
     NotificationsModule,
+    WebsocketModule,
+    
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

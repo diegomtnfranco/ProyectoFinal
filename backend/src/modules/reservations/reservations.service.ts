@@ -17,6 +17,7 @@ import { ClientProfile } from '../client-profiles/entities/client-profile.entity
 import { RatesService } from '../rates/rates.service';
 import { UserRole } from '../users/entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class ReservationsService {
@@ -30,6 +31,7 @@ export class ReservationsService {
     private ratesService: RatesService,
     private notificationsService: NotificationsService,
     private dataSource: DataSource,
+    private websocketGateway: WebsocketGateway,
   ) {}
 
  async create(createDto: CreateReservationDto, userId: string): Promise<ReservationResponseDto> {
@@ -141,6 +143,18 @@ export class ReservationsService {
     },
   );
 
+      this.websocketGateway.emitNewReservation(availableSpace.parkingLotId, {
+      id: reservation.id,
+      spaceNumber: availableSpace.spaceNumber,
+      startTime: reservation.startTime,
+      endTime: reservation.endTime,
+      vehiclePlate: reservation.vehiclePlate,
+      clientName: client.name,
+    });
+
+    // Emitir actualización de espacio a través del WebSocket
+    this.websocketGateway.emitSpaceUpdate(availableSpace.parkingLotId, availableSpace.id, SpaceStatus.RESERVED);
+
   return this.mapToResponseDto(reservation);
 }
 
@@ -246,6 +260,14 @@ export class ReservationsService {
       },
     );
 
+    // ✅ Emitir evento WebSocket al cliente
+    this.websocketGateway.emitReservationConfirmed(reservation.client.user.id, {
+      id: reservation.id,
+      spaceNumber: reservation.space.spaceNumber,
+      startTime: reservation.startTime,
+      endTime: reservation.endTime,
+    });
+
     return this.mapToResponseDto(reservation);
   }
 
@@ -286,6 +308,21 @@ export class ReservationsService {
 
     await this.spaceRepository.save(space);
     await this.reservationRepository.save(reservation);
+
+     // ✅ Emitir evento WebSocket al dueño/empleado
+    const parkingLotId = reservation.space.parkingLotId;
+    this.websocketGateway.emitReservationCancelled(
+      reservation.space.parkingLot.owner.userId,
+      {
+        id: reservation.id,
+        spaceNumber: reservation.space.spaceNumber,
+        cancelledBy: 'client',
+        reason: 'Cancelado por el cliente',
+      }
+    );
+
+    // ✅ Emitir actualización de espacio (liberado)
+    this.websocketGateway.emitSpaceUpdate(parkingLotId, reservation.spaceId, SpaceStatus.AVAILABLE);
 
     return this.mapToResponseDto(reservation);
   }
@@ -331,6 +368,20 @@ export class ReservationsService {
         reason: reservation.cancellationReason,
       },
     );
+
+     // ✅ Emitir evento WebSocket al cliente
+    this.websocketGateway.emitReservationCancelled(
+      reservation.client.user.id,
+      {
+        id: reservation.id,
+        spaceNumber: reservation.space.spaceNumber,
+        cancelledBy: 'parking',
+        reason: reservation.cancellationReason,
+      }
+    );
+
+    // ✅ Emitir actualización de espacio (liberado)
+    this.websocketGateway.emitSpaceUpdate(reservation.space.parkingLotId, reservation.spaceId, SpaceStatus.AVAILABLE);
 
     return this.mapToResponseDto(reservation);
   }
