@@ -14,14 +14,16 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
-import {appConfig} from './modules/config/app.config';
+import { appConfig } from './modules/config/app.config';
 import { ParkingEmployeesModule } from './modules/parking-employees/parking-employees.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
-      load:[appConfig]
+      load: [appConfig]
     }),
 
     TypeOrmModule.forRoot({
@@ -33,10 +35,10 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: true,
-      logging:true,
-       extra: {
-          timezone: 'America/Argentina/Buenos_Aires',
-        },
+      //logging:true,
+      extra: {
+        timezone: 'America/Argentina/Buenos_Aires',
+      },
     }),
     AuthModule,
     ParkingLotsModule,
@@ -54,7 +56,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ParkingEmployeesModule,
     NotificationsModule,
     WebsocketModule
-    
+
 
   ],
   controllers: [],
@@ -69,4 +71,4 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

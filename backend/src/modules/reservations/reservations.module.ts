@@ -8,10 +8,10 @@ import { ClientProfile } from '../client-profiles/entities/client-profile.entity
 import { RatesModule } from '../rates/rates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { WebsocketModule } from '../websocket/websocket.module';
-
+import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Reservation, Space, ClientProfile]),
+    TypeOrmModule.forFeature([Reservation, Space, ClientProfile, ParkingLot]), 
     RatesModule,
     NotificationsModule,
     WebsocketModule,

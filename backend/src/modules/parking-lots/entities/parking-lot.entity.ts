@@ -1,3 +1,4 @@
+// src/modules/parking-lots/entities/parking-lot.entity.ts
 import { 
   Entity, 
   Column, 
@@ -42,12 +43,22 @@ export class ParkingLot {
   @Column({ name: 'close_time', type: 'time' })
   closeTime!: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  // ✅ CORREGIDO: usar objeto literal, no función que retorna string
+  @Column({ type: 'jsonb', default: {
+    allowOnlineReservations: true,
+    cancellationMinutesBefore: 30,
+    reservationHoldMinutes: 120,
+    blockSpaceHoursBefore: 2,
+    maxReservationHours: 24,
+    maxAdvanceDays: 7
+  } })
   settings!: {
     allowOnlineReservations: boolean;
     cancellationMinutesBefore: number;
     reservationHoldMinutes: number;
+    blockSpaceHoursBefore: number;
     maxReservationHours?: number;
+    maxAdvanceDays?: number;
   };
 
   @Column({ name: 'is_active', default: true })

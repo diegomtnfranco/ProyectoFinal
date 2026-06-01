@@ -14,4 +14,6 @@ export class ReservationResponseDto {
   status!: ReservationStatus;
   totalAmount?: number;
   createdAt!: Date;
+  clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
+  expiresAt?: string; 
 }

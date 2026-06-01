@@ -91,6 +91,7 @@ export class OccupancyService {
         checkInTime: new Date(),
         checkedInBy: userId,
         isCompleted: false,
+        createdAt: new Date()
       });
       await queryRunner.manager.save(occupancy);
 
@@ -160,6 +161,7 @@ export class OccupancyService {
 
       // 2. Calcular horas ocupadas
       const checkOutTime = new Date();
+      const updatedAt = new Date();
       const hours = Math.ceil((checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60));
       const hoursDecimal = (checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60);
 
@@ -183,7 +185,7 @@ export class OccupancyService {
       occupancy.checkedOutBy = userId;
       occupancy.totalAmount = totalAmount;
       occupancy.isCompleted = true;
-
+      occupancy.updatedAt = updatedAt;
       await queryRunner.manager.save(occupancy);
 
       // 6. Liberar el espacio
