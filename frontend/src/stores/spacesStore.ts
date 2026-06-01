@@ -29,12 +29,13 @@ interface SpacesState {
   fetchAvailableSpaces: (parkingLotId: string, vehicleType?: UserVehicleType) => Promise<void>;
   createSpace: (data: CreateSpaceDto) => Promise<void>;
   updateSpaceStatus: (id: string, data: UpdateSpaceStatusDto) => Promise<void>;
-  occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType) => Promise<void>;
+  occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => Promise<void>;  // ← Actualizar firma
   liberateSpace: (id: string) => Promise<void>;
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
   clearError: () => void;
 }
+
 
 export const useSpacesStore = create<SpacesState>((set, get) => ({
   // Estado inicial
@@ -111,45 +112,44 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
     }
   },
 
-  // Ocupar espacio (check-in)
-  occupySpace: async (id, vehiclePlate, vehicleType) => {
-    set({ isLoading: true, error: null });
-    try {
-      // Llamar al servicio de occupancy para check-in
-      const { occupancyService } = await import('../services/occupancy.service');
-      await occupancyService.checkIn({
-        spaceId: id,
-        vehiclePlate,
-        vehicleType,
-      });
-      
-      // Actualizar el espacio localmente
-      set((state) => {
-        const updatedSpaces = state.spaces.map(space => 
-          space.id === id 
-            ? { 
-                ...space, 
-                status: SpaceStatus.OCCUPIED,
-                occupiedByVehiclePlate: vehiclePlate,
-                occupiedByVehicleType: vehicleType,
-                occupiedSince: new Date().toISOString(),
-                isReserved: false,
-                reservedUntil: undefined
-              } 
-            : space
-        );
-        const updatedAvailable = state.availableSpaces.filter(space => space.id !== id);
-        return {
-          spaces: sortSpacesByNumber(updatedSpaces),
-          availableSpaces: sortSpacesByNumber(updatedAvailable),
-          isLoading: false,
-        };
-      });
-    } catch (error) {
-      set({ error: error as string, isLoading: false });
-      throw error;
-    }
-  },
+  occupySpace: async (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => {
+  set({ isLoading: true, error: null });
+  try {
+    const { occupancyService } = await import('../services/occupancy.service');
+    await occupancyService.checkIn({
+      spaceId: id,
+      vehiclePlate,
+      vehicleType,
+      reservationId,  // ← Pasar el reservationId
+    });
+    
+    set((state) => {
+      const updatedSpaces = state.spaces.map(space => 
+        space.id === id 
+          ? { 
+              ...space, 
+              status: SpaceStatus.OCCUPIED,
+              occupiedByVehiclePlate: vehiclePlate,
+              occupiedByVehicleType: vehicleType,
+              occupiedSince: new Date().toISOString(),
+              isReserved: false,
+              reservedUntil: undefined
+            } 
+          : space
+      );
+      const updatedAvailable = state.availableSpaces.filter(space => space.id !== id);
+      return {
+        spaces: sortSpacesByNumber(updatedSpaces),
+        availableSpaces: sortSpacesByNumber(updatedAvailable),
+        isLoading: false,
+      };
+    });
+  } catch (error) {
+    set({ error: error as string, isLoading: false });
+    throw error;
+  }
+},
+
 
   // Liberar espacio (check-out)
   liberateSpace: async (id) => {

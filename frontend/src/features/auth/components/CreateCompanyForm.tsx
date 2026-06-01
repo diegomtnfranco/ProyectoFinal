@@ -44,7 +44,7 @@ function CreateCompanyForm() {
       password,
       parkingName,
       capacity,
-      acceptReservations,
+      acceptReservations: acceptReservations === 'si',
     }
 
     localStorage.setItem(

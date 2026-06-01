@@ -1,3 +1,4 @@
+// src/modules/websocket/websocket.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -11,6 +12,8 @@ import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { Space } from '../spaces/entities/space.entity';
@@ -26,7 +29,7 @@ import { SpaceStatus } from '../spaces/entities/space.entity';
 @Injectable()
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server!: Server;  // ← Agregar ! para indicar que se asignará después
+  server!: Server;
 
   private userSockets: Map<string, string[]> = new Map();
 
@@ -37,18 +40,31 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     private parkingLotRepository: Repository<ParkingLot>,
     @InjectRepository(Space)
     private spaceRepository: Repository<Space>,
+    private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth.token;
     if (!token) {
+      console.log('❌ No token provided, disconnecting');
       client.disconnect();
       return;
     }
 
     try {
-      const user = await this.validateToken(token);
+      // ✅ Usar JwtService para verificar el token
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+      
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+        relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile'],
+      });
+
       if (!user) {
+        console.log('❌ User not found, disconnecting');
         client.disconnect();
         return;
       }
@@ -178,21 +194,32 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
    * Actualización de espacio (disponibilidad)
    */
   emitSpaceUpdate(parkingLotId: string, spaceId: string, status: string, metadata?: any) {
-    const roomName = `parking:clients:${parkingLotId}`;
-    this.server.to(roomName).emit('space:update', {
-      spaceId,
-      status,
-      timestamp: new Date(),
-      ...metadata,
-    });
-    console.log(`📢 Evento space:update emitido a sala ${roomName}`);
-  }
+  // Sala para clientes (mapa)
+  const clientRoom = `parking:clients:${parkingLotId}`;
+  this.server.to(clientRoom).emit('space:update', {
+    spaceId,
+    status,
+    timestamp: new Date(),
+    ...metadata,
+  });
+  
+  // ✅ Sala para dueños/empleados (dashboard)
+  const ownerRoom = `parking:${parkingLotId}`;
+  this.server.to(ownerRoom).emit('space:update', {
+    spaceId,
+    status,
+    timestamp: new Date(),
+    ...metadata,
+  });
+  
+  console.log(`📢 Evento space:update emitido a salas ${clientRoom} y ${ownerRoom}`);
+}
+
 
   /**
    * Actualización de disponibilidad global del parking
    */
   async emitParkingAvailability(parkingLotId: string) {
-    // Calcular disponibilidad en tiempo real
     const spaces = await this.spaceRepository.find({
       where: { parkingLotId, isActive: true },
     });
@@ -229,23 +256,5 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       timestamp: new Date(),
     });
     console.log(`📢 Evento occupancy:update emitido a sala ${roomName}`);
-  }
-
-  private async validateToken(token: string): Promise<any> {
-    try {
-      const jwt = require('@nestjs/jwt');
-      const decoded = jwt.decode(token);
-      if (!decoded?.sub) return null;
-      
-      const user = await this.userRepository.findOne({
-        where: { id: decoded.sub },
-        relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile'],
-      });
-      
-      return user;
-    } catch (error) {
-      console.error('Error validando token:', error);
-      return null;
-    }
   }
 }

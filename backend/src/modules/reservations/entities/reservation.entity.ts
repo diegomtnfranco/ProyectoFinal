@@ -81,4 +81,7 @@ export class Reservation {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @Column({ name: 'block_space_at', type: 'timestamp', nullable: true })
+  blockSpaceAt?: Date;
 }

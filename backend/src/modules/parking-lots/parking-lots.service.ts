@@ -47,16 +47,32 @@ export class ParkingLotsService {
       }
     }
 
-    const parkingLot = this.parkingLotRepository.create({
-      ownerId: createDto.ownerId,
-      name: createDto.name,
-      address: createDto.address,
-      latitude: createDto.latitude,
-      longitude: createDto.longitude,
-      openTime: createDto.openTime,
-      closeTime: createDto.closeTime,
-      settings: createDto.settings,
-    });
+    const defaultSettings = {
+    allowOnlineReservations: true,
+    cancellationMinutesBefore: 30,
+    reservationHoldMinutes: 120,
+    blockSpaceHoursBefore: 2,
+    maxReservationHours: 24,
+    maxAdvanceDays: 7,
+  };
+
+  // Combinar settings enviados con defaults
+  const finalSettings = {
+    ...defaultSettings,
+    ...createDto.settings,
+  };
+
+  const parkingLot = this.parkingLotRepository.create({
+    ownerId: createDto.ownerId,
+    name: createDto.name,
+    address: createDto.address,
+    latitude: createDto.latitude,
+    longitude: createDto.longitude,
+    openTime: createDto.openTime,
+    closeTime: createDto.closeTime,
+    settings: finalSettings,
+    isActive: true,
+  });
     return this.parkingLotRepository.save(parkingLot);
   }
 

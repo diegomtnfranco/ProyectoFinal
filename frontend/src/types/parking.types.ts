@@ -82,6 +82,7 @@ export interface Space {
   occupiedByVehiclePlate?: string;
   occupiedByVehicleType?: UserVehicleType;
   metadata?: SpaceMetadata;
+  parkingLotId?: string;
 }
 
 export interface CreateSpaceDto {
@@ -153,6 +154,9 @@ export interface Reservation {
   status: ReservationStatusType;
   totalAmount?: number;
   createdAt: string;
+  clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
+  expiresAt?: string;   // ← Agregar (para saber si expira pronto)
+
 }
 
 export interface CreateReservationDto {

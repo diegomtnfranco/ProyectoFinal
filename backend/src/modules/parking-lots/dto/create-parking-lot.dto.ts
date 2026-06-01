@@ -23,12 +23,14 @@ export class CreateParkingLotDto {
   @IsMilitaryTime()
   closeTime!: string;  // ← camelCase
 
-  @IsObject()
+   @IsObject()
   @IsOptional()
   settings?: {
-    allowOnlineReservations: boolean;  // ← camelCase
+    allowOnlineReservations: boolean;
     cancellationMinutesBefore: number;
     reservationHoldMinutes: number;
+    blockSpaceHoursBefore: number;
     maxReservationHours?: number;
+    maxAdvanceDays?: number;
   };
 }
