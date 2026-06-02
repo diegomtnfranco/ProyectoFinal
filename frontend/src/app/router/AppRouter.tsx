@@ -16,6 +16,8 @@ import UsersPage from '../../features/owner/UsersPage'
 
 import CreateCompanyForm from '../../features/auth/components/CreateCompanyForm'
 import CompanyLocationForm from '../../features/auth/components/CompanyLocationForm'
+import AdminLayout from '../layouts/admin-layout'
+import CompaniesPage from '../../features/admin/pages/CompaniesPage'
 
 function AppRouter() {
   return (
@@ -46,6 +48,11 @@ function AppRouter() {
           {/* <Route path='reports' element={<DashboardOwner />} /> */}
             {/* <Route path='settings' element={<DashboardOwner />} /> */}
         </Route>
+
+        {/* ADMIN */}
+       <Route path="/admin" element={<AdminLayout />}>
+  <Route path="companies" element={<CompaniesPage />} />
+</Route>
 
       </Routes>
     </BrowserRouter>
