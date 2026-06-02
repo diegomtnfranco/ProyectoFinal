@@ -334,6 +334,7 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   };
 
   const handleOccupy = async () => {
+    console.log(activeReservation);
     if (space.status === SpaceStatus.RESERVED && activeReservation) {
       setIsLoading(true);
       try {
