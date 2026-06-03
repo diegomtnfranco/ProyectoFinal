@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 import LoginPage from '../../features/auth/pages/LoginPage'
 import RegisterPage from '../../features/auth/pages/RegisterPage'
+import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage'
 
 import ClientLayout from '../layouts/client-layout'
 
@@ -28,6 +29,7 @@ function AppRouter() {
         <Route path='/' element={<LoginPage />} />
         <Route path='/register' element={<RegisterPage />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/verify' element={<VerifyEmailPage />} /> 
 
         {/* CLIENT */}
         <Route path='/client' element={<ClientLayout />}>
