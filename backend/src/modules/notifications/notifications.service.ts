@@ -221,5 +221,17 @@ async sendReservationPendingNotification(clientEmail: string, data: any) {
     `,
   });
 }
+async sendReservationConfirmedExpiredNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Reserva expirada - Parking App',
+    html: `
+      <h1>Tu reserva ha expirado</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>Su reserva fue expirada por el estacionamiento, ya que el vehículo no llegó a tiempo.</p>
+      <p>Disculpa las molestias. Realiza una nueva reserva cuando puedas.</p>
+    `,
+  });
+}
 
 }
