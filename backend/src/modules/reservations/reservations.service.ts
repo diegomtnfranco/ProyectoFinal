@@ -1479,6 +1479,12 @@ export class ReservationsService {
         console.log(`[CRON-expireConfirmed] Espacio ${r.space.spaceNumber} liberado`);
         this.websocketGateway.emitSpaceUpdate(r.space.parkingLotId, r.space.id, SpaceStatus.AVAILABLE);
       }
+      if (r.client?.user?.email) {
+        await this.notificationsService.sendReservationConfirmedExpiredNotification(
+          r.client.user.email,
+          { reservationId: r.id, spaceNumber: r.space?.spaceNumber || 'N/A' },
+        );
+      }
     }
   }
 
