@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuthStore } from '../../../stores/authStore';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verificando tu cuenta, por favor espera...');
+  const { verifyEmail, isLoading } = useAuthStore();
 
-  // token url mail
   const token = searchParams.get('token');
 
   useEffect(() => {
@@ -17,31 +19,21 @@ function VerifyEmail() {
       return;
     }
 
-    // petición al backend con fetch
     const confirmAccount = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/auth/verify-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: token }) 
-        });
-
-        if (!response.ok) {
-          throw new Error('Error en la verificación');
-        }
-
+        await verifyEmail(token);
         setStatus('success');
         setMessage('¡Cuenta verificada exitosamente!');
       } catch (error) {
+        console.error('Error al verificar la cuenta:', error);
+        const errorMessage = typeof error === 'string' ? error : 'El enlace expiró o es inválido. Por favor, intenta de nuevo.';
         setStatus('error');
-        setMessage('El enlace expiró o es inválido. Por favor, intenta de nuevo.');
+        setMessage(errorMessage);
       }
     };
 
     confirmAccount();
-  }, [token]);
+  }, [token, verifyEmail]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -52,13 +44,16 @@ function VerifyEmail() {
 
         {status === 'loading' && (
           <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
             <p className="text-gray-600 font-medium">{message}</p>
           </div>
         )}
 
         {status === 'success' && (
           <div className="flex flex-col gap-4">
+            <div className="flex justify-center">
+              <CheckCircle className="h-16 w-16 text-green-500" />
+            </div>
             <p className="text-green-600 bg-green-100 p-4 rounded-xl font-medium">{message}</p>
             <button
               onClick={() => navigate('/')}
@@ -71,6 +66,9 @@ function VerifyEmail() {
 
         {status === 'error' && (
           <div className="flex flex-col gap-4">
+            <div className="flex justify-center">
+              <XCircle className="h-16 w-16 text-red-500" />
+            </div>
             <p className="text-red-600 bg-red-100 p-4 rounded-xl font-medium">{message}</p>
             <button
               onClick={() => navigate('/register')}
