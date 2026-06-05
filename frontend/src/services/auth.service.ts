@@ -66,13 +66,11 @@ export const authService = {
    * Registro de cliente
    */
   async registerClient(data: RegisterClientDto): Promise<LoginResponseDto> {
-    const response = await api.post<LoginResponseDto>('/auth/register/client', data);
-    if (response.data.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    return response.data;
-  },
+  const response = await api.post<LoginResponseDto>('/auth/register/client', data);
+  // NOTA: No guardamos el token automáticamente para clientes
+  // porque requieren verificación de email
+  return response.data;
+},
 
   /**
    * Registro completo de dueño (con estacionamiento)

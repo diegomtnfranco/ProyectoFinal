@@ -24,8 +24,8 @@ export class ClientProfile {
   @Column()
   name!: string;
 
-  @Column()
-  phone!: string;
+ @Column({ type: 'varchar', nullable: true }) // ← Especificar el tipo explícitamente
+  phone!: string | null;
 
   @Column({ name: 'default_vehicle_plate', nullable: true })
   defaultVehiclePlate?: string;  // ← camelCase
