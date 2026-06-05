@@ -3,10 +3,12 @@ import {
   IsLatitude, IsLongitude, IsMilitaryTime, 
   IsNumber, Min, Max, IsBoolean, 
   MaxLength, Matches,
-  IsPositive
+  IsPositive,
+  Validate
 } from 'class-validator';
 import { IsCUIT } from '../../parking-owners/common/decorators/is-cuit.decorator';
 import { ApiProperty } from '@nestjs/swagger';
+import { MatchConstraint } from '../validators/match.constraint';
 
 export class RegisterOwnerCompleteDto {
   // Datos del usuario
@@ -32,6 +34,18 @@ export class RegisterOwnerCompleteDto {
     message: 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial' 
   })
   password!: string;
+  
+  @ApiProperty({ 
+    example: 'Password123!', 
+    description: 'Confirmación de la contraseña',
+    required: true 
+  })
+  
+  @IsString()
+  @Validate(MatchConstraint, ['password'], { message: 'Las contraseñas no coinciden' })
+  confirmPassword!: string;
+
+
 
   // Datos del dueño
   @ApiProperty({ 
@@ -63,8 +77,8 @@ export class RegisterOwnerCompleteDto {
     description: 'CUIT del negocio (formato: XX-XXXXXXXX-X)',
     required: false 
   })
-  @IsCUIT({ message: 'Debe proporcionar un CUIT válido (formato: XX-XXXXXXXX-X)' })
   @IsOptional()
+  @IsCUIT({ message: 'Debe proporcionar un CUIT válido (formato: XX-XXXXXXXX-X)' })
   cuit?: string;
 
   @ApiProperty({ 

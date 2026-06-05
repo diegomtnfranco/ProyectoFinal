@@ -59,63 +59,66 @@ export class AuthService {
   }
 
   async registerClient(registerDto: RegisterClientDto) {
-    // Verificar si el email ya existe
-    const existingUser = await this.userRepository.findOne({
-      where: { email: registerDto.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('El email ya está registrado');
-    }
-
-    // Generar token de verificación
-    const verificationToken = this.generateVerificationToken();
-
-    // Crear usuario
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    const user = this.userRepository.create({
-      email: registerDto.email,
-      passwordHash: hashedPassword,
-      role: UserRole.CLIENT,
-      isVerified: false,
-      isActive: true,
-      verificationToken,
-    });
-    await this.userRepository.save(user);
-
-    // Crear perfil de cliente
-    const clientProfile = this.clientRepository.create({
-      userId: user.id,
-      name: registerDto.name,
-      phone: registerDto.phone,
-      defaultVehiclePlate: registerDto.defaultVehiclePlate,
-      defaultVehicleType: registerDto.defaultVehicleType,
-    });
-    await this.clientRepository.save(clientProfile);
-
-    // Enviar email de verificación
-    await this.notificationsService.sendVerificationEmail(
-      user.email,
-      verificationToken,
-      registerDto.name,
-    );
-
-    //  creo el token JWT (pero el usuario no podrá usar la app hasta verificar)
-    const token = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    }, {
-      expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
-      secret: this.configService.get('JWT_SECRET'),
-    });
-
-    return {
-      user: this.sanitizeUser(user),
-      access_token: token,
-      requiresVerification: true,
-      message: 'Se ha enviado un email de verificación a tu correo',
-    };
+  // Verificar si el email ya existe
+  const existingUser = await this.userRepository.findOne({
+    where: { email: registerDto.email },
+  });
+  if (existingUser) {
+    throw new ConflictException('El email ya está registrado');
   }
+
+  // Extraer confirmPassword y no usarlo
+  const { confirmPassword, ...clientData } = registerDto;
+
+  // Generar token de verificación
+  const verificationToken = this.generateVerificationToken();
+
+  // Crear usuario
+  const hashedPassword = await bcrypt.hash(clientData.password, 10);
+  const user = this.userRepository.create({
+    email: clientData.email,
+    passwordHash: hashedPassword,
+    role: UserRole.CLIENT,
+    isVerified: false,
+    isActive: true,
+    verificationToken,
+  });
+  await this.userRepository.save(user);
+
+  // Crear perfil de cliente
+  const clientProfile = this.clientRepository.create({
+    userId: user.id,
+    name: clientData.name,
+    phone: clientData.phone,
+    defaultVehiclePlate: clientData.defaultVehiclePlate,
+    defaultVehicleType: clientData.defaultVehicleType,
+  });
+  await this.clientRepository.save(clientProfile);
+
+  // Enviar email de verificación
+  await this.notificationsService.sendVerificationEmail(
+    user.email,
+    verificationToken,
+    clientData.name,
+  );
+
+  // Crear el token JWT
+  const token = this.jwtService.sign({
+    sub: user.id,
+    email: user.email,
+    role: user.role,
+  }, {
+    expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
+    secret: this.configService.get('JWT_SECRET'),
+  });
+
+  return {
+    user: this.sanitizeUser(user),
+    access_token: token,
+    requiresVerification: true,
+    message: 'Se ha enviado un email de verificación a tu correo',
+  };
+}
 
   async registerOwner(registerDto: RegisterOwnerDto) {
     // Verificar si el email ya existe
@@ -431,7 +434,7 @@ export class AuthService {
       response.clientProfile = {
         id: user.clientProfile.id,
         name: user.clientProfile.name,
-        phone: user.clientProfile.phone,
+        phone: user.clientProfile.phone|| '',
         defaultVehiclePlate: user.clientProfile.defaultVehiclePlate,
         defaultVehicleType: user.clientProfile.defaultVehicleType,
       };
@@ -528,104 +531,108 @@ export class AuthService {
 
   async registerOwnerComplete(registerDto: RegisterOwnerCompleteDto) {
     const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
-    try {
-      // 1. Verificar si el email ya existe
-      const existingUser = await this.userRepository.findOne({
-        where: { email: registerDto.email },
+  try {
+    // Extraer confirmPassword y no usarlo
+    const { confirmPassword, ...ownerData } = registerDto;
+
+    // 1. Verificar si el email ya existe
+    const existingUser = await this.userRepository.findOne({
+      where: { email: ownerData.email },
+    });
+    if (existingUser) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    // 2. Verificar si el CUIT ya existe
+    if (ownerData.cuit) {
+      const existingCuit = await this.parkingOwnerRepository.findOne({
+        where: { cuit: ownerData.cuit },
       });
-      if (existingUser) {
-        throw new ConflictException('El email ya está registrado');
+      if (existingCuit) {
+        throw new ConflictException('El CUIT ya está registrado');
       }
+    }
 
-      // 2. Verificar si el CUIT ya existe
-      if (registerDto.cuit) {
-        const existingCuit = await this.parkingOwnerRepository.findOne({
-          where: { cuit: registerDto.cuit },
-        });
-        if (existingCuit) {
-          throw new ConflictException('El CUIT ya está registrado');
-        }
-      }
+    const verificationToken = this.generateVerificationToken();
 
-      const verificationToken = this.generateVerificationToken();
+    // 3. Crear usuario
+    const hashedPassword = await bcrypt.hash(ownerData.password, 10);
+    const user = this.userRepository.create({
+      email: ownerData.email,
+      passwordHash: hashedPassword,
+      role: UserRole.PARKING_OWNER,
+      isVerified: false,
+      isActive: true,
+      verificationToken,
+    });
+    await queryRunner.manager.save(user);
 
-      // 3. Crear usuario
-      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-      const user = this.userRepository.create({
-        email: registerDto.email,
-        passwordHash: hashedPassword,
-        role: UserRole.PARKING_OWNER,
-        isVerified: false,
-        isActive: true,
-        verificationToken,
-      });
-      await queryRunner.manager.save(user);
+    // 4. Crear perfil de dueño
+    const parkingOwner = this.parkingOwnerRepository.create({
+      userId: user.id,
+      name: ownerData.name,
+      businessName: ownerData.businessName,
+      cuit: ownerData.cuit,
+      phone: ownerData.phone,
+      address: ownerData.address,
+      isApproved: false,
+    });
+    await queryRunner.manager.save(parkingOwner);
 
-      // 4. Crear perfil de dueño
-      const parkingOwner = this.parkingOwnerRepository.create({
-        userId: user.id,
-        name: registerDto.name,
-        businessName: registerDto.businessName,
-        cuit: registerDto.cuit,
-        phone: registerDto.phone,
-        address: registerDto.address,
-        isApproved: false,
-      });
-      await queryRunner.manager.save(parkingOwner);
+    // 5. Crear estacionamiento
+    const defaultSettings = {
+      allowOnlineReservations: true,
+      cancellationMinutesBefore: 30,
+      reservationHoldMinutes: 120,
+      blockSpaceHoursBefore: 2,
+      maxReservationHours: 24,
+      maxAdvanceDays: 7,
+    };
 
-      // 5. Crear estacionamiento
-      const defaultSettings = {
-        allowOnlineReservations: true,
-        cancellationMinutesBefore: 30,
-        reservationHoldMinutes: 120,
-        blockSpaceHoursBefore: 2,
-        maxReservationHours: 24,
-        maxAdvanceDays: 7,
+    const parkingLot = this.parkingLotRepository.create({
+      ownerId: parkingOwner.id,
+      name: ownerData.parkingName || ownerData.businessName,
+      address: ownerData.address || 'Dirección pendiente',
+      latitude: ownerData.latitude,
+      longitude: ownerData.longitude,
+      openTime: ownerData.openTime,
+      closeTime: ownerData.closeTime,
+      settings: {
+        ...defaultSettings,
+        allowOnlineReservations: ownerData.allowOnlineReservations ?? true,
+      },
+      isActive: true,
+    });
+
+    await queryRunner.manager.save(parkingLot);
+
+    // 6. Crear espacios - VERIFICAR QUE SE CREAN CORRECTAMENTE
+    const spaces: Space[] = [];
+    const totalSpaces = ownerData.totalSpaces;
+
+    console.log(`Creando ${totalSpaces} espacios para el estacionamiento ${parkingLot.name}`);
+
+    for (let i = 1; i <= totalSpaces; i++) {
+      const space = new Space();
+      space.parkingLotId = parkingLot.id;
+      space.spaceNumber = `${i}`.padStart(3, '0');
+      space.allowedVehicleTypes = [VehicleType.CAR, VehicleType.TRUCK, VehicleType.MOTORCYCLE, VehicleType.VAN];
+      space.status = SpaceStatus.AVAILABLE;
+      space.isActive = true;
+      space.isReserved = false;
+      space.allowsReservations = true;
+      space.metadata = {
+        floor: Math.ceil(i / 20),
+        zone: i <= totalSpaces / 2 ? 'Norte' : 'Sur',
       };
+      spaces.push(space);
+    }
 
-      const parkingLot = this.parkingLotRepository.create({
-        ownerId: parkingOwner.id,
-        name: registerDto.parkingName || registerDto.businessName,
-        address: registerDto.address || 'Dirección pendiente',
-        latitude: registerDto.latitude,
-        longitude: registerDto.longitude,
-        openTime: registerDto.openTime,
-        closeTime: registerDto.closeTime,
-        settings: {
-          ...defaultSettings,
-          allowOnlineReservations: registerDto.allowOnlineReservations ?? true,
-        },
-        isActive: true,
-      });
-
-      await queryRunner.manager.save(parkingLot);
-
-      // 6. Crear espacios (TODOS admiten TODOS los tipos de vehículo)
-      const spaces: Space[] = [];
-      const totalSpaces = registerDto.totalSpaces;
-
-      for (let i = 1; i <= totalSpaces; i++) {
-        const space = new Space(); // ← Crear instancia de Space
-        space.parkingLotId = parkingLot.id;
-        space.spaceNumber = `${i}`.padStart(3, '0');
-        space.allowedVehicleTypes = [VehicleType.CAR, VehicleType.TRUCK, VehicleType.MOTORCYCLE, VehicleType.VAN];
-        space.status = SpaceStatus.AVAILABLE;
-        space.isActive = true;
-        space.isReserved = false;
-        space.allowsReservations = true;
-        space.metadata = {
-          floor: Math.ceil(i / 20),
-          zone: i <= totalSpaces / 2 ? 'Norte' : 'Sur',
-        };
-
-        spaces.push(space);
-      }
-
-
-      await queryRunner.manager.save(spaces);
+    await queryRunner.manager.save(spaces);
+    console.log(`Creados ${spaces.length} espacios exitosamente`)
 
       // 7. Enviar email de verificación
       await this.notificationsService.sendVerificationEmail(
