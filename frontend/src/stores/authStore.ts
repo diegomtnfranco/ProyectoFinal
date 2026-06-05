@@ -18,6 +18,7 @@ interface AuthState {
     updateProfile: (data: UpdateProfileDto) => Promise<void>;
     getProfile: () => Promise<void>;
     clearError: () => void;
+    verifyEmail: (token: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -106,7 +107,20 @@ export const useAuthStore = create<AuthState>()(
 
             // Limpiar error
             clearError: () => set({ error: null }),
+
+            // Verificar email
+            verifyEmail: async (token: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    await authService.verifyEmail(token);
+                    set({ isLoading: false });
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
         }),
+
         {
             name: 'auth-storage',
             partialize: (state) => ({
