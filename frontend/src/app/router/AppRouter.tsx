@@ -17,6 +17,7 @@ import CreateCompanyForm from '../../features/auth/components/CreateCompanyForm'
 import CompanyLocationForm from '../../features/auth/components/CompanyLocationForm'
 import AdminLayout from '../layouts/admin-layout'
 import CompaniesPage from '../../features/admin/pages/CompaniesPage'
+import PendingCompaniesPage from '../../features/admin/pages/PendingCompaniesPages'
 
 function AppRouter() {
   return (
@@ -49,8 +50,10 @@ function AppRouter() {
 
         {/* ADMIN */}
        <Route path="/admin" element={<AdminLayout />}>
-  <Route path="companies" element={<CompaniesPage />} />
-</Route>
+       <Route path="companies" element={<CompaniesPage />} />
+        <Route path="actives" element={<PendingCompaniesPage />}
+  />
+      </Route>
 
       </Routes>
     </BrowserRouter>

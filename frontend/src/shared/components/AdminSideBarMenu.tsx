@@ -15,6 +15,11 @@ function AdminSideBarMenu() {
       icon: <Building2 size={20} />,
       path: '/admin/companies'
     },
+      {
+      title: 'Altas',
+      icon: <Building2 size={20} />,
+      path: '/admin/actives'
+    },
     {
       title: 'Usuarios',
       icon: <Users size={20} />,
@@ -28,7 +33,17 @@ function AdminSideBarMenu() {
   ]
 
   return (
-    <aside className="w-[280px] rounded-xl bg-white shadow-sm border border-gray-200 p-4 flex flex-col justify-between">
+    <aside className="w-full
+    md:w-[280px]
+    rounded-xl
+    bg-white
+    shadow-sm
+    border
+    border-gray-200
+    p-4
+    flex
+    flex-col
+    justify-between">
       <nav className="flex flex-col gap-2">
         {menuItems.map((item) => (
           <NavLink

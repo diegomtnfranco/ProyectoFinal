@@ -6,13 +6,15 @@ import Footer from '../../shared/components/Footer'
 
 function AdminLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className='min-h-screen flex flex-col bg-gray-100'>
       <Navbar />
 
-      <div className="md:flex flex-1 w-full gap-4 px-4 py-4">
-        <AdminSideBarMenu />
+      <div className='md:flex flex-1 w-full gap-4 px-4 py-4'>
+        <div className='hidden md:block'>
+          <AdminSideBarMenu />
+        </div>
 
-        <main className="flex-1 rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+        <main className='flex-1 rounded-xl bg-white p-6 shadow-sm border border-gray-200'>
           <Outlet />
         </main>
       </div>

@@ -39,18 +39,26 @@ function CreateCompanyForm() {
 
     // Guardar temporalmente los datos
     const companyData = {
+      id: Date.now(),
       fullName,
       email,
       password,
       parkingName,
-      capacity,
+      capacity: Number(capacity),
       acceptReservations,
-    }
+      status: 'PENDING'
+}
 
-    localStorage.setItem(
-      'companyData',
-      JSON.stringify(companyData)
-    )
+    const companies = JSON.parse(
+  localStorage.getItem('companies') || '[]'
+)
+
+companies.push(companyData)
+
+localStorage.setItem(
+  'companies',
+  JSON.stringify(companies)
+)
 
     navigate('/company-location')
   }
