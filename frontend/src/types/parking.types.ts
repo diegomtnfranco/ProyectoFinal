@@ -341,3 +341,24 @@ export interface ActiveOccupancy {
   checkedInBy: string;
   totalAmount?: number;
 }
+
+export interface NearbyParkingLot {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  distance: number;
+
+  image?: string;
+
+  openTime: string;
+  closeTime: string;
+
+  availability: {
+    total: number;
+    available: number;
+    occupied: number;
+    reserved: number;
+  };
+}
