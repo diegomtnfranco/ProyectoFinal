@@ -1,34 +1,31 @@
+import { useEffect, useState } from 'react'
 import {
   Eye,
   Pencil,
   Power
 } from 'lucide-react'
 
-const companies = [
-  {
-    id: 1,
-    name: 'Parking Centro',
-    spaces: 120,
-    reservations: true,
-    status: 'Activa'
-  },
-  {
-    id: 2,
-    name: 'Parking Norte',
-    spaces: 80,
-    reservations: false,
-    status: 'Inactiva'
-  },
-  {
-    id: 3,
-    name: 'Parking Sur',
-    spaces: 60,
-    reservations: true,
-    status: 'Activa'
-  }
-]
+interface Company {
+  id: number
+  parkingName: string
+  capacity: number
+  email: string
+  acceptReservations: string
+  status: string
+}
 
 function CompaniesPage() {
+
+  const [companies, setCompanies] = useState<Company[]>([])
+
+useEffect(() => {
+  const data = JSON.parse(
+    localStorage.getItem('companies') || '[]'
+  )
+
+  setCompanies(data)
+}, [])
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -66,15 +63,15 @@ function CompaniesPage() {
                 className="border-t border-gray-100 hover:bg-gray-50"
               >
                 <td className="px-6 py-4 font-medium text-gray-800">
-                  {company.name}
+                  {company.parkingName}
                 </td>
 
                 <td className="px-6 py-4">
-                  {company.spaces} espacios
+                  {company.capacity} espacios
                 </td>
 
                 <td className="px-6 py-4">
-                  {company.reservations ? (
+                  {company.acceptReservations === 'si' ? (
                     <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
                       Sí
                     </span>
@@ -88,7 +85,7 @@ function CompaniesPage() {
                 <td className="px-6 py-4">
                   <span
                     className={`rounded-full px-3 py-1 text-sm ${
-                      company.status === 'Activa'
+                      company.status === 'ACTIVE'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
                     }`}

@@ -19,6 +19,8 @@ import { ProtectedRoute } from '../../shared/components/common/ProtectedRoute';
 import { UserRole } from '../../types/auth.types';
 import MyReservationsPage from '../../features/parking-lots/pages/MyReservationsPage';
 import ProfilePage from '../../features/profile/pages/ProfilePage';
+import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPages'
+
 
 function AppRouter() {
   return (
@@ -59,6 +61,7 @@ function AppRouter() {
             <Route index element={<Navigate to="companies" replace />} />
             <Route path="companies" element={<CompaniesPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path='actives' element={<PendingCompaniesPages/>}/>
           </Route>
         </Route>
 

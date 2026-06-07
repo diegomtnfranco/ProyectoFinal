@@ -1,47 +1,48 @@
-import {api }from '../../../services/api'
+import { api } from '../../../services/api'
 
 export const getCompanies = async () => {
-  const response = await api.get('/parking-owners')
-
-  return response.data
-}
-
-export const createCompany = async (data: any) => {
-  const response = await api.post(
-    '/parking-owners',
-    data
+  const response = await api.get(
+    '/parking-owners'
   )
 
   return response.data
 }
 
-export const updateCompany = async (
-  id: number,
-  data: any
+export const getPendingCompanies =
+  async () => {
+    const response =
+      await api.get(
+        '/parking-owners/pending'
+      )
+
+    return response.data
+  }
+
+export const approveCompany = async (
+  ownerId: string
 ) => {
   const response = await api.patch(
-    `/parking-owners/${id}`,
-    data
+    `/parking-owners/${ownerId}/approve`
   )
 
   return response.data
 }
 
-export const activateCompany = async (
-  id: number
+export const activateUser = async (
+  userId: string
 ) => {
   const response = await api.patch(
-    `/parking-owners/${id}/activate`
+    `/users/${userId}/activate`
   )
 
   return response.data
 }
 
-export const deactivateCompany = async (
-  id: number
+export const deactivateUser = async (
+  userId: string
 ) => {
   const response = await api.patch(
-    `/parking-owners/${id}/deactivate`
+    `/users/${userId}/deactivate`
   )
 
   return response.data

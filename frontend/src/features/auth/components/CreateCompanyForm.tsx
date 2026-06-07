@@ -309,7 +309,7 @@ function CreateCompanyForm() {
     passwordsMatch &&
     parkingName.trim() !== '' &&
     capacity.trim() !== '' &&
-    acceptReservations.trim() !== '' &&
+    acceptReservations !== undefined &&
     Number(capacity) > 0 &&
     Number(capacity) <= 150;
 
@@ -331,6 +331,7 @@ function CreateCompanyForm() {
 
     // Guardar todos los datos incluyendo confirmPassword
     const companyData = {
+      id: Date.now(),
       fullName,
       email,
       password,
