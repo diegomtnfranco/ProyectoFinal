@@ -171,7 +171,7 @@ export interface EmployeeProfileResponseDto {
 export interface ProfileResponseDto {
   user: UserResponseDto;
   clientProfile?: ClientProfileResponseDto;
-  ownerProfile?: OwnerProfileResponseDto;
+  parkingOwnerProfile?: OwnerProfileResponseDto;
   employeeProfile?: EmployeeProfileResponseDto;
 }
 

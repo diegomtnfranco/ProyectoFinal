@@ -408,63 +408,70 @@ export class AuthService {
     return user;
   }
 
-  async getUserProfile(userId: string): Promise<ProfileResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile', 'parkingEmployeeProfile.parkingLot'],
-    });
+ async getUserProfile(userId: string): Promise<any> {
+  const user = await this.userRepository.findOne({
+    where: { id: userId },
+    relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile', 'parkingEmployeeProfile.parkingLot'],
+  });
 
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
-    }
-
-    const response: ProfileResponseDto = {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-        isVerified: user.isVerified,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-      },
-    };
-
-    if (user.clientProfile) {
-      response.clientProfile = {
-        id: user.clientProfile.id,
-        name: user.clientProfile.name,
-        phone: user.clientProfile.phone|| '',
-        defaultVehiclePlate: user.clientProfile.defaultVehiclePlate,
-        defaultVehicleType: user.clientProfile.defaultVehicleType,
-      };
-    }
-
-    if (user.parkingOwnerProfile) {
-      response.ownerProfile = {
-        id: user.parkingOwnerProfile.id,
-        businessName: user.parkingOwnerProfile.businessName,
-        cuit: user.parkingOwnerProfile.cuit,
-        phone: user.parkingOwnerProfile.phone,
-        address: user.parkingOwnerProfile.address,
-        isApproved: user.parkingOwnerProfile.isApproved,
-      };
-    }
-
-    if (user.parkingEmployeeProfile) {
-      response.employeeProfile = {
-        id: user.parkingEmployeeProfile.id,
-        name: user.parkingEmployeeProfile.name,
-        position: user.parkingEmployeeProfile.position,
-        isActive: user.parkingEmployeeProfile.isActive,
-        parkingLotId: user.parkingEmployeeProfile.parkingLotId,
-        parkingLotName: user.parkingEmployeeProfile.parkingLot?.name || '',
-      };
-    }
-
-    return response;
+  if (!user) {
+    throw new UnauthorizedException('Usuario no encontrado');
   }
 
+  // Construir el objeto usuario con todas las propiedades
+  const userResponse: any = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
+
+  // Siempre incluir clientProfile (puede ser null)
+  if (user.clientProfile) {
+    userResponse.clientProfile = {
+      id: user.clientProfile.id,
+      name: user.clientProfile.name,
+      phone: user.clientProfile.phone || '',
+      defaultVehiclePlate: user.clientProfile.defaultVehiclePlate,
+      defaultVehicleType: user.clientProfile.defaultVehicleType,
+    };
+  } else {
+    userResponse.clientProfile = null;
+  }
+
+  // Siempre incluir parkingOwnerProfile (puede ser null)
+  if (user.parkingOwnerProfile) {
+    userResponse.parkingOwnerProfile = {
+      id: user.parkingOwnerProfile.id,
+      businessName: user.parkingOwnerProfile.businessName,
+      cuit: user.parkingOwnerProfile.cuit,
+      phone: user.parkingOwnerProfile.phone,
+      address: user.parkingOwnerProfile.address,
+      isApproved: user.parkingOwnerProfile.isApproved,
+    };
+  } else {
+    userResponse.parkingOwnerProfile = null;
+  }
+
+  // Siempre incluir employeeProfile (puede ser null)
+  if (user.parkingEmployeeProfile) {
+    userResponse.employeeProfile = {
+      id: user.parkingEmployeeProfile.id,
+      name: user.parkingEmployeeProfile.name,
+      position: user.parkingEmployeeProfile.position,
+      isActive: user.parkingEmployeeProfile.isActive,
+      parkingLotId: user.parkingEmployeeProfile.parkingLotId,
+      parkingLotName: user.parkingEmployeeProfile.parkingLot?.name || '',
+    };
+  } else {
+    userResponse.employeeProfile = null;
+  }
+
+  return { user: userResponse };
+}
   /**
    * Actualizar perfil unificado
    */

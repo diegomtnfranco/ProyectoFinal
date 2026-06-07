@@ -190,6 +190,21 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     console.log(`📢 Evento reservation:cancelled emitido a usuario ${targetUserId}`);
   }
 
+  
+/**
+ * Actualización general de reserva (para cambios de estado)
+ */
+emitReservationUpdate(clientId: string, data: { id: string; status: string; spaceNumber?: string }) {
+  const sockets = this.userSockets.get(clientId) || [];
+  sockets.forEach(socketId => {
+    this.server.to(socketId).emit('reservation:update', {
+      ...data,
+      timestamp: new Date(),
+    });
+  });
+  console.log(`📢 Evento reservation:update emitido a usuario ${clientId}`);
+}
+
   /**
    * Actualización de espacio (disponibilidad)
    */

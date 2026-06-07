@@ -9,11 +9,11 @@ export class ReservationResponseDto {
   parkingLotName!: string;
   vehicleType!: VehicleType;
   vehiclePlate!: string;
-  startTime!: Date;
-  endTime!: Date;
+  startTime!: string;
+  endTime!: string;
   status!: ReservationStatus;
   totalAmount?: number;
-  createdAt!: Date;
+  createdAt!: string;
   clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
-  expiresAt?: Date; 
+  expiresAt?: string; 
 }

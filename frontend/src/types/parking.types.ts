@@ -378,3 +378,5 @@ export interface ParkingLotNearbyResponseDto {
 
   imageUrl?: string;
 }
+
+
