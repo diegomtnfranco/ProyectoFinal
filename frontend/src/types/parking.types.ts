@@ -350,7 +350,7 @@ export interface ActiveOccupancy {
   totalAmount?: number;
 }
 
-export interface NearbyParkingLot {
+export interface ParkingLotNearbyResponseDto {
   id: string;
   name: string;
   address: string;
@@ -358,10 +358,16 @@ export interface NearbyParkingLot {
   longitude: number;
   distance: number;
 
-  image?: string;
+
 
   openTime: string;
   closeTime: string;
+
+  rates:{
+  id: string;
+  vehicleType: UserVehicleType;
+  price: number;
+  }[];
 
   availability: {
     total: number;
@@ -369,4 +375,6 @@ export interface NearbyParkingLot {
     occupied: number;
     reserved: number;
   };
+
+  imageUrl?: string;
 }

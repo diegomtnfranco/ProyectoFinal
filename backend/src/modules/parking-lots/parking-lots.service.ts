@@ -134,10 +134,12 @@ async findNearby(lat: number, lng: number, radius: number = 1000): Promise<Parki
       { lat, lng, radius: radius / 1000 }
     )
     .andWhere('pl.isActive = :isActive', { isActive: true })
-    .leftJoinAndSelect('pl.spaces', 'spaces')
+    .leftJoinAndSelect('pl.spaces', 'spaces', 'spaces.isActive = true') // Solo traer espacios activos
+    .leftJoinAndSelect('pl.rates', 'rates', 'rates.isActive = true') // Solo traer tarifas activas
     .orderBy('distance', 'ASC')
     .getRawAndEntities();
 
+    
   // 2. Calcular disponibilidad para cada parking
   const results: ParkingLotNearbyResponseDto[] = [];
 
@@ -161,12 +163,19 @@ async findNearby(lat: number, lng: number, radius: number = 1000): Promise<Parki
       distance,
       openTime: item.openTime,
       closeTime: item.closeTime,
+      rates: item.rates.map(rate => (
+        {
+        id: rate.id,
+        vehicleType: rate.vehicleType,
+        price: rate.pricePerHour,
+      })),
       availability: {
         total,
         available,
         occupied,
         reserved,
       },
+      imageUrl: item.imageUrl,
     });
   }
 
