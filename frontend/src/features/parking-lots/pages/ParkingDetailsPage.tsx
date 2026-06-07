@@ -376,3 +376,4 @@ if (!parking) {
 }
 
 export default ParkingDetailsPage
+

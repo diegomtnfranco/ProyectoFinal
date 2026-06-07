@@ -125,7 +125,7 @@ export class OccupancyService {
     // ✅ Emitir actualización de espacio
     this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.OCCUPIED);
 
-
+     this.websocketGateway.emitParkingAvailability(space.parkingLotId);
 
       return occupancy;
     } catch (error) {

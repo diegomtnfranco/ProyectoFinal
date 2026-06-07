@@ -9,6 +9,8 @@ interface WebsocketState {
   disconnect: () => void;
   subscribe: (event: string, callback: (data: any) => void) => void;
   unsubscribe: (event: string, callback: (data: any) => void) => void;
+  joinRoom: (roomName: string, data?: any) => void;  // ← NUEVO
+  leaveRoom: (roomName: string, data?: any) => void; // ← NUEVO
 }
 
 export const useWebsocketStore = create<WebsocketState>((set, get) => ({
@@ -64,6 +66,26 @@ export const useWebsocketStore = create<WebsocketState>((set, get) => ({
     const { socket } = get();
     if (socket) {
       socket.off(event, callback);
+    }
+  },
+
+   // ← NUEVO: Unirse a una sala específica
+  joinRoom: (roomName: string, data?: any) => {
+    const { socket } = get();
+    if (socket) {
+      console.log(`🔗 Uniéndose a sala: ${roomName}`);
+      socket.emit('subscribe:parking', { parkingLotId: roomName });
+    } else {
+      console.log(`⚠️ [WS] No hay socket, no se puede unir a sala ${roomName}`);
+    }
+  },
+
+  // ← NUEVO: Salir de una sala
+  leaveRoom: (roomName: string, data?: any) => {
+    const { socket } = get();
+    if (socket) {
+      console.log(`🚪 Saliendo de sala: ${roomName}`);
+      socket.emit('unsubscribe:parking', { parkingLotId: roomName });
     }
   },
 }));

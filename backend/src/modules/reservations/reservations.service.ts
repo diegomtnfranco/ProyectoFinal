@@ -933,6 +933,7 @@ export class ReservationsService {
       await this.spaceRepository.save(selectedSpace);
       console.log(`[CREATE] Bloqueo inmediato del espacio ${selectedSpace.spaceNumber}`);
       this.websocketGateway.emitSpaceUpdate(parkingLot.id, selectedSpace.id, SpaceStatus.RESERVED);
+      this.websocketGateway.emitParkingAvailability(parkingLot.id);
     }
 
     const savedReservation = await this.reservationRepository.findOne({
@@ -1019,6 +1020,8 @@ export class ReservationsService {
         await queryRunner.manager.save(reservation.space);
         console.log(`[CONFIRM] Bloqueo inmediato del espacio ${reservation.space.spaceNumber}`);
         this.websocketGateway.emitSpaceUpdate(reservation.space.parkingLotId, reservation.space.id, SpaceStatus.RESERVED);
+        this.websocketGateway.emitParkingAvailability(reservation.space.parkingLotId);
+
       }
 
       await queryRunner.commitTransaction();
