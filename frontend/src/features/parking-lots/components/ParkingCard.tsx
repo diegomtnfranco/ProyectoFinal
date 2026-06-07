@@ -124,7 +124,7 @@ function ParkingCard({ parking, isClosest = false }: Props) {
                 <>
                   <span className={`flex items-center gap-2 font-semibold ${getOccupancyColor()}`}>
                     <CircleDot size={16} />
-                    {available === total ? 'Completo' : available > total * 0.3 ? 'Disponible' : 'Últimos lugares'}
+                    {available === total ? 'Hay lugar' : available > total * 0.3 ? 'Disponible' : 'Últimos lugares'}
                   </span>
                   <p className='text-gray-500 text-sm'>
                     {available} de {total} lugares libres
