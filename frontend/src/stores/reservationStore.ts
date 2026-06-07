@@ -1,8 +1,8 @@
-// stores/reservationsStore.ts
+// frontend/src/stores/reservationStore.ts
 import { create } from 'zustand';
 import { reservationsService } from '../services/reservations.service';
 import type { Reservation, CreateReservationDto } from '../types/parking.types';
-
+import type { ReservationStatusType } from '../types/auth.types';
 interface ReservationsState {
   // Estado
   myReservations: Reservation[];
@@ -10,6 +10,7 @@ interface ReservationsState {
   currentReservation: Reservation | null;
   isLoading: boolean;
   error: string | null;
+  totalSpent: number;
   
   // Acciones
   fetchMyReservations: () => Promise<void>;
@@ -19,8 +20,10 @@ interface ReservationsState {
   confirmReservation: (id: string) => Promise<void>;
   cancelByParking: (id: string, reason?: string) => Promise<void>;
   changeSpace: (id: string, newSpaceId: string) => Promise<void>;
+  updateReservationStatus: (id: string, status: ReservationStatusType) => void;
   clearCurrentReservation: () => void;
   clearError: () => void;
+  calculateTotalSpent: () => number;
 }
 
 export const useReservationsStore = create<ReservationsState>((set, get) => ({
@@ -30,6 +33,7 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
   currentReservation: null,
   isLoading: false,
   error: null,
+  totalSpent: 0,
 
   // Obtener mis reservas (cliente)
   fetchMyReservations: async () => {
@@ -37,6 +41,7 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
     try {
       const data = await reservationsService.getMyReservations();
       set({ myReservations: data, isLoading: false });
+      get().calculateTotalSpent();
     } catch (error) {
       set({ error: error as string, isLoading: false });
     }
@@ -62,6 +67,7 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
         myReservations: [newReservation, ...state.myReservations],
         isLoading: false,
       }));
+      get().calculateTotalSpent();
     } catch (error) {
       set({ error: error as string, isLoading: false });
       throw error;
@@ -127,6 +133,26 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
       set({ error: error as string, isLoading: false });
       throw error;
     }
+  },
+
+  // Actualizar estado de reserva desde WebSocket
+  updateReservationStatus: (id: string, status: ReservationStatusType) => {
+    set((state) => ({
+      myReservations: state.myReservations.map(r => 
+        r.id === id ? { ...r, status } : r
+      ),
+    }));
+    get().calculateTotalSpent();
+  },
+
+  // Calcular total gastado
+  calculateTotalSpent: () => {
+    const { myReservations } = get();
+    const completedTotal = myReservations
+      .filter(r => r.status === 'completed')
+      .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+    set({ totalSpent: completedTotal });
+    return completedTotal;
   },
 
   // Limpiar reserva actual

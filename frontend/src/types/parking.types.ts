@@ -349,3 +349,34 @@ export interface ActiveOccupancy {
   checkedInBy: string;
   totalAmount?: number;
 }
+
+export interface ParkingLotNearbyResponseDto {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  distance: number;
+
+
+
+  openTime: string;
+  closeTime: string;
+
+  rates:{
+  id: string;
+  vehicleType: UserVehicleType;
+  price: number;
+  }[];
+
+  availability: {
+    total: number;
+    available: number;
+    occupied: number;
+    reserved: number;
+  };
+
+  imageUrl?: string;
+}
+
+

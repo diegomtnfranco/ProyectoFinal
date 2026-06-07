@@ -42,6 +42,6 @@ export class EmployeeProfileDto {
 export class ProfileResponseDto {
   user!: UserProfileDto;
   clientProfile?: ClientProfileDto;
-  ownerProfile?: OwnerProfileDto;
+  parkingOwnerProfile?: OwnerProfileDto;
   employeeProfile?: EmployeeProfileDto;
 }
