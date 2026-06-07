@@ -32,6 +32,16 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @Patch(':id/activate')
+activateUser(@Param('id') id: string) {
+  return this.usersService.activateUser(id)
+}
+
+@Patch(':id/deactivate')
+deactivateUser(@Param('id') id: string) {
+  return this.usersService.deactivateUser(id)
+}
+
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);

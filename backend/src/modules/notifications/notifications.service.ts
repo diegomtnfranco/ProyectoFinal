@@ -170,4 +170,68 @@ async sendReservationCancelledNotification(clientEmail: string, data: any) {
   });
 }
 
+async sendReservationExpiredNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Reserva expirada - Parking App',
+    html: `
+      <h1>Tu reserva ha expirado</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>La reserva no fue confirmada a tiempo por el estacionamiento.</p>
+      <p>Puedes realizar una nueva reserva.</p>
+    `,
+  });
+}
+
+async sendSpaceChangedNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Tu espacio ha sido cambiado - Parking App',
+    html: `
+      <h1>Tu espacio de estacionamiento ha sido cambiado</h1>
+      <p>Tu reserva ha sido reasignada del espacio <strong>${data.oldSpaceNumber}</strong> al espacio <strong>${data.newSpaceNumber}</strong>.</p>
+      <p>Horario: ${new Date(data.startTime).toLocaleString()} - ${new Date(data.endTime).toLocaleString()}</p>
+      <p>Disculpa las molestias.</p>
+    `,
+  });
+}
+
+async sendSpaceConflictNotification(ownerEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: ownerEmail,
+    subject: '⚠️ Conflicto de espacio - Parking App',
+    html: `
+      <h1>Conflicto de espacio detectado</h1>
+      <p>El espacio <strong>${data.spaceNumber}</strong> está ocupado por ${data.occupiedBy} y no se puede asignar a la reserva ${data.reservationId}.</p>
+      <p>Horario de reserva: ${new Date(data.startTime).toLocaleString()} - ${new Date(data.endTime).toLocaleString()}</p>
+      <p>No hay espacios alternativos disponibles.</p>
+      <p>Por favor, toma acción manual.</p>
+    `,
+  });
+}
+
+async sendReservationPendingNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Tu reserva está pendiente - Parking App',
+    html: `
+      <h1>Tu reserva está pendiente de confirmación</h1>
+      <p>El espacio ${data.spaceNumber} está actualmente ocupado. Tan pronto como quede libre, tu reserva será confirmada.</p>
+      <p>Horario solicitado: ${new Date(data.startTime).toLocaleString()}</p>
+    `,
+  });
+}
+async sendReservationConfirmedExpiredNotification(clientEmail: string, data: any) {
+  await this.mailerService.sendMail({
+    to: clientEmail,
+    subject: 'Reserva expirada - Parking App',
+    html: `
+      <h1>Tu reserva ha expirado</h1>
+      <p>Espacio: ${data.spaceNumber}</p>
+      <p>Su reserva fue expirada por el estacionamiento, ya que el vehículo no llegó a tiempo.</p>
+      <p>Disculpa las molestias. Realiza una nueva reserva cuando puedas.</p>
+    `,
+  });
+}
+
 }

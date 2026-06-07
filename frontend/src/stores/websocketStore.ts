@@ -1,25 +1,69 @@
-// import { create } from 'zustand';
-// import { connectSocket, getSocket } from '../utils/socket';
+// stores/websocketStore.ts
+import { create } from 'zustand';
+import { io, Socket } from 'socket.io-client';
 
-// interface WebsocketState {
-//   socketConnected: boolean;
-//   connect: (token?: string) => void;
-//   disconnect: () => void;
-// }
+interface WebsocketState {
+  socket: Socket | null;
+  isConnected: boolean;
+  connect: (token: string) => void;
+  disconnect: () => void;
+  subscribe: (event: string, callback: (data: any) => void) => void;
+  unsubscribe: (event: string, callback: (data: any) => void) => void;
+}
 
-// const useWebsocketStore = create<WebsocketState>((set) => ({
-//   socketConnected: false,
-//   connect: (token?: string) => {
-//     const socket = connectSocket(token);
-//     socket.on('connect', () => set({ socketConnected: true }));
-//     socket.on('disconnect', () => set({ socketConnected: false }));
-//     set({ socketConnected: socket.connected });
-//   },
-//   disconnect: () => {
-//     const socket = getSocket();
-//     socket?.disconnect();
-//     set({ socketConnected: false });
-//   }
-// }));
+export const useWebsocketStore = create<WebsocketState>((set, get) => ({
+  socket: null,
+  isConnected: false,
 
-// export default useWebsocketStore;
+  connect: (token: string) => {
+    if (get().socket?.connected) return;
+
+    const socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000/', {
+      auth: { token },
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 WebSocket conectado');
+      set({ isConnected: true });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 WebSocket desconectado');
+      set({ isConnected: false });
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket error:', error);
+    });
+
+    set({ socket });
+  },
+
+  disconnect: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.disconnect();
+      set({ socket: null, isConnected: false });
+    }
+  },
+
+  subscribe: (event: string, callback: (data: any) => void) => {
+  const { socket } = get();
+  if (socket) {
+    socket.on(event, (data) => {
+      console.log(`📡 [WS] Evento recibido: ${event}`, data);
+      callback(data);
+    });
+  } else {
+    console.log(`⚠️ [WS] No hay socket, no se puede suscribir a ${event}`);
+  }
+},
+
+  unsubscribe: (event: string, callback: (data: any) => void) => {
+    const { socket } = get();
+    if (socket) {
+      socket.off(event, callback);
+    }
+  },
+}));

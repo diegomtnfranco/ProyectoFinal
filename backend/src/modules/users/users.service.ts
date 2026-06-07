@@ -94,4 +94,37 @@ private readonly logger = new Logger('UsersService');
     this.logger.error('Database error', error);
     throw new InternalServerErrorException('Database error: ' + error.message);
   }
+
+  async activateUser(id: string) {
+  const user = await this.usersRepository.findOne({
+    where: { id },
+  })
+
+  if (!user) {
+    throw new NotFoundException(
+      'Usuario no encontrado'
+    )
+  }
+
+  user.isActive = true
+
+  return await this.usersRepository.save(user)
+}
+
+async deactivateUser(id: string) {
+  const user = await this.usersRepository.findOne({
+    where: { id },
+  })
+
+  if (!user) {
+    throw new NotFoundException(
+      'Usuario no encontrado'
+    )
+  }
+
+  user.isActive = false
+
+  return await this.usersRepository.save(user)
+}
+
 }

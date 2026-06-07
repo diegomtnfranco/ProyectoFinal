@@ -143,7 +143,7 @@ async findApplicableRate(
     // Verificar permisos
     if (userRole === UserRole.PARKING_OWNER) {
       const parkingLot = await this.parkingLotRepository.findOne({
-        where: { id: rate.parkingLotId, ownerId: userId },
+        where: { id: rate.parkingLotId, owner: { userId: userId } },
       });
       if (!parkingLot) {
         throw new ForbiddenException('No tienes permiso para modificar esta tarifa');

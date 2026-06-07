@@ -51,12 +51,12 @@ export class Occupancy {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   totalAmount?: number;
 
-  @Column({ default: false })
+  @Column({name: 'is_completed', default: false })
   isCompleted!: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at' , type: 'timestamp'})
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt!: Date;
 }

@@ -1,79 +1,85 @@
 import { CheckCircle, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import {
+  approveCompany,
+  activateUser,
+  getPendingCompanies
+} from '../services/company.service'
+
 interface Company {
-  id: number
-  parkingName: string
-  capacity: number
-  email: string
-  acceptReservations: string
-  status: string
+  id: string
+
+  name: string
+
+  businessName: string
+
+  isApproved: boolean
+
+  parkingLots: {
+    id: string
+    name: string
+
+    settings: {
+      allowOnlineReservations: boolean
+    }
+
+    spaces: any[]
+  }[]
+
+  user: {
+    id: string
+    email: string
+    isActive: boolean
+  }
 }
 
 function PendingCompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
 
   useEffect(() => {
-    const data = JSON.parse(
-      localStorage.getItem('companies') || '[]'
-    )
-
-    setCompanies(
-      data.filter(
-        (company: Company) =>
-          company.status === 'PENDING'
-      )
-    )
+    loadPendingCompanies()
   }, [])
 
-  const approveCompany = (id: number) => {
-    const companiesData = JSON.parse(
-      localStorage.getItem('companies') || '[]'
-    )
+  const loadPendingCompanies = async () => {
+    try {
+      const data = await getPendingCompanies()
 
-    const updatedCompanies = companiesData.map(
-      (company: Company) =>
-        company.id === id
-          ? {
-              ...company,
-              status: 'ACTIVE'
-            }
-          : company
-    )
-
-    localStorage.setItem(
-      'companies',
-      JSON.stringify(updatedCompanies)
-    )
-
-    setCompanies(
-      updatedCompanies.filter(
-        (company: Company) =>
-          company.status === 'PENDING'
-      )
-    )
+      setCompanies(data)
+    } catch (error) {
+      console.error(error)
+    }
   }
 
-  const rejectCompany = (id: number) => {
-    const companiesData = JSON.parse(
-      localStorage.getItem('companies') || '[]'
-    )
-
-    const updatedCompanies =
-      companiesData.filter(
-        (company: Company) =>
-          company.id !== id
+  const handleApproveCompany = async (
+    company: Company
+  ) => {
+    try {
+      await activateUser(
+        company.user.id
       )
 
-    localStorage.setItem(
-      'companies',
-      JSON.stringify(updatedCompanies)
-    )
+      await approveCompany(
+        company.id
+      )
 
-    setCompanies(
-      updatedCompanies.filter(
-        (company: Company) =>
-          company.status === 'PENDING'
+      setCompanies((prev) =>
+        prev.filter(
+          (c) => c.id !== company.id
+        )
+      )
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const rejectCompany = (
+    id: string
+  ) => {
+    setCompanies((prev) =>
+      prev.filter(
+        (company) =>
+          company.id !== id
       )
     )
   }
@@ -114,11 +120,11 @@ function PendingCompaniesPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-800">
-                      {company.parkingName}
+                      {company.parkingLots?.[0]?.name}
                     </h2>
 
                     <p className="text-sm text-gray-500">
-                      {company.email}
+                      {company.user.email}
                     </p>
                   </div>
 
@@ -140,25 +146,27 @@ function PendingCompaniesPage() {
                 <div className="grid gap-2 text-sm">
                   <div>
                     <span className="font-medium">
-                      Capacidad:
+                      Responsable:
                     </span>{' '}
-                    {company.capacity} espacios
+                    {company.name}
                   </div>
 
                   <div>
                     <span className="font-medium">
-                      Reservas:
+                      Estado:
                     </span>{' '}
-                    {company.acceptReservations === 'si'
-                      ? 'Sí'
-                      : 'No'}
+                    {company.isApproved
+                      ? 'Aprobado'
+                      : 'Pendiente'}
                   </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-3">
                   <button
                     onClick={() =>
-                      approveCompany(company.id)
+                      handleApproveCompany(
+                        company
+                      )
                     }
                     className="
                       flex
@@ -181,7 +189,9 @@ function PendingCompaniesPage() {
 
                   <button
                     onClick={() =>
-                      rejectCompany(company.id)
+                      rejectCompany(
+                        company.id
+                      )
                     }
                     className="
                       flex

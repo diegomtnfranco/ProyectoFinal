@@ -9,6 +9,8 @@ import { UserRole } from '../users/entities/user.entity';
 import { ParkingLotOwnerResponseDto, SpaceOwnerDto } from './dto/parking-lot-owner-response.dto';
 import { Rate } from '../rates/entities/rate.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
+import { ParkingLotNearbyResponseDto } from './dto/parking-lot-nearby-response.dto';
+import { Space } from '../spaces/entities/space.entity';
 
 
 @Injectable()
@@ -20,6 +22,8 @@ export class ParkingLotsService {
     private parkingOwnerRepository: Repository<ParkingOwner>,
     @InjectRepository(Rate)
     private rateRepository: Repository<Rate>,
+    @InjectRepository(Space)
+    private spaceRepository: Repository<Space>
   ) {}
 
   async create(createDto: CreateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
@@ -43,16 +47,32 @@ export class ParkingLotsService {
       }
     }
 
-    const parkingLot = this.parkingLotRepository.create({
-      ownerId: createDto.ownerId,
-      name: createDto.name,
-      address: createDto.address,
-      latitude: createDto.latitude,
-      longitude: createDto.longitude,
-      openTime: createDto.openTime,
-      closeTime: createDto.closeTime,
-      settings: createDto.settings,
-    });
+    const defaultSettings = {
+    allowOnlineReservations: true,
+    cancellationMinutesBefore: 30,
+    reservationHoldMinutes: 120,
+    blockSpaceHoursBefore: 2,
+    maxReservationHours: 24,
+    maxAdvanceDays: 7,
+  };
+
+  // Combinar settings enviados con defaults
+  const finalSettings = {
+    ...defaultSettings,
+    ...createDto.settings,
+  };
+
+  const parkingLot = this.parkingLotRepository.create({
+    ownerId: createDto.ownerId,
+    name: createDto.name,
+    address: createDto.address,
+    latitude: createDto.latitude,
+    longitude: createDto.longitude,
+    openTime: createDto.openTime,
+    closeTime: createDto.closeTime,
+    settings: finalSettings,
+    isActive: true,
+  });
     return this.parkingLotRepository.save(parkingLot);
   }
 
@@ -93,23 +113,97 @@ export class ParkingLotsService {
     });
   }
 
-  async findNearby(lat: number, lng: number, radius: number = 1000): Promise<ParkingLot[]> {
-    if (isNaN(radius) || radius <= 0) {
-      radius = 1000;
-    }
-
-    return this.parkingLotRepository
-      .createQueryBuilder('pl')
-      .where(
-        `(6371 * acos(cos(radians(:lat)) * cos(radians(pl.latitude)) * 
-          cos(radians(pl.longitude) - radians(:lng)) + 
-          sin(radians(:lat)) * sin(radians(pl.latitude)))) <= :radius`,
-        { lat, lng, radius: radius / 1000 },
-      )
-      .andWhere('pl.isActive = :isActive', { isActive: true })
-      .leftJoinAndSelect('pl.spaces', 'spaces')
-      .getMany();
+async findNearby(lat: number, lng: number, radius: number = 1000): Promise<ParkingLotNearbyResponseDto[]> {
+  if (isNaN(radius) || radius <= 0) {
+    radius = 1000;
   }
+
+  // 1. Buscar parkings cercanos con distancia
+  const parkingLots = await this.parkingLotRepository
+    .createQueryBuilder('pl')
+    .addSelect(
+      `(6371 * acos(cos(radians(:lat)) * cos(radians(pl.latitude)) * 
+        cos(radians(pl.longitude) - radians(:lng)) + 
+        sin(radians(:lat)) * sin(radians(pl.latitude)))) * 1000`,
+      'distance'
+    )
+    .where(
+      `(6371 * acos(cos(radians(:lat)) * cos(radians(pl.latitude)) * 
+        cos(radians(pl.longitude) - radians(:lng)) + 
+        sin(radians(:lat)) * sin(radians(pl.latitude)))) <= :radius`,
+      { lat, lng, radius: radius / 1000 }
+    )
+    .andWhere('pl.isActive = :isActive', { isActive: true })
+    .leftJoinAndSelect('pl.spaces', 'spaces')
+    .orderBy('distance', 'ASC')
+    .getRawAndEntities();
+
+  // 2. Calcular disponibilidad para cada parking
+  const results: ParkingLotNearbyResponseDto[] = [];
+
+  for (const item of parkingLots.entities) {
+    const spaces = item.spaces || [];
+    const total = spaces.length;
+    const available = spaces.filter(s => s.status === 'available').length;
+    const occupied = spaces.filter(s => s.status === 'occupied').length;
+    const reserved = spaces.filter(s => s.status === 'reserved').length;
+
+    // Obtener la distancia del resultado raw
+    const raw = parkingLots.raw.find(r => r.pl_id === item.id);
+    const distance = raw ? Math.round(parseFloat(raw.distance)) : 0;
+
+    results.push({
+      id: item.id,
+      name: item.name,
+      address: item.address,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      distance,
+      openTime: item.openTime,
+      closeTime: item.closeTime,
+      availability: {
+        total,
+        available,
+        occupied,
+        reserved,
+      },
+    });
+  }
+
+  return results;
+}
+
+async getRealTimeAvailability(parkingLotId: string): Promise<{ total: number; available: number; occupied: number; reserved: number }> {
+  const spaces = await this.spaceRepository.find({
+    where: { parkingLotId, isActive: true },
+  });
+
+  return {
+    total: spaces.length,
+    available: spaces.filter(s => s.status === 'available').length,
+    occupied: spaces.filter(s => s.status === 'occupied').length,
+    reserved: spaces.filter(s => s.status === 'reserved').length,
+  };
+}
+
+
+  // async findNearby(lat: number, lng: number, radius: number = 1000): Promise<ParkingLot[]> {
+  //   if (isNaN(radius) || radius <= 0) {
+  //     radius = 1000;
+  //   }
+
+  //   return this.parkingLotRepository
+  //     .createQueryBuilder('pl')
+  //     .where(
+  //       `(6371 * acos(cos(radians(:lat)) * cos(radians(pl.latitude)) * 
+  //         cos(radians(pl.longitude) - radians(:lng)) + 
+  //         sin(radians(:lat)) * sin(radians(pl.latitude)))) <= :radius`,
+  //       { lat, lng, radius: radius / 1000 },
+  //     )
+  //     .andWhere('pl.isActive = :isActive', { isActive: true })
+  //     .leftJoinAndSelect('pl.spaces', 'spaces')
+  //     .getMany();
+  // }
 
   async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
     const parkingLot = await this.findOne(id);

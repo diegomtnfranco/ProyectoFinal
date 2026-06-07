@@ -7,6 +7,7 @@ import { UpdateSpaceDto } from './dto/update-space.dto';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { UserRole } from '../users/entities/user.entity';
+import {WebsocketGateway} from '../websocket/websocket.gateway';
 
 @Injectable()
 export class SpacesService {
@@ -15,6 +16,7 @@ export class SpacesService {
     private spaceRepository: Repository<Space>,
     @InjectRepository(ParkingLot)
     private parkingLotRepository: Repository<ParkingLot>,
+    private websocketGateway: WebsocketGateway,
   ) {}
 
   async create(createDto: CreateSpaceDto, userId: string, userRole: string): Promise<Space> {
@@ -115,6 +117,8 @@ export class SpacesService {
     if (updateDto.status) {
       space.status = updateDto.status;
     }
+
+    this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, space.status);
 
     return this.spaceRepository.save(space);
   }

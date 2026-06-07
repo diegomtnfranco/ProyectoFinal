@@ -15,6 +15,7 @@ import { CheckOutDto } from './dto/check-out.dto';
 import { ActiveOccupancyResponseDto } from './dto/active-occupancy-response.dto';
 import { RatesService } from '../rates/rates.service';
 import { UserRole } from '../users/entities/user.entity';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class OccupancyService {
@@ -27,6 +28,7 @@ export class OccupancyService {
     private reservationRepository: Repository<Reservation>,
     private ratesService: RatesService,
     private dataSource: DataSource,
+    private websocketGateway: WebsocketGateway
   ) {}
 
   async checkIn(checkInDto: CheckInDto, userId: string, userRole: string): Promise<Occupancy> {
@@ -89,6 +91,7 @@ export class OccupancyService {
         checkInTime: new Date(),
         checkedInBy: userId,
         isCompleted: false,
+        createdAt: new Date()
       });
       await queryRunner.manager.save(occupancy);
 
@@ -109,6 +112,20 @@ export class OccupancyService {
       }
 
       await queryRunner.commitTransaction();
+
+
+         this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
+      spaceId: space.id,
+      spaceNumber: space.spaceNumber,
+      action: 'check-in',
+      vehiclePlate: checkInDto.vehiclePlate,
+      clientId: reservation?.client?.user?.id,
+    });
+
+    // ✅ Emitir actualización de espacio
+    this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.OCCUPIED);
+
+
 
       return occupancy;
     } catch (error) {
@@ -144,6 +161,7 @@ export class OccupancyService {
 
       // 2. Calcular horas ocupadas
       const checkOutTime = new Date();
+      const updatedAt = new Date();
       const hours = Math.ceil((checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60));
       const hoursDecimal = (checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60);
 
@@ -167,7 +185,7 @@ export class OccupancyService {
       occupancy.checkedOutBy = userId;
       occupancy.totalAmount = totalAmount;
       occupancy.isCompleted = true;
-
+      occupancy.updatedAt = updatedAt;
       await queryRunner.manager.save(occupancy);
 
       // 6. Liberar el espacio
@@ -180,6 +198,22 @@ export class OccupancyService {
 
       await queryRunner.commitTransaction();
 
+
+      // ✅ Emitir evento WebSocket
+      this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
+        spaceId: space.id,
+        spaceNumber: space.spaceNumber,
+        action: 'check-out',
+        vehiclePlate: occupancy.vehiclePlate,
+      });
+
+      // ✅ Emitir actualización de espacio
+      this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.AVAILABLE);
+
+      // ✅ Calcular y emitir disponibilidad actualizada
+      //const availability = await this.calculateAvailability(space.parkingLotId);
+      this.websocketGateway.emitParkingAvailability(space.parkingLotId);
+
       return occupancy;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -187,6 +221,16 @@ export class OccupancyService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private async calculateAvailability(parkingLotId: string) {
+    const spaces = await this.spaceRepository.find({ where: { parkingLotId } });
+    return {
+      totalSpaces: spaces.length,
+      availableSpaces: spaces.filter(s => s.status === SpaceStatus.AVAILABLE).length,
+      occupiedSpaces: spaces.filter(s => s.status === SpaceStatus.OCCUPIED).length,
+      reservedSpaces: spaces.filter(s => s.status === SpaceStatus.RESERVED).length,
+    };
   }
 
   async getActiveOccupancies(parkingLotId: string, userId: string, userRole: string): Promise<ActiveOccupancyResponseDto[]> {
@@ -197,7 +241,7 @@ export class OccupancyService {
 
   const occupancies = await this.occupancyRepository.find({
     where: { isCompleted: false, space: { parkingLotId } },
-    relations: ['space'],
+    relations: ['space', 'reservation'],
     order: { checkInTime: 'DESC' },
   });
 
@@ -216,7 +260,8 @@ export class OccupancyService {
     totalAmount: occ.totalAmount,
     isCompleted: occ.isCompleted,  // ← AGREGAR
     hasReservation: !!occ.reservationId,  // ← AGREGAR
-    reservationId: occ.reservationId,   
+    reservationId: occ.reservationId,  
+    clientName: occ.reservation?.client?.name,  
   }));
 }
 

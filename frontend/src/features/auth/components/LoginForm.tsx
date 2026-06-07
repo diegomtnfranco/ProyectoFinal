@@ -51,7 +51,7 @@ function LoginForm() {
       // Redirigir según el rol
       switch (user.role) {
         case UserRole.ADMIN:
-          navigate('/admin/dashboard');
+          navigate('/admin');
           break;
         case UserRole.PARKING_OWNER:
           navigate('/owner');
