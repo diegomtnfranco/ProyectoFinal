@@ -198,9 +198,8 @@ export class ParkingLotsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateParkingLotDto: UpdateParkingLotDto,
-    @CurrentUser() user: any,
-  ) {
-    console.log('asdad fffaa')
+    @CurrentUser() user: any,  ) {
+   
     return this.parkingLotsService.update(id, updateParkingLotDto, user.id, user.role);
   }
 
