@@ -9,6 +9,7 @@ import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator'
 import { Public } from 'src/modules/auth/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ParkingLotResponseDto, ParkingLotAvailabilityResponseDto, ParkingLotNearbyResponseDto } from './dto/parking-lot-response.dto';
+import { FindAllParkingLotsDto } from './dto/find-all-parking-lots.dto';
 
 @ApiTags('parking-lots')
 @Controller('parking-lots')
@@ -36,7 +37,25 @@ export class ParkingLotsController {
     return this.parkingLotsService.create(createParkingLotDto, user.id, user.role);
   }
 
-  @Get()
+   @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener todos los estacionamientos (paginado)',
+    description: 'Retorna una lista paginada de todos los estacionamientos registrados. Solo para administradores.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lista de estacionamientos obtenida exitosamente'
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo administradores' })
+  async findAllPaginated(@Query() queryDto: FindAllParkingLotsDto) {
+    
+    return this.parkingLotsService.findAllPaginated(queryDto);
+  }
+
+  @Get('all')
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
@@ -51,6 +70,7 @@ export class ParkingLotsController {
   @ApiResponse({ status: 401, description: 'No autenticado' })
   @ApiResponse({ status: 403, description: 'Solo administradores' })
   findAll() {
+   
     return this.parkingLotsService.findAll();
   }
 
@@ -180,6 +200,7 @@ export class ParkingLotsController {
     @Body() updateParkingLotDto: UpdateParkingLotDto,
     @CurrentUser() user: any,
   ) {
+    console.log('asdad fffaa')
     return this.parkingLotsService.update(id, updateParkingLotDto, user.id, user.role);
   }
 
@@ -198,4 +219,27 @@ export class ParkingLotsController {
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.parkingLotsService.remove(id, user.id, user.role);
   }
+
+
+
+  @Patch(':id/status')
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiParam({ name: 'id', type: String, description: 'UUID del estacionamiento' })
+@ApiOperation({ 
+  summary: 'Activar/Desactivar un estacionamiento',
+  description: 'Cambia el estado de activación de un estacionamiento. Solo administradores.'
+})
+@ApiResponse({ status: 200, description: 'Estado actualizado exitosamente' })
+@ApiResponse({ status: 401, description: 'No autenticado' })
+@ApiResponse({ status: 403, description: 'Solo administradores' })
+@ApiResponse({ status: 404, description: 'Estacionamiento no encontrado' })
+@ApiBody({ schema: { example: { isActive: true } } })
+async toggleStatus(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body('isActive') isActive: boolean,
+  @CurrentUser() user: any,
+) {
+  return this.parkingLotsService.toggleStatus(id, isActive, user.id, user.role);
+}
 }

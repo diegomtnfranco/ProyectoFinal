@@ -64,10 +64,6 @@ function AdminSideBarMenu() {
         ))}
       </nav>
 
-      <button className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-red-500 hover:bg-red-50 transition-all">
-        <LogOut size={20} />
-        Cerrar sesión
-      </button>
     </aside>
   )
 }

@@ -10,33 +10,6 @@ export interface ParkingLotSettings {
   maxReservationHours?: number;
 }
 
-
-// export interface ParkingLot {
-//   id: string;
-//   name: string;
-//   address: string;
-//   latitude: number;
-//   longitude: number;
-//   openTime: string;
-//   closeTime: string;
-//   settings: ParkingLotSettings;
-//   isActive: boolean;
-//   createdAt: string;
-//   updatedAt: string;
-// }
-
-// export interface ParkingLotWithStats extends ParkingLot {
-//   stats: {
-//     totalSpaces: number;
-//     availableSpaces: number;
-//     occupiedSpaces: number;
-//     reservedSpaces: number;
-//     maintenanceSpaces: number;
-//   };
-//   spaces?: Space[];
-//   rates?: Rate[];
-// }
-
 export interface CreateParkingLotDto {
   name: string;
   address: string;
