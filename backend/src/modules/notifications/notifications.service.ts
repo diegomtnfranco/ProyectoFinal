@@ -17,7 +17,7 @@ export class NotificationsService {
     
     await this.mailerService.sendMail({
       to: email,
-      subject: 'Verifica tu cuenta - Parking App',
+      subject: 'Verifica tu cuenta - EstacionApp',
       template: './verification', // Opcional: usar plantilla
       html: `
         <!DOCTYPE html>
@@ -33,7 +33,7 @@ export class NotificationsService {
         </head>
         <body>
           <div class="container">
-            <h1>¡Bienvenido a Parking App, ${name}!</h1>
+            <h1>¡Bienvenido a EstacionApp, ${name}!</h1>
             <p>Por favor, verifica tu dirección de email haciendo clic en el siguiente botón:</p>
             <p><a href="${verificationUrl}" class="button">Verificar email</a></p>
             <p>O copia y pega este enlace en tu navegador:</p>
@@ -54,29 +54,57 @@ export class NotificationsService {
   async sendWelcomeEmail(email: string, name: string): Promise<void> {
     await this.mailerService.sendMail({
       to: email,
-      subject: '¡Bienvenido a Parking App!',
+      subject: '¡Bienvenido a EstacionApp!',
       html: `
         <h1>Bienvenido ${name}</h1>
         <p>Tu cuenta ha sido verificada exitosamente.</p>
-        <p>Ya puedes comenzar a usar Parking App.</p>
+        <p>Ya puedes comenzar a usar EstacionApp.</p>
       `,
     });
   }
 
-  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const resetUrl = `${this.configService.get('FRONTEND_URL')}/reset-password?token=${token}`;
-    
-    await this.mailerService.sendMail({
-      to: email,
-      subject: 'Recuperación de contraseña - Parking App',
-      html: `
-        <h1>Recuperación de contraseña</h1>
-        <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
-        <a href="${resetUrl}">Restablecer contraseña</a>
-        <p>Este enlace expirará en 1 hora.</p>
-      `,
-    });
-  }
+  async sendPasswordResetEmail(email: string, token: string, name: string): Promise<void> {
+  const resetUrl = `${this.configService.get('FRONTEND_URL')}/reset-password?token=${token}`;
+  
+  await this.mailerService.sendMail({
+    to: email,
+    subject: 'Recuperación de contraseña - EstacionApp',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .button { background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; }
+          .warning { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 20px 0; }
+          .footer { margin-top: 30px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Recuperación de contraseña</h1>
+          <p>Hola <strong>${name}</strong>,</p>
+          <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente botón para crear una nueva contraseña:</p>
+          <p><a href="${resetUrl}" class="button">Restablecer contraseña</a></p>
+          <p>O copia y pega este enlace en tu navegador:</p>
+          <p>${resetUrl}</p>
+          <div class="warning">
+            <p><strong>⚠️ Importante:</strong> Este enlace expirará en <strong>1 hora</strong>.</p>
+            <p>Si no solicitaste este cambio, puedes ignorar este mensaje.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} EstacionApp. Todos los derechos reservados.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+  
+  this.logger.log(`Password reset email sent to ${email}`);
+}
 
   async sendEmployeeCredentials(
   email: string,
@@ -87,7 +115,7 @@ export class NotificationsService {
 ): Promise<void> {
   await this.mailerService.sendMail({
     to: email,
-    subject: 'Tus credenciales de empleado - Parking App',
+    subject: 'Tus credenciales de empleado - EstacionApp',
     html: `
       <!DOCTYPE html>
       <html>
@@ -134,7 +162,7 @@ export class NotificationsService {
 async sendNewReservationNotification(ownerEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: ownerEmail,
-    subject: 'Nueva reserva - Parking App',
+    subject: 'Nueva reserva - EstacionApp',
     html: `
       <h1>¡Nueva reserva!</h1>
       <p>Espacio: ${data.spaceNumber}</p>
@@ -148,7 +176,7 @@ async sendNewReservationNotification(ownerEmail: string, data: any) {
 async sendReservationConfirmedNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Reserva confirmada - Parking App',
+    subject: 'Reserva confirmada - EstacionApp',
     html: `
       <h1>¡Tu reserva ha sido confirmada!</h1>
       <p>Espacio: ${data.spaceNumber}</p>
@@ -161,7 +189,7 @@ async sendReservationConfirmedNotification(clientEmail: string, data: any) {
 async sendReservationCancelledNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Reserva cancelada - Parking App',
+    subject: 'Reserva cancelada - EstacionApp',
     html: `
       <h1>Tu reserva ha sido cancelada</h1>
       <p>Espacio: ${data.spaceNumber}</p>
@@ -173,7 +201,7 @@ async sendReservationCancelledNotification(clientEmail: string, data: any) {
 async sendReservationExpiredNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Reserva expirada - Parking App',
+    subject: 'Reserva expirada - EstacionApp',
     html: `
       <h1>Tu reserva ha expirado</h1>
       <p>Espacio: ${data.spaceNumber}</p>
@@ -186,7 +214,7 @@ async sendReservationExpiredNotification(clientEmail: string, data: any) {
 async sendSpaceChangedNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Tu espacio ha sido cambiado - Parking App',
+    subject: 'Tu espacio ha sido cambiado - EstacionApp',
     html: `
       <h1>Tu espacio de estacionamiento ha sido cambiado</h1>
       <p>Tu reserva ha sido reasignada del espacio <strong>${data.oldSpaceNumber}</strong> al espacio <strong>${data.newSpaceNumber}</strong>.</p>
@@ -199,7 +227,7 @@ async sendSpaceChangedNotification(clientEmail: string, data: any) {
 async sendSpaceConflictNotification(ownerEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: ownerEmail,
-    subject: '⚠️ Conflicto de espacio - Parking App',
+    subject: '⚠️ Conflicto de espacio - EstacionApp',
     html: `
       <h1>Conflicto de espacio detectado</h1>
       <p>El espacio <strong>${data.spaceNumber}</strong> está ocupado por ${data.occupiedBy} y no se puede asignar a la reserva ${data.reservationId}.</p>
@@ -213,7 +241,7 @@ async sendSpaceConflictNotification(ownerEmail: string, data: any) {
 async sendReservationPendingNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Tu reserva está pendiente - Parking App',
+    subject: 'Tu reserva está pendiente - EstacionApp',
     html: `
       <h1>Tu reserva está pendiente de confirmación</h1>
       <p>El espacio ${data.spaceNumber} está actualmente ocupado. Tan pronto como quede libre, tu reserva será confirmada.</p>
@@ -224,7 +252,7 @@ async sendReservationPendingNotification(clientEmail: string, data: any) {
 async sendReservationConfirmedExpiredNotification(clientEmail: string, data: any) {
   await this.mailerService.sendMail({
     to: clientEmail,
-    subject: 'Reserva expirada - Parking App',
+    subject: 'Reserva expirada - EstacionApp',
     html: `
       <h1>Tu reserva ha expirado</h1>
       <p>Espacio: ${data.spaceNumber}</p>

@@ -685,6 +685,79 @@ export class AuthService {
     }
   }
 
+
+  /**
+ * Solicitar recuperación de contraseña
+ * Genera un token y envía email de recuperación
+ */
+async forgotPassword(email: string): Promise<{ message: string }> {
+  const user = await this.userRepository.findOne({
+    where: { email },
+    relations: ['clientProfile', 'parkingOwnerProfile'],
+  });
+
+  if (!user) {
+    // Por seguridad, no revelamos si el email existe o no
+    return { message: 'Si el email está registrado, recibirás un enlace de recuperación' };
+  }
+
+  // Generar token único
+  const resetToken = randomBytes(32).toString('hex');
+  
+  
+  // Guardar token y expiración (1 hora)
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
+  
+  await this.userRepository.save(user);
+
+  // Obtener nombre del usuario para el email
+  const name = user.clientProfile?.name || user.parkingOwnerProfile?.businessName || user.email;
+
+  // Enviar email de recuperación
+  await this.notificationsService.sendPasswordResetEmail(user.email, resetToken, name);
+
+  this.logger.log(`Password reset requested for email: ${email}`);
+
+  return { message: 'Si el email está registrado, recibirás un enlace de recuperación' };
+}
+
+/**
+ * Restablecer contraseña con token
+ */
+async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  const user = await this.userRepository.findOne({
+    where: { resetPasswordToken: token },
+  });
+
+  if (!user) {
+    throw new BadRequestException('Token inválido o expirado');
+  }
+
+  // Verificar si el token expiró
+  if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+    // Limpiar token expirado
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await this.userRepository.save(user);
+    throw new BadRequestException('El token ha expirado. Por favor, solicita un nuevo enlace de recuperación');
+  }
+
+  // Hashear la nueva contraseña
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+  // Actualizar contraseña y limpiar tokens
+  user.passwordHash = hashedPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await this.userRepository.save(user);
+
+  this.logger.log(`Password reset successfully for user: ${user.email}`);
+
+  return { message: 'Contraseña actualizada exitosamente' };
+}
+
   private sanitizeUser(user: User): Partial<User> {
     const { passwordHash, verificationToken, resetPasswordToken, ...safeUser } = user;
     return safeUser;

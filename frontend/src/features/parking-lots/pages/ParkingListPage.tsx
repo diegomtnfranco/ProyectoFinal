@@ -428,7 +428,7 @@ function ParkingListPage() {
                 <div className='bg-green-100 p-3 rounded-full'>🕒</div>
                 <div>
                   <h3 className='font-semibold'>En tiempo real</h3>
-                  <p className='text-sm text-gray-500'>Disponibilidad actualizada al instante vía WebSocket.</p>
+                  <p className='text-sm text-gray-500'>Disponibilidad actualizada al instante.</p>
                 </div>
               </div>
             </div>

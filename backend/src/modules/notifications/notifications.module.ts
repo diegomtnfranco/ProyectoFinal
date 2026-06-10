@@ -20,7 +20,7 @@ import { NotificationsService } from './notifications.service';
           },
         },
         defaults: {
-          from: `"Parking App" <${configService.get('EMAIL_FROM', 'noreply@parkingapp.com')}>`,
+          from: `"EstacionApp" <${configService.get('EMAIL_FROM', 'noreply@parkingapp.com')}>`,
         },
       }),
       inject: [ConfigService],

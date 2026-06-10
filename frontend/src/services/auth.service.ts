@@ -134,4 +134,21 @@ export const authService = {
     const response = await api.post<{ message: string }>('/auth/resend-verification', { email });
     return response.data;
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
+  return response.data;
+},
+
+/**
+ * Restablecer contraseña con token
+ */
+async resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>('/auth/reset-password', { 
+    token, 
+    newPassword, 
+    confirmPassword 
+  });
+  return response.data;
+},
 };
