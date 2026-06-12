@@ -1,5 +1,10 @@
 import SideBarButton from "./SideBarButton"
-import { ChartSpline, ParkingMeter, Receipt, TableConfig, UserRoundCog, type LucideIcon } from "lucide-react"
+import {
+  ParkingMeter,
+  Receipt,
+  UserRoundCog,
+  Users
+} from "lucide-react"
 
 export interface OpcionMenu {
   name: string
@@ -23,7 +28,11 @@ const OwnerOptions: OpcionMenu[] = [
     path: '/owner/users',
     icon: UserRoundCog,
   },
-  
+  {
+  name: 'Empleados',
+  path: '/owner/employees',
+  icon: Users,
+},
   
 ]
 
