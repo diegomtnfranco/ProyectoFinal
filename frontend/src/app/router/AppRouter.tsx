@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../../features/auth/pages/LoginPage';
 import RegisterPage from '../../features/auth/pages/RegisterPage';
 import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage';
+import LandingPage from '../../features/landing/pages/LandingPage' 
 import ClientLayout from '../layouts/client-layout';
 import ParkingListPage from '../../features/parking-lots/pages/ParkingListPage';
 import ParkingDetailsPage from '../../features/parking-lots/pages/ParkingDetailsPage';
@@ -22,18 +23,24 @@ import ProfilePage from '../../features/profile/pages/ProfilePage';
 import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPages'
 import EmployeesPage from '../../features/owner/EmployeesPage';
 
-
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         {/* RUTAS PÚBLICAS */}
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path='/' element={<LandingPage />} />       
+        <Route path='/login' element={<LoginPage />} /> 
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
+
+        {/* PUBLIC */}
+        <Route path='/' element={<LandingPage />} />       
+        <Route path='/login' element={<LoginPage />} />    
+        <Route path='/register' element={<RegisterPage />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/verify' element={<VerifyEmailPage />} /> 
 
         {/* CLIENTE */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]} redirectTo="/" />}>
@@ -43,6 +50,7 @@ function AppRouter() {
             <Route path="my-reservations" element={<MyReservationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
+
         </Route>
 
         {/* DUEÑO */}
