@@ -12,6 +12,7 @@ import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { ParkingLotNearbyResponseDto } from './dto/parking-lot-nearby-response.dto';
 import { Space } from '../spaces/entities/space.entity';
 import { FindAllParkingLotsDto, SortByField, SortOrder } from './dto/find-all-parking-lots.dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 
 @Injectable()
@@ -24,7 +25,8 @@ export class ParkingLotsService {
     @InjectRepository(Rate)
     private rateRepository: Repository<Rate>,
     @InjectRepository(Space)
-    private spaceRepository: Repository<Space>
+    private spaceRepository: Repository<Space>,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   async create(createDto: CreateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
@@ -419,6 +421,48 @@ async toggleStatus(id: string, isActive: boolean, userId: string, userRole: stri
   
   parkingLot.isActive = isActive;
   return this.parkingLotRepository.save(parkingLot);
+}
+
+/**
+ * Actualizar solo la imagen de un estacionamiento
+ */
+async updateImage(id: string, imageUrl: string, userId: string, userRole: string): Promise<ParkingLot> {
+  const parkingLot = await this.findOne(id);
+
+  // Verificar permisos
+  if (userRole === UserRole.PARKING_OWNER) {
+    const owner = await this.parkingOwnerRepository.findOne({
+      where: { userId },
+    });
+    if (!owner || parkingLot.ownerId !== owner.id) {
+      throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+    }
+  } else if (userRole !== UserRole.ADMIN) {
+    throw new UnauthorizedException('No tienes permiso para realizar esta acción');
+  }
+
+  // Opcional: Eliminar imagen anterior de Cloudinary si existe
+  if (parkingLot.imageUrl) {
+    const publicId = this.cloudinaryService.extractPublicIdFromUrl(parkingLot.imageUrl);
+    if (publicId) {
+      await this.cloudinaryService.deleteImage(publicId).catch(console.error);
+    }
+  }
+
+  parkingLot.imageUrl = imageUrl;
+  return this.parkingLotRepository.save(parkingLot);
+}
+
+/**
+ * Extraer public_id de una URL de Cloudinary
+ */
+private extractPublicIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  
+  // Patrón para extraer el public_id de Cloudinary
+  // Ejemplo: https://res.cloudinary.com/.../upload/v123456/parking_lots/abc123.jpg
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.\w+$/);
+  return match ? match[1] : null;
 }
 
 }

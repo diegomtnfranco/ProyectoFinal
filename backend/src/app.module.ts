@@ -19,6 +19,9 @@ import { ParkingEmployeesModule } from './modules/parking-employees/parking-empl
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
+
+
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -55,8 +58,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CommonModule,
     ParkingEmployeesModule,
     NotificationsModule,
-    WebsocketModule
-
+    WebsocketModule, 
 
   ],
   controllers: [],
@@ -69,6 +71,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    CloudinaryService,
   ],
 })
 export class AppModule { }
