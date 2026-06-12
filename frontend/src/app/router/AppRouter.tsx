@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from '../../features/auth/pages/LoginPage'
 import RegisterPage from '../../features/auth/pages/RegisterPage'
 import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage'
+import LandingPage from '../../features/landing/pages/LandingPage' 
 
 import ClientLayout from '../layouts/client-layout'
 
@@ -26,7 +27,8 @@ function AppRouter() {
       <Routes>
 
         {/* PUBLIC */}
-        <Route path='/' element={<LoginPage />} />
+        <Route path='/' element={<LandingPage />} />       
+        <Route path='/login' element={<LoginPage />} />    
         <Route path='/register' element={<RegisterPage />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/verify' element={<VerifyEmailPage />} /> 
