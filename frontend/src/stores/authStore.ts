@@ -1,34 +1,37 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/auth.service';
-import type { UserResponseDto, LoginDto, UpdateProfileDto, RegisterClientDto, RegisterOwnerCompleteResponseDto, RegisterOwnerCompleteDto } from '../types/auth.types';
+import type { UserResponseDto, LoginDto, UpdateProfileDto, RegisterClientDto, RegisterOwnerCompleteResponseDto, RegisterOwnerCompleteDto, LoginResponseDto } from '../types/auth.types';
 
 interface AuthState {
-
     user: UserResponseDto | null;
     token: string | null;
     isLoading: boolean;
     error: string | null;
     lastRegisterResponse: RegisterOwnerCompleteResponseDto | null;
+    lastRegisterMessage: string | null;
     // Acciones
     login: (credentials: LoginDto) => Promise<void>;
-    registerClient: (data: RegisterClientDto) => Promise<void>;
+    registerClient: (data: RegisterClientDto) => Promise<{ message: string } | void>;
     registerOwnerComplete: (data: RegisterOwnerCompleteDto) => Promise<RegisterOwnerCompleteResponseDto>;
     logout: () => void;
     updateProfile: (data: UpdateProfileDto) => Promise<void>;
     getProfile: () => Promise<void>;
     clearError: () => void;
+    verifyEmail: (token: string) => Promise<void>;
+    clearRegisterMessage: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set, get) => ({
+        (set) => ({  // ← Eliminamos 'get' que no se usaba
             // Estado inicial
             user: null,
             token: null,
             isLoading: false,
             error: null,
             lastRegisterResponse: null,
+            lastRegisterMessage: null,
 
             // Login
             login: async (credentials) => {
@@ -45,13 +48,20 @@ export const useAuthStore = create<AuthState>()(
                     throw error;
                 }
             },
+            
             registerClient: async (data) => {
                 set({ isLoading: true, error: null });
                 try {
                     const response = await authService.registerClient(data);
-                    // No hacer login automático, solo redirigir al login
-                    set({ isLoading: false });
-                    // Opcional: guardar mensaje de éxito
+                    // Extraer el mensaje de la respuesta
+                    const message = response.message || 'Registro exitoso. Se ha enviado un email de verificación.';
+                    
+                    set({ 
+                        isLoading: false,
+                        lastRegisterMessage: message
+                    });
+                    
+                    return { message };
                 } catch (error) {
                     set({ error: error as string, isLoading: false });
                     throw error;
@@ -64,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
                     const response = await authService.registerOwnerComplete(data);
                     set({
                         lastRegisterResponse: response,
+                        lastRegisterMessage: response.message,
                         isLoading: false
                     });
                     return response;
@@ -73,11 +84,10 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-
             // Logout
             logout: () => {
                 authService.logout();
-                set({ user: null, token: null, error: null });
+                set({ user: null, token: null, error: null, lastRegisterMessage: null });
             },
 
             // Actualizar perfil
@@ -106,13 +116,30 @@ export const useAuthStore = create<AuthState>()(
 
             // Limpiar error
             clearError: () => set({ error: null }),
+            
+            // Limpiar mensaje de registro
+            clearRegisterMessage: () => set({ lastRegisterMessage: null }),
+
+            // Verificar email
+            verifyEmail: async (token: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    await authService.verifyEmail(token);
+                    set({ isLoading: false });
+                } catch (error) {
+                    set({ error: error as string, isLoading: false });
+                    throw error;
+                }
+            },
         }),
+
         {
             name: 'auth-storage',
             partialize: (state) => ({
                 user: state.user,
                 token: state.token,
-                lastRegisterResponse: state.lastRegisterResponse
+                lastRegisterResponse: state.lastRegisterResponse,
+                lastRegisterMessage: state.lastRegisterMessage,
             }),
         }
     )

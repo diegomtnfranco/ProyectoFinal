@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseUUIDPipe, ParseFloatPipe, ParseIntPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseUUIDPipe, ParseFloatPipe, ParseIntPipe, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ParkingLotsService } from './parking-lots.service';
 import { CreateParkingLotDto } from './dto/create-parking-lot.dto';
 import { UpdateParkingLotDto } from './dto/update-parking-lot.dto';
@@ -9,12 +9,17 @@ import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator'
 import { Public } from 'src/modules/auth/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ParkingLotResponseDto, ParkingLotAvailabilityResponseDto, ParkingLotNearbyResponseDto } from './dto/parking-lot-response.dto';
+import { FindAllParkingLotsDto } from './dto/find-all-parking-lots.dto';
+import { memoryStorage } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express/multer/interceptors';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';  // ← CAMBIADO
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';  // ← CAMBIADO // ← CAMBIADO
 
 @ApiTags('parking-lots')
 @Controller('parking-lots')
 @UseGuards(JwtAuthGuard)
 export class ParkingLotsController {
-  constructor(private readonly parkingLotsService: ParkingLotsService) {}
+  constructor(private readonly parkingLotsService: ParkingLotsService, private readonly cloudinaryService: CloudinaryService) {}
 
   @Post()
   @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
@@ -36,7 +41,25 @@ export class ParkingLotsController {
     return this.parkingLotsService.create(createParkingLotDto, user.id, user.role);
   }
 
-  @Get()
+   @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener todos los estacionamientos (paginado)',
+    description: 'Retorna una lista paginada de todos los estacionamientos registrados. Solo para administradores.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lista de estacionamientos obtenida exitosamente'
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo administradores' })
+  async findAllPaginated(@Query() queryDto: FindAllParkingLotsDto) {
+    
+    return this.parkingLotsService.findAllPaginated(queryDto);
+  }
+
+  @Get('all')
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
@@ -51,6 +74,7 @@ export class ParkingLotsController {
   @ApiResponse({ status: 401, description: 'No autenticado' })
   @ApiResponse({ status: 403, description: 'Solo administradores' })
   findAll() {
+   
     return this.parkingLotsService.findAll();
   }
 
@@ -178,8 +202,8 @@ export class ParkingLotsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateParkingLotDto: UpdateParkingLotDto,
-    @CurrentUser() user: any,
-  ) {
+    @CurrentUser() user: any,  ) {
+   
     return this.parkingLotsService.update(id, updateParkingLotDto, user.id, user.role);
   }
 
@@ -198,4 +222,59 @@ export class ParkingLotsController {
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.parkingLotsService.remove(id, user.id, user.role);
   }
+
+
+
+  @Patch(':id/status')
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiParam({ name: 'id', type: String, description: 'UUID del estacionamiento' })
+@ApiOperation({ 
+  summary: 'Activar/Desactivar un estacionamiento',
+  description: 'Cambia el estado de activación de un estacionamiento. Solo administradores.'
+})
+@ApiResponse({ status: 200, description: 'Estado actualizado exitosamente' })
+@ApiResponse({ status: 401, description: 'No autenticado' })
+@ApiResponse({ status: 403, description: 'Solo administradores' })
+@ApiResponse({ status: 404, description: 'Estacionamiento no encontrado' })
+@ApiBody({ schema: { example: { isActive: true } } })
+async toggleStatus(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body('isActive') isActive: boolean,
+  @CurrentUser() user: any,
+) {
+  return this.parkingLotsService.toggleStatus(id, isActive, user.id, user.role);
+}
+
+@Post(':id/image')
+@UseGuards(JwtAuthGuard)
+@Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
+@UseInterceptors(
+  FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
+  })
+)
+async uploadParkingImage(
+  @Param('id', ParseUUIDPipe) parkingLotId: string,
+  @UploadedFile(new FileValidationPipe({ maxSizeMB: 2 })) file: Express.Multer.File,
+  @CurrentUser() user: any
+) {
+  // Subir a Cloudinary con optimización para estacionamientos
+  const imageUrl = await this.cloudinaryService.uploadImage(file, 'parking_lots', {
+    width: 1200,
+    height: 800,
+    quality: 85,
+  });
+  
+  // Actualizar URL en la base de datos
+  await this.parkingLotsService.updateImage(parkingLotId, imageUrl, user.id, user.role);
+  
+  return { 
+    url: imageUrl,
+    message: 'Imagen del estacionamiento actualizada exitosamente'
+  };
+}
 }

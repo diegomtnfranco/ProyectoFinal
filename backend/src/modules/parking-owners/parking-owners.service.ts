@@ -69,6 +69,25 @@ export class ParkingOwnersService {
     return this.findOne(id);
   }
 
+  async approveOwner(id: string) {
+  const owner = await this.parkingOwnerRepository.findOne({
+    where: { id }
+  })
+
+  if (!owner) {
+    throw new NotFoundException(
+      'Empresa no encontrada'
+    )
+  }
+
+  owner.isApproved = true
+  owner.approvedAt = new Date()
+
+  return await this.parkingOwnerRepository.save(
+    owner
+  )
+}
+
   async approve(id: string): Promise<ParkingOwner> {
     await this.parkingOwnerRepository.update(id, {
       isApproved: true,

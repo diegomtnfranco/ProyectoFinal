@@ -3,7 +3,8 @@ import type {
   ParkingLotWithStats,
   CreateParkingLotDto,
   UpdateParkingLotDto,
-  NearbyQueryDto,
+  NearbyQueryDto,  
+  ParkingLotNearbyResponseDto,
 } from '../types/parking.types';
 import { api } from './api';
 
@@ -28,8 +29,8 @@ export const parkingLotsService = {
   /**
    * Buscar estacionamientos cercanos (público)
    */
-  async getNearby(query: NearbyQueryDto): Promise<ParkingLot[]> {
-    const response = await api.get<ParkingLot[]>('/parking-lots/nearby', { params: query });
+  async getNearby(query: NearbyQueryDto): Promise<ParkingLotNearbyResponseDto[]> {
+    const response = await api.get<ParkingLotNearbyResponseDto[]>('/parking-lots/nearby', { params: query });
     return response.data;
   },
 

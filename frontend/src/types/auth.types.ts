@@ -52,6 +52,7 @@ export interface LoginDto {
 export interface RegisterClientDto {
   email: string;
   password: string;
+  confirmPassword: string; // ← Agregar esto
   name: string;
   phone?: string;
   defaultVehiclePlate?: string;
@@ -63,7 +64,7 @@ export interface RegisterOwnerCompleteDto {
   // Datos del usuario
   email: string;
   password: string;
-  
+  confirmPassword: string; // ← Agregar esto
   // Datos del dueño
   name: string;
   businessName: string;
@@ -170,7 +171,7 @@ export interface EmployeeProfileResponseDto {
 export interface ProfileResponseDto {
   user: UserResponseDto;
   clientProfile?: ClientProfileResponseDto;
-  ownerProfile?: OwnerProfileResponseDto;
+  parkingOwnerProfile?: OwnerProfileResponseDto;
   employeeProfile?: EmployeeProfileResponseDto;
 }
 
@@ -180,7 +181,7 @@ export interface LoginResponseDto {
   access_token: string;
   requiresVerification?: boolean;
   requiresApproval?: boolean;
-  message?: string;
+  message?: string;  // ← Este campo existe en registerClient
 }
 
 // Register Owner Complete response
