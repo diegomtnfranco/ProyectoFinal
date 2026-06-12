@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseUUIDPipe, ParseFloatPipe, ParseIntPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseUUIDPipe, ParseFloatPipe, ParseIntPipe, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ParkingLotsService } from './parking-lots.service';
 import { CreateParkingLotDto } from './dto/create-parking-lot.dto';
 import { UpdateParkingLotDto } from './dto/update-parking-lot.dto';
@@ -10,12 +10,16 @@ import { Public } from 'src/modules/auth/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ParkingLotResponseDto, ParkingLotAvailabilityResponseDto, ParkingLotNearbyResponseDto } from './dto/parking-lot-response.dto';
 import { FindAllParkingLotsDto } from './dto/find-all-parking-lots.dto';
+import { memoryStorage } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express/multer/interceptors';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';  // ← CAMBIADO
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';  // ← CAMBIADO // ← CAMBIADO
 
 @ApiTags('parking-lots')
 @Controller('parking-lots')
 @UseGuards(JwtAuthGuard)
 export class ParkingLotsController {
-  constructor(private readonly parkingLotsService: ParkingLotsService) {}
+  constructor(private readonly parkingLotsService: ParkingLotsService, private readonly cloudinaryService: CloudinaryService) {}
 
   @Post()
   @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
@@ -240,5 +244,37 @@ async toggleStatus(
   @CurrentUser() user: any,
 ) {
   return this.parkingLotsService.toggleStatus(id, isActive, user.id, user.role);
+}
+
+@Post(':id/image')
+@UseGuards(JwtAuthGuard)
+@Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
+@UseInterceptors(
+  FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
+  })
+)
+async uploadParkingImage(
+  @Param('id', ParseUUIDPipe) parkingLotId: string,
+  @UploadedFile(new FileValidationPipe({ maxSizeMB: 2 })) file: Express.Multer.File,
+  @CurrentUser() user: any
+) {
+  // Subir a Cloudinary con optimización para estacionamientos
+  const imageUrl = await this.cloudinaryService.uploadImage(file, 'parking_lots', {
+    width: 1200,
+    height: 800,
+    quality: 85,
+  });
+  
+  // Actualizar URL en la base de datos
+  await this.parkingLotsService.updateImage(parkingLotId, imageUrl, user.id, user.role);
+  
+  return { 
+    url: imageUrl,
+    message: 'Imagen del estacionamiento actualizada exitosamente'
+  };
 }
 }
