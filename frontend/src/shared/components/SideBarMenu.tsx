@@ -1,7 +1,6 @@
-// src/shared/components/SideBarMenu.tsx
-
 import { NavLink } from 'react-router-dom'
 import { ownerMenu } from './OwnerMenu'
+
 
 const SideBarMenu = () => {
   return (

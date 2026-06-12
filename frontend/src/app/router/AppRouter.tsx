@@ -21,6 +21,7 @@ import { UserRole } from '../../types/auth.types';
 import MyReservationsPage from '../../features/parking-lots/pages/MyReservationsPage';
 import ProfilePage from '../../features/profile/pages/ProfilePage';
 import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPages'
+import EmployeesPage from '../../features/owner/EmployeesPage';
 
 function AppRouter() {
   return (
@@ -59,6 +60,7 @@ function AppRouter() {
             <Route path="parking" element={<DashboardOwner />} />
             <Route path="rates" element={<RatesPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>
