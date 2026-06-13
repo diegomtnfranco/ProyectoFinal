@@ -37,6 +37,15 @@ export class ParkingOwnersController {
     return this.parkingOwnersService.update(id, updateDto);
   }
 
+  @Patch(':id/approve')
+approveOwner(
+  @Param('id') id: string
+) {
+  return this.parkingOwnersService.approveOwner(
+    id
+  )
+}
+
   @Post(':id/approve')
   approve(@Param('id', ParseUUIDPipe) id: string) {
     return this.parkingOwnersService.approve(id);

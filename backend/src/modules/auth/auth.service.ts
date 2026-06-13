@@ -59,63 +59,66 @@ export class AuthService {
   }
 
   async registerClient(registerDto: RegisterClientDto) {
-    // Verificar si el email ya existe
-    const existingUser = await this.userRepository.findOne({
-      where: { email: registerDto.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('El email ya está registrado');
-    }
-
-    // Generar token de verificación
-    const verificationToken = this.generateVerificationToken();
-
-    // Crear usuario
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    const user = this.userRepository.create({
-      email: registerDto.email,
-      passwordHash: hashedPassword,
-      role: UserRole.CLIENT,
-      isVerified: false,
-      isActive: true,
-      verificationToken,
-    });
-    await this.userRepository.save(user);
-
-    // Crear perfil de cliente
-    const clientProfile = this.clientRepository.create({
-      userId: user.id,
-      name: registerDto.name,
-      phone: registerDto.phone,
-      defaultVehiclePlate: registerDto.defaultVehiclePlate,
-      defaultVehicleType: registerDto.defaultVehicleType,
-    });
-    await this.clientRepository.save(clientProfile);
-
-    // Enviar email de verificación
-    await this.notificationsService.sendVerificationEmail(
-      user.email,
-      verificationToken,
-      registerDto.name,
-    );
-
-    //  creo el token JWT (pero el usuario no podrá usar la app hasta verificar)
-    const token = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    }, {
-      expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
-      secret: this.configService.get('JWT_SECRET'),
-    });
-
-    return {
-      user: this.sanitizeUser(user),
-      access_token: token,
-      requiresVerification: true,
-      message: 'Se ha enviado un email de verificación a tu correo',
-    };
+  // Verificar si el email ya existe
+  const existingUser = await this.userRepository.findOne({
+    where: { email: registerDto.email },
+  });
+  if (existingUser) {
+    throw new ConflictException('El email ya está registrado');
   }
+
+  // Extraer confirmPassword y no usarlo
+  const { confirmPassword, ...clientData } = registerDto;
+
+  // Generar token de verificación
+  const verificationToken = this.generateVerificationToken();
+
+  // Crear usuario
+  const hashedPassword = await bcrypt.hash(clientData.password, 10);
+  const user = this.userRepository.create({
+    email: clientData.email,
+    passwordHash: hashedPassword,
+    role: UserRole.CLIENT,
+    isVerified: false,
+    isActive: true,
+    verificationToken,
+  });
+  await this.userRepository.save(user);
+
+  // Crear perfil de cliente
+  const clientProfile = this.clientRepository.create({
+    userId: user.id,
+    name: clientData.name,
+    phone: clientData.phone,
+    defaultVehiclePlate: clientData.defaultVehiclePlate,
+    defaultVehicleType: clientData.defaultVehicleType,
+  });
+  await this.clientRepository.save(clientProfile);
+
+  // Enviar email de verificación
+  await this.notificationsService.sendVerificationEmail(
+    user.email,
+    verificationToken,
+    clientData.name,
+  );
+
+  // Crear el token JWT
+  const token = this.jwtService.sign({
+    sub: user.id,
+    email: user.email,
+    role: user.role,
+  }, {
+    expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
+    secret: this.configService.get('JWT_SECRET'),
+  });
+
+  return {
+    user: this.sanitizeUser(user),
+    access_token: token,
+    requiresVerification: true,
+    message: 'Se ha enviado un email de verificación a tu correo',
+  };
+}
 
   async registerOwner(registerDto: RegisterOwnerDto) {
     // Verificar si el email ya existe
@@ -405,63 +408,70 @@ export class AuthService {
     return user;
   }
 
-  async getUserProfile(userId: string): Promise<ProfileResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile', 'parkingEmployeeProfile.parkingLot'],
-    });
+ async getUserProfile(userId: string): Promise<any> {
+  const user = await this.userRepository.findOne({
+    where: { id: userId },
+    relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile', 'parkingEmployeeProfile.parkingLot'],
+  });
 
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
-    }
-
-    const response: ProfileResponseDto = {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-        isVerified: user.isVerified,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-      },
-    };
-
-    if (user.clientProfile) {
-      response.clientProfile = {
-        id: user.clientProfile.id,
-        name: user.clientProfile.name,
-        phone: user.clientProfile.phone,
-        defaultVehiclePlate: user.clientProfile.defaultVehiclePlate,
-        defaultVehicleType: user.clientProfile.defaultVehicleType,
-      };
-    }
-
-    if (user.parkingOwnerProfile) {
-      response.ownerProfile = {
-        id: user.parkingOwnerProfile.id,
-        businessName: user.parkingOwnerProfile.businessName,
-        cuit: user.parkingOwnerProfile.cuit,
-        phone: user.parkingOwnerProfile.phone,
-        address: user.parkingOwnerProfile.address,
-        isApproved: user.parkingOwnerProfile.isApproved,
-      };
-    }
-
-    if (user.parkingEmployeeProfile) {
-      response.employeeProfile = {
-        id: user.parkingEmployeeProfile.id,
-        name: user.parkingEmployeeProfile.name,
-        position: user.parkingEmployeeProfile.position,
-        isActive: user.parkingEmployeeProfile.isActive,
-        parkingLotId: user.parkingEmployeeProfile.parkingLotId,
-        parkingLotName: user.parkingEmployeeProfile.parkingLot?.name || '',
-      };
-    }
-
-    return response;
+  if (!user) {
+    throw new UnauthorizedException('Usuario no encontrado');
   }
 
+  // Construir el objeto usuario con todas las propiedades
+  const userResponse: any = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
+
+  // Siempre incluir clientProfile (puede ser null)
+  if (user.clientProfile) {
+    userResponse.clientProfile = {
+      id: user.clientProfile.id,
+      name: user.clientProfile.name,
+      phone: user.clientProfile.phone || '',
+      defaultVehiclePlate: user.clientProfile.defaultVehiclePlate,
+      defaultVehicleType: user.clientProfile.defaultVehicleType,
+    };
+  } else {
+    userResponse.clientProfile = null;
+  }
+
+  // Siempre incluir parkingOwnerProfile (puede ser null)
+  if (user.parkingOwnerProfile) {
+    userResponse.parkingOwnerProfile = {
+      id: user.parkingOwnerProfile.id,
+      businessName: user.parkingOwnerProfile.businessName,
+      cuit: user.parkingOwnerProfile.cuit,
+      phone: user.parkingOwnerProfile.phone,
+      address: user.parkingOwnerProfile.address,
+      isApproved: user.parkingOwnerProfile.isApproved,
+    };
+  } else {
+    userResponse.parkingOwnerProfile = null;
+  }
+
+  // Siempre incluir employeeProfile (puede ser null)
+  if (user.parkingEmployeeProfile) {
+    userResponse.employeeProfile = {
+      id: user.parkingEmployeeProfile.id,
+      name: user.parkingEmployeeProfile.name,
+      position: user.parkingEmployeeProfile.position,
+      isActive: user.parkingEmployeeProfile.isActive,
+      parkingLotId: user.parkingEmployeeProfile.parkingLotId,
+      parkingLotName: user.parkingEmployeeProfile.parkingLot?.name || '',
+    };
+  } else {
+    userResponse.employeeProfile = null;
+  }
+
+  return { user: userResponse };
+}
   /**
    * Actualizar perfil unificado
    */
@@ -528,104 +538,108 @@ export class AuthService {
 
   async registerOwnerComplete(registerDto: RegisterOwnerCompleteDto) {
     const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
-    try {
-      // 1. Verificar si el email ya existe
-      const existingUser = await this.userRepository.findOne({
-        where: { email: registerDto.email },
+  try {
+    // Extraer confirmPassword y no usarlo
+    const { confirmPassword, ...ownerData } = registerDto;
+
+    // 1. Verificar si el email ya existe
+    const existingUser = await this.userRepository.findOne({
+      where: { email: ownerData.email },
+    });
+    if (existingUser) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    // 2. Verificar si el CUIT ya existe
+    if (ownerData.cuit) {
+      const existingCuit = await this.parkingOwnerRepository.findOne({
+        where: { cuit: ownerData.cuit },
       });
-      if (existingUser) {
-        throw new ConflictException('El email ya está registrado');
+      if (existingCuit) {
+        throw new ConflictException('El CUIT ya está registrado');
       }
+    }
 
-      // 2. Verificar si el CUIT ya existe
-      if (registerDto.cuit) {
-        const existingCuit = await this.parkingOwnerRepository.findOne({
-          where: { cuit: registerDto.cuit },
-        });
-        if (existingCuit) {
-          throw new ConflictException('El CUIT ya está registrado');
-        }
-      }
+    const verificationToken = this.generateVerificationToken();
 
-      const verificationToken = this.generateVerificationToken();
+    // 3. Crear usuario
+    const hashedPassword = await bcrypt.hash(ownerData.password, 10);
+    const user = this.userRepository.create({
+      email: ownerData.email,
+      passwordHash: hashedPassword,
+      role: UserRole.PARKING_OWNER,
+      isVerified: false,
+      isActive: true,
+      verificationToken,
+    });
+    await queryRunner.manager.save(user);
 
-      // 3. Crear usuario
-      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-      const user = this.userRepository.create({
-        email: registerDto.email,
-        passwordHash: hashedPassword,
-        role: UserRole.PARKING_OWNER,
-        isVerified: false,
-        isActive: true,
-        verificationToken,
-      });
-      await queryRunner.manager.save(user);
+    // 4. Crear perfil de dueño
+    const parkingOwner = this.parkingOwnerRepository.create({
+      userId: user.id,
+      name: ownerData.name,
+      businessName: ownerData.businessName,
+      cuit: ownerData.cuit,
+      phone: ownerData.phone,
+      address: ownerData.address,
+      isApproved: false,
+    });
+    await queryRunner.manager.save(parkingOwner);
 
-      // 4. Crear perfil de dueño
-      const parkingOwner = this.parkingOwnerRepository.create({
-        userId: user.id,
-        name: registerDto.name,
-        businessName: registerDto.businessName,
-        cuit: registerDto.cuit,
-        phone: registerDto.phone,
-        address: registerDto.address,
-        isApproved: false,
-      });
-      await queryRunner.manager.save(parkingOwner);
+    // 5. Crear estacionamiento
+    const defaultSettings = {
+      allowOnlineReservations: true,
+      cancellationMinutesBefore: 30,
+      reservationHoldMinutes: 120,
+      blockSpaceHoursBefore: 2,
+      maxReservationHours: 24,
+      maxAdvanceDays: 7,
+    };
 
-      // 5. Crear estacionamiento
-      const defaultSettings = {
-        allowOnlineReservations: true,
-        cancellationMinutesBefore: 30,
-        reservationHoldMinutes: 120,
-        blockSpaceHoursBefore: 2,
-        maxReservationHours: 24,
-        maxAdvanceDays: 7,
+    const parkingLot = this.parkingLotRepository.create({
+      ownerId: parkingOwner.id,
+      name: ownerData.parkingName || ownerData.businessName,
+      address: ownerData.address || 'Dirección pendiente',
+      latitude: ownerData.latitude,
+      longitude: ownerData.longitude,
+      openTime: ownerData.openTime,
+      closeTime: ownerData.closeTime,
+      settings: {
+        ...defaultSettings,
+        allowOnlineReservations: ownerData.allowOnlineReservations ?? true,
+      },
+      isActive: true,
+    });
+
+    await queryRunner.manager.save(parkingLot);
+
+    // 6. Crear espacios - VERIFICAR QUE SE CREAN CORRECTAMENTE
+    const spaces: Space[] = [];
+    const totalSpaces = ownerData.totalSpaces;
+
+    console.log(`Creando ${totalSpaces} espacios para el estacionamiento ${parkingLot.name}`);
+
+    for (let i = 1; i <= totalSpaces; i++) {
+      const space = new Space();
+      space.parkingLotId = parkingLot.id;
+      space.spaceNumber = `${i}`.padStart(3, '0');
+      space.allowedVehicleTypes = [VehicleType.CAR, VehicleType.TRUCK, VehicleType.MOTORCYCLE, VehicleType.VAN];
+      space.status = SpaceStatus.AVAILABLE;
+      space.isActive = true;
+      space.isReserved = false;
+      space.allowsReservations = true;
+      space.metadata = {
+        floor: Math.ceil(i / 20),
+        zone: i <= totalSpaces / 2 ? 'Norte' : 'Sur',
       };
+      spaces.push(space);
+    }
 
-      const parkingLot = this.parkingLotRepository.create({
-        ownerId: parkingOwner.id,
-        name: registerDto.parkingName || registerDto.businessName,
-        address: registerDto.address || 'Dirección pendiente',
-        latitude: registerDto.latitude,
-        longitude: registerDto.longitude,
-        openTime: registerDto.openTime,
-        closeTime: registerDto.closeTime,
-        settings: {
-          ...defaultSettings,
-          allowOnlineReservations: registerDto.allowOnlineReservations ?? true,
-        },
-        isActive: true,
-      });
-
-      await queryRunner.manager.save(parkingLot);
-
-      // 6. Crear espacios (TODOS admiten TODOS los tipos de vehículo)
-      const spaces: Space[] = [];
-      const totalSpaces = registerDto.totalSpaces;
-
-      for (let i = 1; i <= totalSpaces; i++) {
-        const space = new Space(); // ← Crear instancia de Space
-        space.parkingLotId = parkingLot.id;
-        space.spaceNumber = `${i}`.padStart(3, '0');
-        space.allowedVehicleTypes = [VehicleType.CAR, VehicleType.TRUCK, VehicleType.MOTORCYCLE, VehicleType.VAN];
-        space.status = SpaceStatus.AVAILABLE;
-        space.isActive = true;
-        space.isReserved = false;
-        space.allowsReservations = true;
-        space.metadata = {
-          floor: Math.ceil(i / 20),
-          zone: i <= totalSpaces / 2 ? 'Norte' : 'Sur',
-        };
-
-        spaces.push(space);
-      }
-
-
-      await queryRunner.manager.save(spaces);
+    await queryRunner.manager.save(spaces);
+    console.log(`Creados ${spaces.length} espacios exitosamente`)
 
       // 7. Enviar email de verificación
       await this.notificationsService.sendVerificationEmail(
@@ -670,6 +684,79 @@ export class AuthService {
       await queryRunner.release();
     }
   }
+
+
+  /**
+ * Solicitar recuperación de contraseña
+ * Genera un token y envía email de recuperación
+ */
+async forgotPassword(email: string): Promise<{ message: string }> {
+  const user = await this.userRepository.findOne({
+    where: { email },
+    relations: ['clientProfile', 'parkingOwnerProfile'],
+  });
+
+  if (!user) {
+    // Por seguridad, no revelamos si el email existe o no
+    return { message: 'Si el email está registrado, recibirás un enlace de recuperación' };
+  }
+
+  // Generar token único
+  const resetToken = randomBytes(32).toString('hex');
+  
+  
+  // Guardar token y expiración (1 hora)
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
+  
+  await this.userRepository.save(user);
+
+  // Obtener nombre del usuario para el email
+  const name = user.clientProfile?.name || user.parkingOwnerProfile?.businessName || user.email;
+
+  // Enviar email de recuperación
+  await this.notificationsService.sendPasswordResetEmail(user.email, resetToken, name);
+
+  this.logger.log(`Password reset requested for email: ${email}`);
+
+  return { message: 'Si el email está registrado, recibirás un enlace de recuperación' };
+}
+
+/**
+ * Restablecer contraseña con token
+ */
+async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  const user = await this.userRepository.findOne({
+    where: { resetPasswordToken: token },
+  });
+
+  if (!user) {
+    throw new BadRequestException('Token inválido o expirado');
+  }
+
+  // Verificar si el token expiró
+  if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+    // Limpiar token expirado
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await this.userRepository.save(user);
+    throw new BadRequestException('El token ha expirado. Por favor, solicita un nuevo enlace de recuperación');
+  }
+
+  // Hashear la nueva contraseña
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+  // Actualizar contraseña y limpiar tokens
+  user.passwordHash = hashedPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await this.userRepository.save(user);
+
+  this.logger.log(`Password reset successfully for user: ${user.email}`);
+
+  return { message: 'Contraseña actualizada exitosamente' };
+}
 
   private sanitizeUser(user: User): Partial<User> {
     const { passwordHash, verificationToken, resetPasswordToken, ...safeUser } = user;

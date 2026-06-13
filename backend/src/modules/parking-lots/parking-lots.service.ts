@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { ParkingLot } from './entities/parking-lot.entity';
 import { CreateParkingLotDto } from './dto/create-parking-lot.dto';
 import { UpdateParkingLotDto } from './dto/update-parking-lot.dto';
@@ -11,6 +11,8 @@ import { Rate } from '../rates/entities/rate.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { ParkingLotNearbyResponseDto } from './dto/parking-lot-nearby-response.dto';
 import { Space } from '../spaces/entities/space.entity';
+import { FindAllParkingLotsDto, SortByField, SortOrder } from './dto/find-all-parking-lots.dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 
 @Injectable()
@@ -23,7 +25,8 @@ export class ParkingLotsService {
     @InjectRepository(Rate)
     private rateRepository: Repository<Rate>,
     @InjectRepository(Space)
-    private spaceRepository: Repository<Space>
+    private spaceRepository: Repository<Space>,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   async create(createDto: CreateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
@@ -134,10 +137,12 @@ async findNearby(lat: number, lng: number, radius: number = 1000): Promise<Parki
       { lat, lng, radius: radius / 1000 }
     )
     .andWhere('pl.isActive = :isActive', { isActive: true })
-    .leftJoinAndSelect('pl.spaces', 'spaces')
+    .leftJoinAndSelect('pl.spaces', 'spaces', 'spaces.isActive = true') // Solo traer espacios activos
+    .leftJoinAndSelect('pl.rates', 'rates', 'rates.isActive = true') // Solo traer tarifas activas
     .orderBy('distance', 'ASC')
     .getRawAndEntities();
 
+    
   // 2. Calcular disponibilidad para cada parking
   const results: ParkingLotNearbyResponseDto[] = [];
 
@@ -161,12 +166,19 @@ async findNearby(lat: number, lng: number, radius: number = 1000): Promise<Parki
       distance,
       openTime: item.openTime,
       closeTime: item.closeTime,
+      rates: item.rates.map(rate => (
+        {
+        id: rate.id,
+        vehicleType: rate.vehicleType,
+        price: rate.pricePerHour,
+      })),
       availability: {
         total,
         available,
         occupied,
         reserved,
       },
+      imageUrl: item.imageUrl,
     });
   }
 
@@ -186,24 +198,6 @@ async getRealTimeAvailability(parkingLotId: string): Promise<{ total: number; av
   };
 }
 
-
-  // async findNearby(lat: number, lng: number, radius: number = 1000): Promise<ParkingLot[]> {
-  //   if (isNaN(radius) || radius <= 0) {
-  //     radius = 1000;
-  //   }
-
-  //   return this.parkingLotRepository
-  //     .createQueryBuilder('pl')
-  //     .where(
-  //       `(6371 * acos(cos(radians(:lat)) * cos(radians(pl.latitude)) * 
-  //         cos(radians(pl.longitude) - radians(:lng)) + 
-  //         sin(radians(:lat)) * sin(radians(pl.latitude)))) <= :radius`,
-  //       { lat, lng, radius: radius / 1000 },
-  //     )
-  //     .andWhere('pl.isActive = :isActive', { isActive: true })
-  //     .leftJoinAndSelect('pl.spaces', 'spaces')
-  //     .getMany();
-  // }
 
   async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
     const parkingLot = await this.findOne(id);
@@ -333,4 +327,142 @@ async getRealTimeAvailability(parkingLotId: string): Promise<{ total: number; av
     rates,
   };
 }
+ /**
+ * Obtener todos los estacionamientos con paginación y filtros (solo admin)
+ */
+async findAllPaginated(queryDto: FindAllParkingLotsDto): Promise<{
+  data: ParkingLot[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> {
+  // Valores por defecto
+  const page = queryDto.page || 1;
+  const limit = queryDto.limit || 10;
+  const search = queryDto.search;
+  const status = queryDto.status || 'all';
+  const sortBy = queryDto.sortBy || SortByField.CREATED_AT;
+  const sortOrder = queryDto.sortOrder || SortOrder.DESC;
+  
+  const skip = (page - 1) * limit;
+
+  // Construir query builder
+  const queryBuilder = this.parkingLotRepository
+    .createQueryBuilder('pl')
+    .leftJoinAndSelect('pl.owner', 'owner')
+    .leftJoinAndSelect('owner.user', 'user')
+    .leftJoinAndSelect('pl.spaces', 'spaces')
+    .where('1=1');
+
+  // Filtro por búsqueda
+  if (search) {
+    queryBuilder.andWhere(
+      new Brackets(qb => {
+        qb.where('pl.name ILIKE :search')
+          .orWhere('pl.address ILIKE :search')
+          .orWhere('owner.businessName ILIKE :search')
+          .orWhere('user.email ILIKE :search');
+      }),
+      { search: `%${search}%` }
+    );
+  }
+
+  // Filtro por estado
+  if (status === 'active') {
+    queryBuilder.andWhere('pl.isActive = :isActive', { isActive: true });
+  } else if (status === 'inactive') {
+    queryBuilder.andWhere('pl.isActive = :isActive', { isActive: false });
+  }
+
+  // Ordenamiento
+  const orderField = sortBy === SortByField.NAME ? 'pl.name' :
+                     sortBy === SortByField.CREATED_AT ? 'pl.createdAt' :
+                     'pl.updatedAt';
+  queryBuilder.orderBy(orderField, sortOrder);
+
+  // Paginación
+  queryBuilder.skip(skip).take(limit);
+
+  // Ejecutar consulta
+  const [data, total] = await queryBuilder.getManyAndCount();
+
+  // Calcular estadísticas para cada parking
+  for (const parking of data) {
+    const spaces = parking.spaces || [];
+    parking['stats'] = {
+      totalSpaces: spaces.length,
+      availableSpaces: spaces.filter(s => s.status === 'available').length,
+      occupiedSpaces: spaces.filter(s => s.status === 'occupied').length,
+      reservedSpaces: spaces.filter(s => s.status === 'reserved').length,
+      maintenanceSpaces: spaces.filter(s => s.status === 'maintenance').length,
+    };
+  }
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+/**
+ * Activar/Desactivar un estacionamiento (solo admin)
+ */
+async toggleStatus(id: string, isActive: boolean, userId: string, userRole: string): Promise<ParkingLot> {
+  // Verificar que sea admin
+  if (userRole !== UserRole.ADMIN) {
+    throw new UnauthorizedException('No tienes permiso para cambiar el estado de este estacionamiento');
+  }
+
+  const parkingLot = await this.findOne(id);
+  
+  parkingLot.isActive = isActive;
+  return this.parkingLotRepository.save(parkingLot);
+}
+
+/**
+ * Actualizar solo la imagen de un estacionamiento
+ */
+async updateImage(id: string, imageUrl: string, userId: string, userRole: string): Promise<ParkingLot> {
+  const parkingLot = await this.findOne(id);
+
+  // Verificar permisos
+  if (userRole === UserRole.PARKING_OWNER) {
+    const owner = await this.parkingOwnerRepository.findOne({
+      where: { userId },
+    });
+    if (!owner || parkingLot.ownerId !== owner.id) {
+      throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+    }
+  } else if (userRole !== UserRole.ADMIN) {
+    throw new UnauthorizedException('No tienes permiso para realizar esta acción');
+  }
+
+  // Opcional: Eliminar imagen anterior de Cloudinary si existe
+  if (parkingLot.imageUrl) {
+    const publicId = this.cloudinaryService.extractPublicIdFromUrl(parkingLot.imageUrl);
+    if (publicId) {
+      await this.cloudinaryService.deleteImage(publicId).catch(console.error);
+    }
+  }
+
+  parkingLot.imageUrl = imageUrl;
+  return this.parkingLotRepository.save(parkingLot);
+}
+
+/**
+ * Extraer public_id de una URL de Cloudinary
+ */
+private extractPublicIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  
+  // Patrón para extraer el public_id de Cloudinary
+  // Ejemplo: https://res.cloudinary.com/.../upload/v123456/parking_lots/abc123.jpg
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.\w+$/);
+  return match ? match[1] : null;
+}
+
 }

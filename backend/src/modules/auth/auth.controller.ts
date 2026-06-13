@@ -19,6 +19,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { LoginResponseDto } from './dto/login-response.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -274,6 +276,41 @@ async updateProfile(
   @Body() updateDto: UpdateProfileDto,
 ) {
   return this.authService.updateProfile(userId, updateDto);
+}
+/**
+ * Solicitar recuperación de contraseña
+ * POST /auth/forgot-password
+ */
+@Public()
+@HttpCode(200)
+@Post('forgot-password')
+@ApiOperation({ 
+  summary: 'Solicitar recuperación de contraseña',
+  description: 'Envía un email con un enlace para restablecer la contraseña'
+})
+@ApiResponse({ status: 200, description: 'Email enviado exitosamente' })
+@ApiResponse({ status: 400, description: 'Email inválido' })
+@ApiBody({ type: ForgotPasswordDto })
+async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+  return this.authService.forgotPassword(forgotPasswordDto.email);
+}
+
+/**
+ * Restablecer contraseña
+ * POST /auth/reset-password
+ */
+@Public()
+@HttpCode(200)
+@Post('reset-password')
+@ApiOperation({ 
+  summary: 'Restablecer contraseña',
+  description: 'Restablece la contraseña usando el token recibido por email'
+})
+@ApiResponse({ status: 200, description: 'Contraseña actualizada exitosamente' })
+@ApiResponse({ status: 400, description: 'Token inválido o expirado, o contraseña inválida' })
+@ApiBody({ type: ResetPasswordDto })
+async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
 }
 
 }

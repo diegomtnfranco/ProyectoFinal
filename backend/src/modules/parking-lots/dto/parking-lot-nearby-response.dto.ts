@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
 export class ParkingLotNearbyResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -35,4 +36,11 @@ export class ParkingLotNearbyResponseDto {
     occupied: number;
     reserved: number;
   };
+  rates!: {
+    id: string;
+    vehicleType: VehicleType;
+    price: number;
+  }[];
+  @ApiProperty({ example: 'https://example.com/images/garaje-centro.jpg', nullable: true })
+  imageUrl?: string;
 }

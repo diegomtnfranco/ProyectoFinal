@@ -1,29 +1,3 @@
-// import { Injectable } from '@nestjs/common';
-// import { CreateUserDto } from './dto/create-user.dto';
-// import { UpdateUserDto } from './dto/update-user.dto';
-
-// @Injectable()
-// export class UsersService {
-//   create(createUserDto: CreateUserDto) {
-//     return 'This action adds a new user';
-//   }
-
-//   findAll() {
-//     return `This action returns all users`;
-//   }
-
-//   findOne(id: number) {
-//     return `This action returns a #${id} user`;
-//   }
-
-//   update(id: number, updateUserDto: UpdateUserDto) {
-//     return `This action updates a #${id} user`;
-//   }
-
-//   remove(id: number) {
-//     return `This action removes a #${id} user`;
-//   }
-// }
 import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -31,6 +5,8 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
+
 
 @Injectable()
 export class UsersService {
@@ -38,7 +14,9 @@ private readonly logger = new Logger('UsersService');
 
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private usersRepository: Repository<User>
+    ,
+    private cloudinaryService: CloudinaryService,
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -94,4 +72,64 @@ private readonly logger = new Logger('UsersService');
     this.logger.error('Database error', error);
     throw new InternalServerErrorException('Database error: ' + error.message);
   }
+
+  async activateUser(id: string) {
+  const user = await this.usersRepository.findOne({
+    where: { id },
+  })
+
+  if (!user) {
+    throw new NotFoundException(
+      'Usuario no encontrado'
+    )
+  }
+
+  user.isActive = true
+
+  return await this.usersRepository.save(user)
+}
+async updateAvatar(userId: string, avatarUrl: string): Promise<User> {
+  const user = await this.usersRepository.findOne({ where: { id: userId } });
+  
+  if (!user) {
+    throw new NotFoundException('Usuario no encontrado');
+  }
+  
+  // Opcional: Si existía avatar anterior, eliminarlo de Cloudinary
+  if (user.avatarUrl) {
+    const publicId = this.extractPublicIdFromUrl(user.avatarUrl);
+    if (publicId) {
+      await this.cloudinaryService.deleteImage(publicId).catch(err => console.error('Error deleting old avatar:', err));
+    }
+  }
+  
+  user.avatarUrl = avatarUrl;
+  return this.usersRepository.save(user);
+}
+
+private extractPublicIdFromUrl(url: string): string | null {
+  // Extraer public_id de la URL de Cloudinary
+  // Ejemplo: https://res.cloudinary.com/.../upload/v123456/avatars/abc123.jpg
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.\w+$/);
+  return match ? match[1] : null;
+}
+
+async deactivateUser(id: string) {
+  const user = await this.usersRepository.findOne({
+    where: { id },
+  })
+
+  if (!user) {
+    throw new NotFoundException(
+      'Usuario no encontrado'
+    )
+  }
+
+  user.isActive = false
+
+  return await this.usersRepository.save(user)
+}
+
+
+
 }
