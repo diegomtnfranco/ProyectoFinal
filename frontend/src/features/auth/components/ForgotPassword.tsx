@@ -1,46 +1,38 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../../../services/auth.service';
-import { useToast } from '../../../shared/hooks/useToast';
-import { Loader2 } from 'lucide-react';
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { authService } from '../../../services/auth.service'
 
 function ForgotPassword() {
-  const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [error, setError] = useState('')
 
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [enviado, setEnviado] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
 
     if (!email.trim()) {
       setError('Por favor, ingresá tu correo electrónico.');
       return;
     }
-    
+
     if (!email.includes('@') || !email.includes('.')) {
       setError('Ingresá un correo electrónico válido (ej: usuario@mail.com).');
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await authService.forgotPassword(email);
-      setEnviado(true);
-      showSuccess(response.message || 'Revisá tu email para continuar');
+      setLoading(true)
+      await authService.forgotPassword({ email })
+      setEnviado(true)
     } catch (err) {
-      const errorMessage = typeof err === 'string' ? err : 'Error al enviar el email';
-      setError(errorMessage);
-      showError(errorMessage);
+      setError(typeof err === 'string' ? err : 'No se pudo enviar el enlace. Intenta nuevamente.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className='min-h-screen bg-gray-50 flex items-center justify-center p-4'>

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../../features/auth/pages/LoginPage';
 import RegisterPage from '../../features/auth/pages/RegisterPage';
 import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage';
+import ResetPasswordPage from '../../features/auth/pages/ResetPasswordPage';
 import LandingPage from '../../features/landing/pages/LandingPage' 
 import ClientLayout from '../layouts/client-layout';
 import ParkingListPage from '../../features/parking-lots/pages/ParkingListPage';
@@ -31,6 +32,7 @@ function AppRouter() {
         <Route path='/' element={<LandingPage />} />       
         <Route path='/login' element={<LoginPage />} /> 
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
