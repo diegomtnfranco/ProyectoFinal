@@ -14,13 +14,13 @@ function ForgotPassword() {
     setError('')
 
     if (!email.trim()) {
-      setError('Por favor, ingresá tu correo electrónico.')
-      return
+      setError('Por favor, ingresá tu correo electrónico.');
+      return;
     }
 
     if (!email.includes('@') || !email.includes('.')) {
-      setError('Ingresá un correo electrónico válido (ej: usuario@mail.com).')
-      return
+      setError('Ingresá un correo electrónico válido (ej: usuario@mail.com).');
+      return;
     }
 
     try {
@@ -34,13 +34,12 @@ function ForgotPassword() {
     }
   }
 
- return (
+  return (
     <div className='min-h-screen bg-gray-50 flex items-center justify-center p-4'>
-      
       <div className='bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6'>
         
         {!enviado && (
-         <form onSubmit={handleSubmit} noValidate className='flex flex-col gap-6'>
+          <form onSubmit={handleSubmit} noValidate className='flex flex-col gap-6'>
             <div>
               <h1 className='text-3xl font-bold text-gray-900'>¿No recordas tu contraseña?</h1>
               <p className='text-gray-500 mt-1'>Ingresá tu mail para recibir un enlace de recuperación.</p>
@@ -58,7 +57,7 @@ function ForgotPassword() {
               />
             </div>
 
-                       {error && (
+            {error && (
               <div className='bg-red-100 text-red-600 p-3 rounded-xl text-sm font-medium border border-red-200'>
                 {error}
               </div>
@@ -67,8 +66,9 @@ function ForgotPassword() {
             <button
               type='submit'
               disabled={loading}
-              className='bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 transition-all text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-100'
+              className='bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 transition-all text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-100 flex items-center justify-center gap-2'
             >
+              {loading ? <Loader2 size={20} className="animate-spin" /> : null}
               {loading ? 'Enviando...' : 'Enviar enlace'}
             </button>
 
@@ -89,7 +89,7 @@ function ForgotPassword() {
             <div className='text-6xl'>✉️</div>
             <div>
               <h1 className='text-2xl font-bold text-gray-900'>¡Mail Enviado!</h1>
-              <p className='text-gray-500 mt-2'> <strong className='text-gray-700'>{email}</strong> Te enviamos un enlace para recuperar tu contraseña. No olvides revisar tu carpeta spam.</p>
+              <p className='text-gray-500 mt-2'>Enviamos un enlace de recuperación a <strong className='text-gray-700'>{email}</strong>. No olvides revisar tu carpeta de spam.</p>
             </div>
             
             <button
@@ -103,7 +103,7 @@ function ForgotPassword() {
 
       </div>
     </div>
-  )
+  );
 }
 
-export default ForgotPassword
+export default ForgotPassword;

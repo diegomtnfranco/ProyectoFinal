@@ -14,8 +14,8 @@ const vehicleTypeConfig: Record<string, { icon: React.ReactNode; label: string; 
   'CAR': { icon: <Car size={14} />, label: 'Auto', color: 'text-blue-600' },
   'motorcycle': { icon: <Motorbike size={14} />, label: 'Moto', color: 'text-green-600' },
   'MOTORCYCLE': { icon: <Motorbike size={14} />, label: 'Moto', color: 'text-green-600' },
-  'van': { icon: <Truck size={14} />, label: 'Van', color: 'text-orange-600' },
-  'VAN': { icon: <Truck size={14} />, label: 'Van', color: 'text-orange-600' },
+  'van': { icon: <Truck size={14} />, label: 'Camioneta', color: 'text-orange-600' },
+  'VAN': { icon: <Truck size={14} />, label: 'Camioneta', color: 'text-orange-600' },
   'truck': { icon: <Van size={14} />, label: 'Camioneta', color: 'text-purple-600' },
   'TRUCK': { icon: <Van size={14} />, label: 'Camioneta', color: 'text-purple-600' },
 };

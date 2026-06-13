@@ -15,4 +15,13 @@ export const appConfig = () => ({
   EMAIL_SERVICE: process.env.EMAIL_SERVICE || 'gmail',
   
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || 'tu_cloud_name',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || 'tu_api_key',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || 'tu_api_secret',
+
+  CLOUDINARY_IMAGE_QUALITY: process.env.CLOUDINARY_IMAGE_QUALITY || '80',
+  CLOUDINARY_IMAGE_FORMAT: process.env.CLOUDINARY_IMAGE_FORMAT || 'webp',
+  CLOUDINARY_MAX_WIDTH: process.env.CLOUDINARY_MAX_WIDTH || '1200',
+  CLOUDINARY_MAX_HEIGHT: process.env.CLOUDINARY_MAX_HEIGHT || '1200',
 });

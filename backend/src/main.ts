@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json,urlencoded } from 'express';
 
 process.env.TZ = 'America/Argentina/Buenos_Aires';
 
@@ -20,11 +21,11 @@ async function bootstrap() {
      credentials: true,
     }
   );
-
-
+app.use(json({ limit: '10mb' }));
+app.use(urlencoded({ extended: true, limit: '10mb' }));
   // ============Configuracion SWAGGER http://localhost:3000/api/docs ============
   const config = new DocumentBuilder()
-    .setTitle('Parking App API')
+    .setTitle('EstacionApp API')
     .setDescription(`
       API para sistema de mapero y reservas de estacionamientos en tiempo real.
       
@@ -71,7 +72,7 @@ async function bootstrap() {
       filter: true,
       showRequestDuration: true,
     },
-    customSiteTitle: 'Parking App API Docs',
+    customSiteTitle: 'EstacionApp API Docs',
   });
 
 
