@@ -1,24 +1,9 @@
-import type {
-  ParkingEmployee,
-  CreateEmployeeDto,
-  UpdateEmployeeDto,
-  EmployeeParkingLotResponse,
-} from '../types/parking.types';
 import { api } from './api';
+import type { RegisterEmployeeDto, ParkingEmployee } from '../types/employee.types';
 
-
-
-export const parkingEmployeesService = {
+export const employeesService = {
   /**
-   * Crear empleado (dueño)
-   */
-  async create(data: CreateEmployeeDto): Promise<ParkingEmployee> {
-    const response = await api.post<ParkingEmployee>('/parking-employees', data);
-    return response.data;
-  },
-
-  /**
-   * Obtener empleados de un estacionamiento (dueño)
+   * Obtener empleados de un estacionamiento
    */
   async getByParkingLot(parkingLotId: string): Promise<ParkingEmployee[]> {
     const response = await api.get<ParkingEmployee[]>(`/parking-employees/parking-lot/${parkingLotId}`);
@@ -26,57 +11,37 @@ export const parkingEmployeesService = {
   },
 
   /**
-   * Obtener mi perfil (empleado)
+   * Crear empleado - Usa el endpoint de auth
    */
-  async getMyProfile(): Promise<ParkingEmployee> {
-    const response = await api.get<ParkingEmployee>('/parking-employees/me');
+  async create(data: RegisterEmployeeDto): Promise<{ user: any; message: string }> {
+    // ✅ El endpoint está en /auth/register/employee
+    const response = await api.post('/auth/register/employee', data);
     return response.data;
   },
 
   /**
-   * Obtener el estacionamiento donde trabajo (empleado)
+   * Actualizar empleado
    */
-  async getMyParkingLot(): Promise<EmployeeParkingLotResponse> {
-    const response = await api.get<EmployeeParkingLotResponse>('/parking-employees/my-parking-lot');
-    return response.data;
-  },
-
-  /**
-   * Obtener detalle de empleado (dueño/admin)
-   */
-  async getById(id: string): Promise<ParkingEmployee> {
-    const response = await api.get<ParkingEmployee>(`/parking-employees/${id}`);
-    return response.data;
-  },
-
-  /**
-   * Actualizar empleado (dueño)
-   */
-  async update(id: string, data: UpdateEmployeeDto): Promise<ParkingEmployee> {
+  async update(id: string, data: Partial<ParkingEmployee>): Promise<ParkingEmployee> {
     const response = await api.patch<ParkingEmployee>(`/parking-employees/${id}`, data);
     return response.data;
   },
 
   /**
-   * Eliminar empleado (dueño)
+   * Eliminar empleado (desactivar)
    */
   async delete(id: string): Promise<void> {
-    await api.delete(`/parking-employees/${id}`);
-  },
-
-  /**
-   * Marcar entrada (empleado)
-   */
-  async clockIn(): Promise<{ message: string; clockTime: string }> {
-    const response = await api.post('/parking-employees/clock-in');
+  console.log('📡 [SERVICE] DELETE llamando a:', `/parking-employees/${id}`);
+  const token = localStorage.getItem('access_token');
+  console.log('🔑 [SERVICE] Token presente:', !!token);
+  
+  try {
+    const response = await api.delete(`/parking-employees/${id}`);
+    console.log('✅ [SERVICE] Respuesta:', response.status);
     return response.data;
-  },
-
-  /**
-   * Marcar salida (empleado)
-   */
-  async clockOut(): Promise<{ message: string; clockTime: string }> {
-    const response = await api.post('/parking-employees/clock-out');
-    return response.data;
-  },
+  } catch (error: any) {
+    console.error('❌ [SERVICE] Error:', error.response?.status, error.response?.data);
+    throw error;
+  }
+},
 };

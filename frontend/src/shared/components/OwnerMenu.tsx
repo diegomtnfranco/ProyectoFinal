@@ -2,6 +2,7 @@ import {
   ParkingMeter,
   Receipt,
   UserRoundCog,
+  Users,
   type LucideIcon
 } from 'lucide-react'
 
@@ -23,8 +24,8 @@ export const ownerMenu: OwnerMenuItem[] = [
     icon: Receipt,
   },
   {
-    name: 'Usuarios y accesos',
-    path: '/owner/users',
-    icon: UserRoundCog,
+    name: 'Empleados',
+    path: '/owner/employees',
+    icon: Users,
   },
 ]

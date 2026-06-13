@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../../../services/auth.service'
+import { Loader2 } from 'lucide-react'
 
 function ForgotPassword() {
   const navigate = useNavigate()
@@ -25,7 +26,7 @@ function ForgotPassword() {
 
     try {
       setLoading(true)
-      await authService.forgotPassword({ email })
+      await authService.forgotPassword( email )
       setEnviado(true)
     } catch (err) {
       setError(typeof err === 'string' ? err : 'No se pudo enviar el enlace. Intenta nuevamente.')

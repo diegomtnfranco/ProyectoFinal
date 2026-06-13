@@ -20,13 +20,30 @@ export class ParkingEmployeesController {
   }
 
   @Get('parking-lot/:parkingLotId')
-  @Roles(UserRole.PARKING_OWNER)
-  findByParkingLot(
-    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
-    @CurrentUser('id') ownerId: string,
-  ) {
-    return this.employeesService.findByParkingLot(parkingLotId, ownerId);
-  }
+@Roles(UserRole.PARKING_OWNER)
+async findByParkingLot(
+  @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+  @CurrentUser('id') userId: string,  // ← Recibe userId del token
+) {
+  
+  const employees = await this.employeesService.findByParkingLot(parkingLotId, userId);
+  
+  return employees.map(emp => ({
+    id: emp.id,
+    userId: emp.userId,
+    parkingLotId: emp.parkingLotId,
+    name: emp.name,
+    employeeCode: emp.employeeCode,
+    position: emp.position,
+    isActive: emp.isActive,
+    createdAt: emp.createdAt,
+    user: emp.user ? {
+      id: emp.user.id,
+      email: emp.user.email,
+      isActive: emp.user.isActive,
+    } : null,
+  }));
+}
 
   @Get('me')
   @Roles(UserRole.PARKING_EMPLOYEE)
@@ -64,18 +81,19 @@ export class ParkingEmployeesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.PARKING_OWNER)
+  @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateEmployeeDto,
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('id') userId: string,
   ) {
-    return this.employeesService.update(id, updateDto, ownerId);
+    return this.employeesService.update(id, updateDto, userId);
   }
 
   @Delete(':id')
-  @Roles(UserRole.PARKING_OWNER)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') ownerId: string) {
-    return this.employeesService.remove(id, ownerId);
+  @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    console.log(userId)
+    return this.employeesService.remove(id, userId);
   }
 }
