@@ -1,38 +1,37 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { authService } from '../../../services/auth.service'
 
 function ForgotPassword() {
   const navigate = useNavigate()
-
-  //  simulacion envio d mail
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('') 
+    setError('')
 
-    // valida que no esté vacío
     if (!email.trim()) {
       setError('Por favor, ingresá tu correo electrónico.')
       return
     }
-    
+
     if (!email.includes('@') || !email.includes('.')) {
       setError('Ingresá un correo electrónico válido (ej: usuario@mail.com).')
       return
     }
 
-    setLoading(true)
-    console.log(`[QA Test] Envío de recuperación de contraseña a: ${email}`)
-
-    
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      setLoading(true)
+      await authService.forgotPassword({ email })
       setEnviado(true)
-    }, 2000)
+    } catch (err) {
+      setError(typeof err === 'string' ? err : 'No se pudo enviar el enlace. Intenta nuevamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
  return (
