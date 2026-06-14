@@ -31,7 +31,7 @@ export class Occupancy {
   reservation?: Reservation;
 
   @Column({ name: 'vehicle_plate' })
-  vehiclePlate!: string;
+  vehiclePlate?: string;
 
   @Column({ type: 'enum', enum: VehicleType })
   vehicleType!: VehicleType;
@@ -42,7 +42,7 @@ export class Occupancy {
   @Column({ name: 'check_out_time', type: 'timestamp', nullable: true })
   checkOutTime?: Date;
 
-  @Column({ name: 'checked_in_by', type: 'uuid' })
+  @Column({ name: 'checked_in_by', type: 'uuid', nullable: true })
   checkedInBy!: string;
 
   @Column({ name: 'checked_out_by', type: 'uuid', nullable: true })
@@ -59,4 +59,13 @@ export class Occupancy {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt!: Date;
+
+   @Column({ name: 'is_anonymous', default: false })
+  isAnonymous!: boolean;
+
+  @Column({ name: 'checked_in_via_qr', default: false })
+  checkedInViaQr!: boolean;
+
+  @Column({ name: 'checked_out_via_qr', default: false })
+  checkedOutViaQr!: boolean;
 }
