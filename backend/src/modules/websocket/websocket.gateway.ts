@@ -263,6 +263,9 @@ emitReservationUpdate(clientId: string, data: { id: string; status: string; spac
     spaceNumber: string;
     action: 'check-in' | 'check-out';
     vehiclePlate?: string;
+    vehicleType?: string;
+    isAnonymous?: boolean;
+    totalAmount?: number;
     clientId?: string;
   }) {
     const roomName = `parking:${parkingLotId}`;
