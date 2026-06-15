@@ -30,7 +30,7 @@ export class Occupancy {
   @JoinColumn({ name: 'reservation_id' })
   reservation?: Reservation;
 
-  @Column({ name: 'vehicle_plate' })
+  @Column({ name: 'vehicle_plate', nullable: true })
   vehiclePlate?: string;
 
   @Column({ type: 'enum', enum: VehicleType })
