@@ -1,5 +1,6 @@
 import {
   ParkingMeter,
+  QrCode,
   Receipt,
   UserRoundCog,
   Users,
@@ -28,4 +29,9 @@ export const ownerMenu: OwnerMenuItem[] = [
     path: '/owner/employees',
     icon: Users,
   },
+  {
+  name: 'Códigos QR',
+  path: '/owner/qr',
+  icon: QrCode,
+}
 ]

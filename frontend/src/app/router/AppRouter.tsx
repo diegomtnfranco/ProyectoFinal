@@ -23,6 +23,8 @@ import MyReservationsPage from '../../features/parking-lots/pages/MyReservations
 import ProfilePage from '../../features/profile/pages/ProfilePage';
 import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPages'
 import EmployeesPage from '../../features/owner/EmployeesPage';
+import QRManagementPage from '../../features/owner/QRManagementPage';
+import ScanQRPage from '../../features/qr/pages/ScanQRPage';
 
 function AppRouter() {
   return (
@@ -36,13 +38,8 @@ function AppRouter() {
         <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
-
-        {/* PUBLIC */}
-        <Route path='/' element={<LandingPage />} />       
-        <Route path='/login' element={<LoginPage />} />    
-        <Route path='/register' element={<RegisterPage />} />
-        <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/verify' element={<VerifyEmailPage />} /> 
+        <Route path="/scan/:type" element={<ScanQRPage />} />
+       
 
         {/* CLIENTE */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]} redirectTo="/" />}>
@@ -64,6 +61,7 @@ function AppRouter() {
             <Route path="users" element={<UsersPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="qr" element={<QRManagementPage />} />
           </Route>
         </Route>
 
