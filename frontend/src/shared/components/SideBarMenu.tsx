@@ -1,52 +1,59 @@
-import SideBarButton from "./SideBarButton"
-import {
-  ParkingMeter,
-  Receipt,
-  UserRoundCog,
-  Users
-} from "lucide-react"
+// src/shared/components/SideBarMenu.tsx
 
-export interface OpcionMenu {
-  name: string
-  path: string
-  icon: LucideIcon
-}
-
-const OwnerOptions: OpcionMenu[] = [
-  {
-    name: 'Espacios',
-    path: '/owner/parking',
-    icon: ParkingMeter,
-  },
-  {
-    name: 'Tarifas',
-    path: '/owner/rates',
-    icon: Receipt,
-  },
-  {
-    name: 'Usuarios y accesos',
-    path: '/owner/users',
-    icon: UserRoundCog,
-  },
-  {
-  name: 'Empleados',
-  path: '/owner/employees',
-  icon: Users,
-},
-  
-]
+import { NavLink } from 'react-router-dom'
+import { ownerMenu } from './OwnerMenu'
 
 const SideBarMenu = () => {
   return (
-    <div className='sm:w-full md:w-1/6 sticky min-w-min'>
-      <div className='flex w-full '>
-        <ul className='w-full md:flex-col  space-y-3'>
-          {OwnerOptions.map((item, index) => (
-            <SideBarButton key={index} item={item} />
-          ))}
-        </ul>
-      </div>
-    </div>
+    <aside
+      className="
+        w-full
+        md:w-[280px]
+        rounded-xl
+        bg-white
+        shadow-sm
+        border
+        border-gray-200
+        p-4
+        flex
+        flex-col
+      "
+    >
+      <nav className="flex flex-col gap-2">
+        {ownerMenu.map((item) => {
+          const Icon = item.icon
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `
+                flex
+                items-center
+                gap-3
+                rounded-lg
+                px-4
+                py-3
+                transition-all
+                ${
+                  isActive
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'hover:bg-gray-100 text-gray-700'
+                }
+              `
+              }
+            >
+              <Icon size={20} />
+
+              <span className="font-medium">
+                {item.name}
+              </span>
+            </NavLink>
+          )
+        })}
+      </nav>
+    </aside>
   )
 }
 
