@@ -1,4 +1,3 @@
-// src/app/router/AppRouter.tsx
 import ForgotPassword from '../../features/auth/components/ForgotPassword';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../../features/auth/pages/LoginPage';
@@ -25,6 +24,8 @@ import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPa
 import EmployeesPage from '../../features/owner/EmployeesPage';
 import QRManagementPage from '../../features/owner/QRManagementPage';
 import ScanQRPage from '../../features/qr/pages/ScanQRPage';
+import TotemCheckIn from '../../features/totem/pages/TotemCheckIn';
+import TotemCheckOut from '../../features/totem/pages/TotemCheckOut';
 
 function AppRouter() {
   return (
@@ -40,7 +41,11 @@ function AppRouter() {
         <Route path="/company-location" element={<CompanyLocationForm />} />
         <Route path="/scan/:type" element={<ScanQRPage />} />
         <Route path="/register" element={<RegisterPage />} />
-       
+   
+        {/* RUTAS DE TÓTEM */}
+        <Route path="/public/qr/:parkingId/checkin" element={<TotemCheckIn />} />
+        <Route path="/public/qr/:parkingId/checkout" element={<TotemCheckOut />} />
+
 
         {/* CLIENTE */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]} redirectTo="/" />}>
@@ -50,7 +55,6 @@ function AppRouter() {
             <Route path="my-reservations" element={<MyReservationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
-
         </Route>
 
         {/* DUEÑO */}
