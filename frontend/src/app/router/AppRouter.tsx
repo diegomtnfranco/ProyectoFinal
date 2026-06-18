@@ -39,6 +39,7 @@ function AppRouter() {
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
         <Route path="/scan/:type" element={<ScanQRPage />} />
+        <Route path="/register" element={<RegisterPage />} />
        
 
         {/* CLIENTE */}
