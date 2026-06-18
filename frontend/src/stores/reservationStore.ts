@@ -146,14 +146,20 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
   },
 
   // Calcular total gastado
-  calculateTotalSpent: () => {
-    const { myReservations } = get();
-    const completedTotal = myReservations
-      .filter(r => r.status === 'completed')
-      .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
-    set({ totalSpent: completedTotal });
-    return completedTotal;
-  },
+ calculateTotalSpent: () => {
+  const { myReservations } = get();
+
+  const completedTotal = myReservations
+    .filter(r => r.status === 'completed')
+    .reduce(
+      (sum, r) => sum + Number(r.totalAmount ?? 0),
+      0
+    );
+
+  set({ totalSpent: completedTotal });
+
+  return completedTotal;
+},
 
   // Limpiar reserva actual
   clearCurrentReservation: () => set({ currentReservation: null }),
