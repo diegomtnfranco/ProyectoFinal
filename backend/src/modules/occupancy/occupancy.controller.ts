@@ -8,6 +8,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
+import { AnonymousCheckOutDto } from './dto/anonymous-check-out.dto';
+import { AnonymousCheckInDto } from './dto/anonymous-check-in.dto';
 
 @ApiTags('occupancy')
 @ApiBearerAuth()
@@ -85,5 +88,26 @@ export class OccupancyController {
   @ApiBody({ type: CheckInDto })
   async getSpaceHistory(@Param('spaceId', ParseUUIDPipe) spaceId: string) {
     return this.occupancyService.getSpaceHistory(spaceId);
+  }
+
+
+  @Public()
+  @Post('anonymous/check-in')
+  @ApiOperation({ summary: 'Check-in anónimo usando QR' })
+  @ApiResponse({ status: 201, description: 'Check-in registrado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o sin espacios' })
+  @ApiResponse({ status: 404, description: 'QR inválido' })
+  async anonymousCheckIn(@Body() checkInDto: AnonymousCheckInDto) {
+    return this.occupancyService.anonymousCheckIn(checkInDto);
+  }
+
+  @Public()
+  @Post('anonymous/check-out')
+  @ApiOperation({ summary: 'Check-out anónimo usando QR' })
+  @ApiResponse({ status: 200, description: 'Check-out registrado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 404, description: 'No hay ocupación activa' })
+  async anonymousCheckOut(@Body() checkOutDto: AnonymousCheckOutDto) {
+    return this.occupancyService.anonymousCheckOut(checkOutDto);
   }
 }

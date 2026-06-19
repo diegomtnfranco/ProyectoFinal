@@ -10,7 +10,8 @@ function RegisterForm() {
   const navigate = useNavigate();
   const { registerClient, isLoading, lastRegisterMessage, clearRegisterMessage } = useAuthStore();
   const { showSuccess, showError } = useToast();
-  
+    const { user, token, isLoading: authLoading } = useAuthStore();
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -20,6 +21,20 @@ function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+
+useEffect(() => {
+    if (token && user) {
+      // Si ya es dueño, redirigir a su dashboard
+      if (user.role === 'parking_owner') {
+        navigate('/owner');
+      } else if (user.role === 'admin') {
+        navigate('/admin');
+      } else if (user.role === 'client') {
+        // Si es cliente, no debería estar aquí, redirigir a su dashboard
+        navigate('/client');
+      }
+    }
+  }, [token, user, navigate]);
 
   // Verificar si hay un mensaje de registro exitoso
   useEffect(() => {
