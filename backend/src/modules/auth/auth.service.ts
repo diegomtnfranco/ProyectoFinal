@@ -27,9 +27,6 @@ import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { Space, SpaceStatus } from '../spaces/entities/space.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
-import { QRService } from '../common/qr/qr.service';
-
-
 
 @Injectable()
 export class AuthService {
@@ -52,7 +49,6 @@ export class AuthService {
     private configService: ConfigService,
     private notificationsService: NotificationsService,
     private dataSource: DataSource,
-    private qrService: QRService, 
   ) { }
 
   /**
@@ -603,12 +599,6 @@ export class AuthService {
       maxAdvanceDays: 7,
     };
 
-    const checkInQR = await this.qrService.generateQRForType('check-in');
-    const checkOutQR = await this.qrService.generateQRForType('check-out');
-
-
-
-
     const parkingLot = this.parkingLotRepository.create({
       ownerId: parkingOwner.id,
       name: ownerData.parkingName || ownerData.businessName,
@@ -617,11 +607,6 @@ export class AuthService {
       longitude: ownerData.longitude,
       openTime: ownerData.openTime,
       closeTime: ownerData.closeTime,
-      checkInToken: checkInQR.token,
-      checkInQrUrl: checkInQR.qrUrl,
-      checkOutToken: checkOutQR.token,
-      checkOutQrUrl: checkOutQR.qrUrl,
-      qrUpdatedAt: new Date(),
       settings: {
         ...defaultSettings,
         allowOnlineReservations: ownerData.allowOnlineReservations ?? true,

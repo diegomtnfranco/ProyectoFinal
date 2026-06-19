@@ -61,21 +61,6 @@ export class ParkingLot {
     maxAdvanceDays?: number;
   };
 
-   @Column({ name: 'check_in_token', nullable: true, unique: true })
-  checkInToken?: string;
-
-  @Column({ name: 'check_in_qr_url', nullable: true })
-  checkInQrUrl?: string;
-
-  @Column({ name: 'check_out_token', nullable: true, unique: true })
-  checkOutToken?: string;
-
-  @Column({ name: 'check_out_qr_url', nullable: true })
-  checkOutQrUrl?: string;
-
-  @Column({ name: 'qr_updated_at', type: 'timestamp', nullable: true })
-  qrUpdatedAt?: Date;
-
   
   @Column({ name: 'image_url', nullable: true })
   imageUrl?: string;

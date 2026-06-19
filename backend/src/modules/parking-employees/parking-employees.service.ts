@@ -9,7 +9,6 @@ import { User, UserRole } from '../users/entities/user.entity';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { Space, SpaceStatus } from '../spaces/entities/space.entity';
 import { EmployeeParkingLotResponseDto, EmployeeSpaceDto } from './dto/employee-parking-lot-response.dto';
-import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 
 @Injectable()
 export class ParkingEmployeesService {
@@ -22,9 +21,7 @@ export class ParkingEmployeesService {
     private parkingLotRepository: Repository<ParkingLot>,
     @InjectRepository(Space)
     private spaceRepository: Repository<Space>,
-    @InjectRepository(ParkingOwner)
-    private parkingOwnerRepository: Repository<ParkingOwner>,
-  ) { }
+  ) {}
 
   async create(createDto: CreateEmployeeDto, ownerId: string): Promise<ParkingEmployee> {
     // Verificar que el estacionamiento pertenezca al dueño (usando ownerId, no owner_id)
@@ -93,25 +90,20 @@ export class ParkingEmployeesService {
     return `${prefix}-${number}`;
   }
 
-  async findByParkingLot(parkingLotId: string, userId: string): Promise<ParkingEmployee[]> {
-
-
-
+  async findByParkingLot(parkingLotId: string, ownerId: string): Promise<ParkingEmployee[]> {
     // Verificar que el estacionamiento pertenezca al dueño
     const parkingLot = await this.parkingLotRepository.findOne({
-      where: { id: parkingLotId, owner: { userId: userId } }, // ← ownerId
+      where: { id: parkingLotId, ownerId: ownerId }, // ← ownerId
     });
 
     if (!parkingLot) {
       throw new UnauthorizedException('No tienes acceso a este estacionamiento');
     }
 
-    const employees = await this.employeeRepository.find({
-      where: { parkingLotId },
+    return this.employeeRepository.find({
+      where: { parkingLotId, isActive: true },
       relations: ['user'],
     });
-
-    return employees;
   }
 
   async findOne(id: string): Promise<ParkingEmployee> {
@@ -215,36 +207,14 @@ export class ParkingEmployeesService {
     };
   }
 
-  async update(id: string, updateDto: UpdateEmployeeDto, userId: string): Promise<ParkingEmployee> {
-    // 1. Cargar el empleado con TODAS las relaciones necesarias
-    const employee = await this.employeeRepository.findOne({
-      where: { id },
-      relations: ['parkingLot', 'user'], // ← Cargar parkingLot y user
-    });
+  async update(id: string, updateDto: UpdateEmployeeDto, ownerId: string): Promise<ParkingEmployee> {
+    const employee = await this.findOne(id);
 
-    if (!employee) {
-      throw new NotFoundException('Empleado no encontrado');
-    }
-
-    if (!employee.parkingLot) {
-      throw new UnauthorizedException('El empleado no está asociado a ningún estacionamiento');
-    }
-
-    // 2. Obtener el perfil del dueño usando el userId
-    const owner = await this.parkingOwnerRepository.findOne({
-      where: { userId },
-    });
-
-    if (!owner) {
-      throw new UnauthorizedException('No tienes un perfil de dueño registrado');
-    }
-
-    // 3. Verificar que el parking pertenezca al dueño
-    if (employee.parkingLot.ownerId !== owner.id) {
+    // Verificar que el dueño tenga acceso
+    if (employee.parkingLot.ownerId !== ownerId) { // ← ownerId
       throw new UnauthorizedException('No tienes permiso para modificar este empleado');
     }
 
-    // 4. Actualizar campos
     if (updateDto.name) {
       employee.name = updateDto.name;
     }
@@ -253,64 +223,34 @@ export class ParkingEmployeesService {
     }
     if (updateDto.isActive !== undefined) {
       employee.isActive = updateDto.isActive;
-      if (employee.user) {
-        employee.user.isActive = updateDto.isActive;
-        await this.userRepository.save(employee.user);
-      }
+      employee.user.isActive = updateDto.isActive;
+      await this.userRepository.save(employee.user);
     }
     if (updateDto.employeeCode) {
       employee.employeeCode = updateDto.employeeCode;
     }
 
     await this.employeeRepository.save(employee);
-
-    // Recargar el empleado actualizado
     return this.findOne(id);
   }
 
+  async remove(id: string, ownerId: string): Promise<void> {
+    const employee = await this.findOne(id);
 
-  async remove(id: string, userId: string): Promise<void> {
-    // 1. Cargar el empleado con TODAS las relaciones necesarias
-    const employee = await this.employeeRepository.findOne({
-      where: { id },
-      relations: ['parkingLot', 'user'], // ← Cargar parkingLot y user
-    });
-
-    if (!employee) {
-      throw new NotFoundException('Empleado no encontrado');
+    if (employee.parkingLot.ownerId !== ownerId) { // ← ownerId
+      throw new UnauthorizedException('No tienes permiso');
     }
 
-    if (!employee.parkingLot) {
-      throw new UnauthorizedException('El empleado no está asociado a ningún estacionamiento');
-    }
-
-    // 2. Obtener el perfil del dueño usando el userId
-    const owner = await this.parkingOwnerRepository.findOne({
-      where: { userId },
-    });
-
-    if (!owner) {
-      throw new UnauthorizedException('No tienes un perfil de dueño registrado');
-    }
-
-    // 3. Verificar que el parking pertenezca al dueño (usando ownerId directo)
-    if (employee.parkingLot.ownerId !== owner.id) {
-      throw new UnauthorizedException('No tienes permiso para desactivar este empleado');
-    }
-
-    // 4. Desactivar empleado y su usuario
     employee.isActive = false;
+    employee.user.isActive = false;
+    
+    await this.userRepository.save(employee.user);
     await this.employeeRepository.save(employee);
-
-    if (employee.user) {
-      employee.user.isActive = false;
-      await this.userRepository.save(employee.user);
-    }
   }
 
   async clockIn(userId: string): Promise<{ message: string; clockTime: Date }> {
     const employee = await this.findByUserId(userId);
-
+    
     if (!employee.isActive) {
       throw new BadRequestException('El empleado no está activo');
     }
@@ -325,7 +265,7 @@ export class ParkingEmployeesService {
 
   async clockOut(userId: string): Promise<{ message: string; clockTime: Date }> {
     const employee = await this.findByUserId(userId);
-
+    
     if (!employee.isActive) {
       throw new BadRequestException('El empleado no está activo');
     }

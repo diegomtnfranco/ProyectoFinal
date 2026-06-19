@@ -241,12 +241,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../shared/hooks/useToast';
-import { useAuthStore } from '../../../stores';
 
 function CreateCompanyForm() {
   const navigate = useNavigate();
   const { showError } = useToast();
-  const { user, token, isLoading: authLoading } = useAuthStore();
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -258,22 +257,6 @@ function CreateCompanyForm() {
   const [cuit, setCuit] = useState('');
 
   const [error, setError] = useState('');
-useEffect(() => {
-    if (token && user) {
-      // Si ya es dueño, redirigir a su dashboard
-      if (user.role === 'parking_owner') {
-        navigate('/owner');
-      } else if (user.role === 'admin') {
-        navigate('/admin');
-      } else if (user.role === 'client') {
-        // Si es cliente, no debería estar aquí, redirigir a su dashboard
-        navigate('/client');
-      }
-    }
-  }, [token, user, navigate]);
-
-
-
 
   // Cargar datos guardados al montar el componente
   useEffect(() => {

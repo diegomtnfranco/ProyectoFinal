@@ -1,99 +1,137 @@
-import { useEffect, useState } from 'react';
-import { useEmployeeStore } from '../../stores/employeeStore';
-import { useParkingLotsStore } from '../../stores/parkingStore';
-import { EmployeeList } from './Employees/EmployeeList';
-import  EmployeeFormModal  from './Employees/components/EmployeeFormModal';
-import { Users, UserPlus, Loader2, XCircle } from 'lucide-react';
+import { useState } from 'react'
 
 function EmployeesPage() {
-  const { currentParkingLot, fetchMyParkingLot, isLoading: parkingLoading, error: parkingError } = useParkingLotsStore();
-  const { employees, isLoading, fetchEmployees } = useEmployeeStore();
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (!currentParkingLot && !parkingLoading) {
-      fetchMyParkingLot();
+  const [employees, setEmployees] = useState([
+    {
+      id: 1,
+      name: 'Juan Pérez',
+      email: 'juan@parking.com'
+    },
+    {
+      id: 2,
+      name: 'María Gómez',
+      email: 'maria@parking.com'
     }
-  }, [currentParkingLot, parkingLoading, fetchMyParkingLot]);
+  ])
 
-  useEffect(() => {
-    if (currentParkingLot?.id) {
-      fetchEmployees(currentParkingLot.id);
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const handleCreateEmployee = () => {
+
+    if (!name || !email || !password) {
+      alert('Completá todos los campos')
+      return
     }
-  }, [currentParkingLot, fetchEmployees]);
 
-  if (parkingError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="bg-red-50 rounded-xl p-6 max-w-md">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
-          <p className="text-red-600 mb-4">{parkingError}</p>
-          <button onClick={() => fetchMyParkingLot()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl">
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const newEmployee = {
+      id: Date.now(),
+      name,
+      email
+    }
 
-  if ((parkingLoading || isLoading) && employees.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-      </div>
-    );
-  }
+    setEmployees([...employees, newEmployee])
 
-  if (!currentParkingLot && !parkingLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="bg-yellow-50 rounded-xl p-6 max-w-md">
-          <h2 className="text-xl font-semibold text-yellow-800 mb-2">No hay estacionamiento registrado</h2>
-          <p className="text-yellow-600 mb-4">Para gestionar empleados, primero debes tener un estacionamiento registrado.</p>
-          <button onClick={() => window.location.href = '/create-company'} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl">
-            Registrar estacionamiento
-          </button>
-        </div>
-      </div>
-    );
+    setName('')
+    setEmail('')
+    setPassword('')
+
+    alert('Empleado registrado correctamente')
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-            <Users size={24} />
-            Empleados
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">Gestiona el equipo de atención y soporte del estacionamiento.</p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 flex items-center gap-2"
-        >
-          <UserPlus size={18} />
-          Nuevo empleado
-        </button>
+    <div className='flex flex-col gap-6'>
+
+      <div>
+        <h1 className='text-3xl font-bold'>
+          Gestión de Empleados
+        </h1>
+
+        <p className='text-gray-500'>
+          Administrá el personal de tu estacionamiento.
+        </p>
       </div>
 
-      <EmployeeList />
+      <div className='bg-white rounded-2xl shadow-sm p-6'>
 
-      <EmployeeFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        parkingLotId={currentParkingLot?.id}
-        onSuccess={() => {
-          setIsModalOpen(false);
-          if (currentParkingLot?.id) {
-            fetchEmployees(currentParkingLot.id);
-          }
-        }}
-      />
+        <h2 className='text-xl font-semibold mb-4'>
+          Registrar nuevo empleado
+        </h2>
+
+        <div className='grid md:grid-cols-3 gap-4'>
+
+          <input
+            type='text'
+            placeholder='Nombre completo'
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className='border rounded-xl p-3'
+          />
+
+          <input
+            type='email'
+            placeholder='Correo electrónico'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className='border rounded-xl p-3'
+          />
+
+          <input
+            type='password'
+            placeholder='Contraseña temporal'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className='border rounded-xl p-3'
+          />
+
+        </div>
+
+        <button
+          onClick={handleCreateEmployee}
+          className='mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl'
+        >
+          Registrar empleado
+        </button>
+
+      </div>
+
+      <div className='bg-white rounded-2xl shadow-sm p-6'>
+
+        <h2 className='text-xl font-semibold mb-4'>
+          Empleados registrados
+        </h2>
+
+        <div className='flex flex-col gap-3'>
+
+          {employees.map(employee => (
+            <div
+              key={employee.id}
+              className='border rounded-xl p-4 flex justify-between items-center'
+            >
+              <div>
+                <h3 className='font-semibold'>
+                  {employee.name}
+                </h3>
+
+                <p className='text-gray-500'>
+                  {employee.email}
+                </p>
+              </div>
+
+              <span className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm'>
+                Activo
+              </span>
+            </div>
+          ))}
+
+        </div>
+
+      </div>
+
     </div>
-  );
+  )
 }
 
-export default EmployeesPage;
+export default EmployeesPage

@@ -16,12 +16,11 @@ import { NotificationsService } from 'src/modules/notifications/notifications.se
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { Rate } from '../rates/entities/rate.entity';
 import { Space } from '../spaces/entities/space.entity';
-import { CommonModule } from '../common/common.module';
+
 @Module({
   imports: [
     PassportModule,
-    ConfigModule,
-    CommonModule,  // ← AGREGAR: Esto hace que ConfigService esté disponible
+    ConfigModule,  // ← AGREGAR: Esto hace que ConfigService esté disponible
     JwtModule.registerAsync({
       imports: [ConfigModule], 
       inject: [ConfigService], // ← IMPORTANTE: Importar ConfigModule aquí también
