@@ -215,6 +215,7 @@ function MyReservationsPage() {
       minute: '2-digit'
     });
   };
+  // Formatea montos en pesos argentinos con separador de miles
 const formatCurrency = (amount: number | string) => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
