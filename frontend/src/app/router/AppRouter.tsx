@@ -1,9 +1,9 @@
-// src/app/router/AppRouter.tsx
 import ForgotPassword from '../../features/auth/components/ForgotPassword';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../../features/auth/pages/LoginPage';
 import RegisterPage from '../../features/auth/pages/RegisterPage';
 import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage';
+import ResetPasswordPage from '../../features/auth/pages/ResetPasswordPage';
 import LandingPage from '../../features/landing/pages/LandingPage' 
 import ClientLayout from '../layouts/client-layout';
 import ParkingListPage from '../../features/parking-lots/pages/ParkingListPage';
@@ -22,6 +22,10 @@ import MyReservationsPage from '../../features/parking-lots/pages/MyReservations
 import ProfilePage from '../../features/profile/pages/ProfilePage';
 import PendingCompaniesPages from '../../features/admin/pages/PendingCompaniesPages'
 import EmployeesPage from '../../features/owner/EmployeesPage';
+import QRManagementPage from '../../features/owner/QRManagementPage';
+import ScanQRPage from '../../features/qr/pages/ScanQRPage';
+import TotemCheckIn from '../../features/totem/pages/TotemCheckIn';
+import TotemCheckOut from '../../features/totem/pages/TotemCheckOut';
 
 function AppRouter() {
   return (
@@ -31,16 +35,17 @@ function AppRouter() {
         <Route path='/' element={<LandingPage />} />       
         <Route path='/login' element={<LoginPage />} /> 
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
+        <Route path="/scan/:type" element={<ScanQRPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+   
+        {/* RUTAS DE TÓTEM */}
+        <Route path="/public/qr/:parkingId/checkin" element={<TotemCheckIn />} />
+        <Route path="/public/qr/:parkingId/checkout" element={<TotemCheckOut />} />
 
-        {/* PUBLIC */}
-        <Route path='/' element={<LandingPage />} />       
-        <Route path='/login' element={<LoginPage />} />    
-        <Route path='/register' element={<RegisterPage />} />
-        <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/verify' element={<VerifyEmailPage />} /> 
 
         {/* CLIENTE */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]} redirectTo="/" />}>
@@ -50,7 +55,6 @@ function AppRouter() {
             <Route path="my-reservations" element={<MyReservationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
-
         </Route>
 
         {/* DUEÑO */}
@@ -62,7 +66,7 @@ function AppRouter() {
             <Route path="users" element={<UsersPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            
+            <Route path="qr" element={<QRManagementPage />} />
           </Route>
         </Route>
 
