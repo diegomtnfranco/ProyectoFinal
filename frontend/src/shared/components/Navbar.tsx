@@ -95,8 +95,10 @@ function Navbar() {
           {isMobileMenuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
               <Link
+
               to={profilePath}
               className="block px-4 py-3 hover:bg-gray-100">
+
                 Perfil
               </Link> 
 

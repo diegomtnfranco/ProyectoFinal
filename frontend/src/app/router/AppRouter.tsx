@@ -47,7 +47,6 @@ function AppRouter() {
         <Route path="/public/qr/:parkingId/checkin" element={<TotemCheckIn />} />
         <Route path="/public/qr/:parkingId/checkout" element={<TotemCheckOut />} />
 
-
         {/* CLIENTE */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]} redirectTo="/" />}>
           <Route path="/client" element={<ClientLayout />}>

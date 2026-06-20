@@ -1,18 +1,24 @@
 // frontend/src/features/profile/pages/ProfilePage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
-import { 
-  User, Mail, Phone, Car, Building2, MapPin, Save, Loader2
+import { authService } from '../../../services/auth.service';
+import {
+  User, Mail, Phone, Car, Building2, MapPin, Save, Loader2, Pencil
 } from 'lucide-react';
 
+
 function ProfilePage() {
-  const { user, updateProfile, isLoading: authLoading } = useAuthStore();
+  const { user, updateProfile, updateUser, isLoading: authLoading } = useAuthStore();
   const { showSuccess, showError } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'vehicles' | 'security'>('info');
-  
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+
   // Estados del formulario
   const [formData, setFormData] = useState({
     email: '',
@@ -27,12 +33,14 @@ function ProfilePage() {
     ownerAddress: '',
   });
 
+
   // Actualizar formData cuando cambia user - SIN LLAMAR A getProfile
   useEffect(() => {
     if (user) {
       console.log('ProfilePage - user:', user);
       console.log('ProfilePage - parkingOwnerProfile:', (user as any).parkingOwnerProfile);
-      
+
+
       setFormData({
         email: user.email || '',
         newPassword: '',
@@ -48,19 +56,24 @@ function ProfilePage() {
     }
   }, [user]);
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+
     const updateData: any = {};
-    
+
+
     if (formData.email !== user?.email) {
       updateData.user = { ...updateData.user, email: formData.email };
     }
-    
+
+
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
         showError('Las contraseñas no coinciden');
@@ -72,7 +85,8 @@ function ProfilePage() {
       }
       updateData.user = { ...updateData.user, password: formData.newPassword };
     }
-    
+
+
     if (user?.role === 'client') {
       const clientData: any = {};
       if (formData.clientName !== (user as any).clientProfile?.name) clientData.name = formData.clientName;
@@ -81,7 +95,8 @@ function ProfilePage() {
       if (formData.defaultVehicleType !== (user as any).clientProfile?.defaultVehicleType) clientData.defaultVehicleType = formData.defaultVehicleType;
       if (Object.keys(clientData).length > 0) updateData.client = clientData;
     }
-    
+
+
     if (user?.role === 'parking_owner') {
       const ownerData: any = {};
       if (formData.ownerBusinessName !== (user as any).parkingOwnerProfile?.businessName) ownerData.businessName = formData.ownerBusinessName;
@@ -89,12 +104,15 @@ function ProfilePage() {
       if (formData.ownerAddress !== (user as any).parkingOwnerProfile?.address) ownerData.address = formData.ownerAddress;
       if (Object.keys(ownerData).length > 0) updateData.owner = ownerData;
     }
-    
+
+
     if (Object.keys(updateData).length === 0) {
-      showError('No hay cambios para guardar');
+      showSuccess('No hay cambios pendientes');
+      setIsEditing(false);
       return;
     }
-    
+
+
     try {
       await updateProfile(updateData);
       showSuccess('Perfil actualizado exitosamente');
@@ -104,8 +122,75 @@ function ProfilePage() {
     }
   };
 
+
+  // Manejo de avatar con validación de tipo y tamaño, y feedback visual
+
+
+  // // Permitir hacer click en el avatar para abrir el selector de archivos
+  const handleAvatarClick = () => {
+    if (isUploadingAvatar) return;
+    fileInputRef.current?.click();
+  };
+
+
+  // Manejar el cambio de archivo para subir el nuevo avatar
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+
+    // Validar que sea una imagen jpeg, png o webp
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showError('Por favor, selecciona una imagen válida (JPG, PNG o WebP)');
+      return;
+    }
+
+
+    // Validar tamaño (máximo 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      showError('La imagen no debe superar 5MB');
+      return;
+    }
+
+
+    try {
+      setIsUploadingAvatar(true);
+      const response = await authService.uploadAvatar(file);
+      updateUser({
+        avatarUrl: response.url
+      });
+      //await getProfile();
+
+      // Actualizar el usuario en el store con la nueva URL de avatar
+      // if (user) {
+      //   const updatedUser = { ...user, avatarUrl: response.url };
+      //   localStorage.setItem('user', JSON.stringify(updatedUser));
+
+
+      // // Recargar la página para que el store se actualice
+      //   window.location.reload();
+      // }
+
+
+      showSuccess('Avatar actualizado exitosamente');
+    } catch (error) {
+      console.error('Error al subir avatar:', error);
+      showError('Error al subir la imagen. Intenta de nuevo.');
+    } finally {
+      setIsUploadingAvatar(false);
+      // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+
   const isClient = user?.role === 'client';
   const isOwner = user?.role === 'parking_owner';
+
 
   if (authLoading && !user) {
     return (
@@ -115,6 +200,7 @@ function ProfilePage() {
       </div>
     );
   }
+
 
   if (!user) {
     return (
@@ -132,20 +218,90 @@ function ProfilePage() {
     );
   }
 
+
   return (
+    // Contenedor exterior con fondo gris claro
     <div className='min-h-screen bg-gray-100 py-8'>
       <div className='max-w-4xl mx-auto px-4'>
+
+
         {/* Header */}
         <div className='bg-white rounded-2xl shadow-sm p-6 mb-6'>
           <div className='flex flex-col md:flex-row items-center gap-6'>
-            <div className='w-24 h-24 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center'>
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className='w-24 h-24 rounded-full object-cover' />
-              ) : (
-                <User size={48} className='text-white' />
-              )}
+
+
+            {/* Avatar con capacidad de click y cargar imagen */}
+            <div className='relative group'>
+              <div
+                onClick={handleAvatarClick} // hace click en el avatar para abrir el selector de archivos
+                className='w-24 h-24 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer'>
+
+
+                    {/* Animación de carga */}
+                    {isUploadingAvatar && (
+                      <div className='absolute inset-0 flex items-center justify-center bg-black/30 rounded-full'>
+                        <Loader2 size={32} className='text-white animate-spin' />
+                      </div>
+                    )}
+
+
+                {/* Icono lápiz cuando no hay un avatar cargado */}
+                {user?.avatarUrl && (
+                  <div
+                    onClick={handleAvatarClick}
+                    className='absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/25 transition-all duration-200 flex items-center justify-center cursor-pointer'
+                  >
+                    <Pencil
+                      size={24}
+                      className='text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200'
+                    />
+                  </div>
+                )}
+
+
+                {/* Imagen del avatar */}
+                {!isUploadingAvatar && (
+                  <>
+                    {user?.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt='Avatar'
+                        className='w-24 h-24 rounded-full object-cover transition-all duration-200 group-hover:opacity-60'
+                      />
+                    ) : (
+                      <User size={48} className='text-white' />
+                    )}
+                  </>
+                )}
+
+
+
+
+                {/* Capa de hover para mostrar el icono de lápiz */}
+                <div
+                  className='absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/25 transition-all duration-200 flex items-center justify-center cursor-pointer'
+                >
+                  <Pencil
+                    size={24}
+                    className='text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200'
+                  />
+                </div>
+              </div>
+
+
+              {/* Input de archivo oculto */}
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                onChange={handleAvatarChange}
+                disabled={isUploadingAvatar}
+                className='hidden'
+              />
             </div>
-            
+
+
+            {/* Información del usuario */}
             <div className='text-center md:text-left'>
               <h1 className='text-2xl font-bold'>
                 {isClient ? formData.clientName : isOwner ? formData.ownerBusinessName : user?.email?.split('@')[0]}
@@ -153,7 +309,8 @@ function ProfilePage() {
               <p className='text-gray-500 capitalize'>{user?.role?.replace('_', ' ')}</p>
               <p className='text-gray-400 text-sm'>{user?.email}</p>
             </div>
-            
+
+
             <div className='md:ml-auto'>
               {!isEditing ? (
                 <button onClick={() => setIsEditing(true)} className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl'>
@@ -174,6 +331,7 @@ function ProfilePage() {
           </div>
         </div>
 
+
         {/* Tabs */}
         <div className='flex gap-2 mb-6 border-b border-gray-200'>
           <button onClick={() => setActiveTab('info')} className={`px-4 py-2 font-medium ${activeTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}>
@@ -188,6 +346,7 @@ function ProfilePage() {
             Seguridad
           </button>
         </div>
+
 
         {/* Contenido - Información personal */}
         {activeTab === 'info' && (
@@ -206,7 +365,8 @@ function ProfilePage() {
                   className='w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
                 />
               </div>
-              
+
+
               {isClient && (
                 <>
                   <div>
@@ -237,7 +397,8 @@ function ProfilePage() {
                   </div>
                 </>
               )}
-              
+
+
               {isOwner && (
                 <>
                   <div>
@@ -285,6 +446,7 @@ function ProfilePage() {
           </div>
         )}
 
+
         {/* Contenido - Vehículos (solo clientes) */}
         {activeTab === 'vehicles' && isClient && (
           <div className='bg-white rounded-2xl shadow-sm p-6'>
@@ -321,6 +483,7 @@ function ProfilePage() {
             </div>
           </div>
         )}
+
 
         {/* Contenido - Seguridad */}
         {activeTab === 'security' && (
@@ -365,4 +528,6 @@ function ProfilePage() {
   );
 }
 
+
 export default ProfilePage;
+
