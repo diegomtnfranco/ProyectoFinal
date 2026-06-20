@@ -20,11 +20,12 @@ interface AuthState {
     clearError: () => void;
     verifyEmail: (token: string) => Promise<void>;
     clearRegisterMessage: () => void;
+    updateUser: (userData: Partial<UserResponseDto>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({  // ← Eliminamos 'get' que no se usaba
+        (set, get) => ({ // ← Añadimos 'get' que ahora si se usa para leer el estado actual.
             // Estado inicial
             user: null,
             token: null,
@@ -49,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
             
+            // Registro de cliente
             registerClient: async (data) => {
                 set({ isLoading: true, error: null });
                 try {
@@ -68,6 +70,7 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
+            // Registro completo de dueño (con estacionamiento)
             registerOwnerComplete: async (data) => {
                 set({ isLoading: true, error: null });
                 try {
@@ -102,6 +105,7 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
+            
             // Obtener perfil
             getProfile: async () => {
                 set({ isLoading: true, error: null });
@@ -113,6 +117,20 @@ export const useAuthStore = create<AuthState>()(
                     throw error;
                 }
             },
+
+            // Actualizar datos del usuario en el estado (sin llamar a la API, útil para cambios locales como el avatar)
+            updateUser: (userData) => {
+                const currentUser = get().user;
+
+                if (!currentUser) return;
+
+                set({
+                    user: {
+                    ...currentUser,
+                    ...userData,
+                    },
+                });
+                },
 
             // Limpiar error
             clearError: () => set({ error: null }),

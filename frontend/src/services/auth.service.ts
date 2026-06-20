@@ -115,6 +115,26 @@ export const authService = {
     return response.data;
   },
 
+   /**
+   * Actualizar avatar del perfil
+   */
+    async uploadAvatar(file: File): Promise<{ url: string; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('access_token');
+    
+ const response = await api.post<{ url: string; message: string }>(
+  '/users/avatar',
+  formData,
+  {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }
+);
+
+return response.data;},
   // ============================================
   // VERIFICACIÓN DE EMAIL
   // ============================================
