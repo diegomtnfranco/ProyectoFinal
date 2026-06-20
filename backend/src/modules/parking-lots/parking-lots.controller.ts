@@ -305,9 +305,11 @@ export class ParkingLotsController {
     return this.parkingLotsService.regenerateQRType(id, type, user.id, user.role);
   }
 
+  // Endpoint público para obtener los QR de un estacionamiento sin necesidad de autenticación 18/06/2026 FTORRES
+  @Public()
   @Get(':id/qr-codes')
-  @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
-  @ApiBearerAuth('JWT-auth')
+  // @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
+  // @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Obtener QR del estacionamiento' })
   async getParkingQRCodes(@Param('id', ParseUUIDPipe) id: string) {
     return this.parkingLotsService.getParkingQRCodes(id);
