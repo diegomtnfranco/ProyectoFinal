@@ -51,6 +51,10 @@ function Navbar() {
     window.location.href = '/'
   }
 
+  const showDesktopMenuClient =
+  location.pathname.startsWith('/client');
+
+
   return (
     <nav className="bg-blue-500 shadow-md h-16 px-4 flex items-center justify-between relative">
       <Link
@@ -69,13 +73,19 @@ function Navbar() {
       </Link>
 
       {/* Desktop */}
-      <div className="hidden md:flex items-center gap-6">
-        <Link
-          to="/"
-          className="text-white font-medium"
-        >
-          Dashboard
-        </Link>
+     <div className="hidden md:flex items-center gap-6">
+
+  {showDesktopMenuClient &&
+    menuItems.map((item) => (
+      <Link
+        key={item.path}
+        to={item.path}
+        className="text-white font-medium"
+      >
+        {item.name}
+      </Link>
+    ))
+  }
 
         <div className="relative">
           <button
