@@ -216,6 +216,17 @@ function MyReservationsPage() {
     });
   };
 
+  // Formatea montos en pesos argentinos con separador de miles
+const formatCurrency = (amount: number | string) => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Number(amount));
+};
+
+
   const filteredReservations = getFilteredReservations();
   const upcomingCount = myReservations.filter(r => new Date(r.startTime) > new Date() && r.status !== 'cancelled_by_client' && r.status !== 'cancelled_by_parking').length;
   const pendingCount = myReservations.filter(r => r.status === 'pending_confirmation').length;
