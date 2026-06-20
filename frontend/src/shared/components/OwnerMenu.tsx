@@ -1,10 +1,17 @@
 import {
   ParkingMeter,
+  QrCode,
   Receipt,
   UserRoundCog,
   Users,
   type LucideIcon
 } from 'lucide-react'
+
+export interface OwnerMenuItem {
+  name: string
+  path: string
+  icon: LucideIcon
+}
 
 export const ownerMenu: OwnerMenuItem[] = [
   {
@@ -18,13 +25,13 @@ export const ownerMenu: OwnerMenuItem[] = [
     icon: Receipt,
   },
   {
-    name: 'Usuarios y accesos',
-    path: '/owner/users',
-    icon: UserRoundCog,
-  },
-  {
     name: 'Empleados',
     path: '/owner/employees',
     icon: Users,
   },
+  {
+  name: 'Códigos QR',
+  path: '/owner/qr',
+  icon: QrCode,
+}
 ]

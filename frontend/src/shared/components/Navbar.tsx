@@ -10,6 +10,7 @@ import { ownerMenu } from '../components/OwnerMenu'
 import { adminMenu } from '../components/AdminMenu'
 
 import { useAuthStore } from '../../stores/authStore'
+import { clientMenu } from '../components/ClientMenu'
 
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
@@ -24,11 +25,25 @@ function Navbar() {
     (state) => state.logout
   )
 
-  const menuItems = location.pathname.startsWith(
-    '/admin'
-  )
+  const menuItems =
+  location.pathname.startsWith('/admin')
     ? adminMenu
-    : ownerMenu
+    : location.pathname.startsWith('/owner')
+    ? ownerMenu
+    : location.pathname.startsWith('/client')
+    ? clientMenu
+    : location.pathname.startsWith('/employee')
+    ? ownerMenu
+    : []
+
+  const profilePath =
+  location.pathname.startsWith('/admin')
+    ? '/admin/profile'
+    : location.pathname.startsWith('/owner')
+    ? '/owner/profile'
+    : location.pathname.startsWith('/employee')
+    ? '/employee/profile'
+    : '/client/profile'
 
   const handleLogout = () => {
     logout()
@@ -80,11 +95,10 @@ function Navbar() {
           {isMobileMenuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
               <Link
-                to="/profile"
-                className="block px-4 py-3 hover:bg-gray-100"
-              >
+              to={profilePath}
+              className="block px-4 py-3 hover:bg-gray-100">
                 Perfil
-              </Link>
+              </Link> 
 
               <button
                 onClick={handleLogout}
@@ -126,13 +140,12 @@ function Navbar() {
           ))}
 
           <Link
-            to="/profile"
-            className="px-5 py-4 border-b"
-            onClick={() =>
-              setIsProfileOpen(false)
-            }
-          >
-            Perfil
+          to={profilePath}
+          className="px-5 py-4 border-b"
+          onClick={() =>
+            setIsProfileOpen(false)
+          }>
+             Perfil
           </Link>
 
           <button

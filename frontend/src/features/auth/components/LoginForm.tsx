@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// frontend/src/features/auth/components/LoginForm.tsx
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserRole, type LoginDto } from '../../../types/auth.types';
 import { useAuthStore } from '../../../stores';
@@ -6,14 +7,37 @@ import { useAuthStore } from '../../../stores';
 function LoginForm() {
   const navigate = useNavigate();
   
-  // Estado local del formulario
+  // Estados locales
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [showResendButton, setShowResendButton] = useState(false);
   
-  // Estados y acciones del store global
-  const { login, isLoading, clearError } = useAuthStore();
+  // Estados del store
+  const { user, token, login, isLoading, clearError } = useAuthStore();
+
+  // ✅ Redirigir si ya está autenticado
+  useEffect(() => {
+    if (token && user) {
+      switch (user.role) {
+        case UserRole.ADMIN:
+          navigate('/admin');
+          break;
+        case UserRole.PARKING_OWNER:
+          navigate('/owner');
+          break;
+        case UserRole.PARKING_EMPLOYEE:
+          navigate('/employee');
+          break;
+        case UserRole.CLIENT:
+          navigate('/client');
+          break;
+        default:
+          navigate('/');
+          break;
+      }
+    }
+  }, [token, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +45,6 @@ function LoginForm() {
     setShowResendButton(false);
     clearError();
 
-    // Validaciones básicas del formulario
     if (!email.trim() || !password.trim()) {
       setLocalError('Por favor, completá todos los campos para ingresar.');
       return;
@@ -37,38 +60,14 @@ function LoginForm() {
 
     try {
       const loginData: LoginDto = { email, password };
-      
-      // Usar el store para login
       await login(loginData);
       
-      // Obtener el usuario actualizado del store
-      const user = useAuthStore.getState().user;
-      
-      if (!user) {
-        throw new Error('No se pudo obtener el usuario');
-      }
-      
-      // Redirigir según el rol
-      switch (user.role) {
-        case UserRole.ADMIN:
-          navigate('/admin');
-          break;
-        case UserRole.PARKING_OWNER:
-          navigate('/owner');
-          break;
-        case UserRole.PARKING_EMPLOYEE:
-          navigate('/employee/dashboard');
-          break;
-        default:
-          navigate('/client');
-          break;
-      }
+      // El useEffect se encargará de redirigir
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : '';
       
       console.log('Error capturado:', errorMessage);
       
-      // Manejo específico según el mensaje de error
       if (errorMessage.includes('verificar') || errorMessage.includes('Debes verificar')) {
         setLocalError('Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
         setShowResendButton(true);
@@ -92,6 +91,30 @@ function LoginForm() {
       setLocalError('No se pudo reenviar el email. Intenta nuevamente.');
     }
   };
+
+  // Mostrar loading mientras verifica autenticación
+  if (isLoading && !user) {
+    return (
+      <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si ya está autenticado, mostrar loading (el useEffect redirigirá)
+  if (token && user) {
+    return (
+      <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirigiendo...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
@@ -136,14 +159,12 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Mostrar error local o error global del store */}
       {(localError) && (
         <div className="bg-red-100 text-red-600 p-3 rounded-xl text-sm font-medium">
           {localError}
         </div>
       )}
 
-      {/* Botón de reenvío de verificación */}
       {showResendButton && (
         <button
           type="button"
