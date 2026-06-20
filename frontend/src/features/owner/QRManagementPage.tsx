@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useParkingLotsStore } from '../../stores/parkingStore';
 import { useToast } from '../../shared/hooks/useToast';
 import { api } from '../../services/api';
+import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 import { 
   Loader2, 
   Download, 
-  RefreshCw, 
-  ArrowLeft, 
+  RefreshCw,   
   QrCode, 
   Printer, 
   Monitor, 
@@ -25,32 +25,49 @@ interface QRData {
 function QRManagementPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { currentParkingLot, fetchMyParkingLot } = useParkingLotsStore();
+  const { 
+    currentParkingLot, 
+    fetchMyParkingLot, 
+    isLoading: parkingLoading,
+    error: parkingError,
+    hasFetchedOnce,
+    clearError,
+  } = useParkingLotsStore();
   const { showSuccess, showError } = useToast();
   
   const [qrData, setQrData] = useState<QRData>({ checkIn: null, checkOut: null });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingQr, setIsLoadingQr] = useState(true);
   const [regeneratingType, setRegeneratingType] = useState<'check-in' | 'check-out' | null>(null);
+  const fetchAttempted = useRef(false);
 
+  // ✅ Verificar rol y cargar estacionamiento solo una vez
   useEffect(() => {
     if (user?.role !== 'parking_owner') {
       navigate('/login');
       return;
     }
     
-    if (!currentParkingLot) {
+    if (fetchAttempted.current) return;
+    if (currentParkingLot) return;
+    if (hasFetchedOnce) return;
+    
+    if (!parkingLoading) {
+      fetchAttempted.current = true;
+      console.log('📡 QRManagementPage: Cargando estacionamiento...');
       fetchMyParkingLot();
     }
-  }, [user, navigate, currentParkingLot, fetchMyParkingLot]);
+  }, [user, navigate, currentParkingLot, parkingLoading, hasFetchedOnce, fetchMyParkingLot]);
 
+  // ✅ Cargar QR solo si hay parking
   useEffect(() => {
     if (currentParkingLot?.id) {
+      console.log('📡 QRManagementPage: Cargando QR...');
       fetchQRCodes(currentParkingLot.id);
     }
   }, [currentParkingLot]);
 
   const fetchQRCodes = async (id: string) => {
-    setIsLoading(true);
+    setIsLoadingQr(true);
     try {
       const response = await api.get(`/parking-lots/${id}/qr-codes`);
       setQrData({
@@ -61,7 +78,7 @@ function QRManagementPage() {
       console.error('Error fetching QR codes:', error);
       showError('Error al cargar los códigos QR');
     } finally {
-      setIsLoading(false);
+      setIsLoadingQr(false);
     }
   };
 
@@ -69,6 +86,11 @@ function QRManagementPage() {
     setRegeneratingType(type);
     try {
       const id = currentParkingLot?.id;
+      if (!id) {
+        showError('No hay estacionamiento registrado');
+        return;
+      }
+      
       const response = await api.post(`/parking-lots/${id}/generate-qr/${type === 'check-in' ? 'check-in' : 'check-out'}`);
       
       if (type === 'check-in' && response.data.checkInQrUrl) {
@@ -153,20 +175,46 @@ function QRManagementPage() {
   };
 
   const copyQRUrl = (token: string, type: string) => {
+    const id = currentParkingLot?.id;
     if (!token) return;
-    const url = `${window.location.origin}/scan/${type === 'check-in' ? 'check-in' : 'check-out'}?token=${token}`;
+    const url = `${window.location.origin}/public/qr/${id}/${type === 'check-in' ? 'checkin' : 'checkout'}`;
     navigator.clipboard.writeText(url);
     showSuccess('URL copiada al portapapeles');
   };
 
   const openPublicDisplay = (type: string) => {
     const id = currentParkingLot?.id;
+    if (!id) {
+      showError('No hay estacionamiento registrado');
+      return;
+    }
     window.open(`/public/qr/${id}/${type === 'check-in' ? 'checkin' : 'checkout'}`, '_blank');
   };
 
   const parkingName = currentParkingLot?.name || 'Estacionamiento';
 
-  if (isLoading) {
+  // ✅ Estados de error y carga usando NoParkingMessage
+
+  // 1️⃣ Error al cargar el estacionamiento
+  if (parkingError && hasFetchedOnce && !currentParkingLot) {
+    return (
+      <NoParkingMessage
+        variant="info"
+        title="Error al cargar el estacionamiento"
+        message={parkingError}
+        buttonText="Reintentar"
+        buttonAction={() => {
+          clearError();
+          fetchAttempted.current = false;
+          useParkingLotsStore.setState({ hasFetchedOnce: false });
+          fetchMyParkingLot();
+        }}
+      />
+    );
+  }
+
+  // 2️⃣ Cargando inicial
+  if ((parkingLoading || isLoadingQr) && !currentParkingLot && !hasFetchedOnce) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
@@ -174,18 +222,33 @@ function QRManagementPage() {
     );
   }
 
+  // 3️⃣ No hay estacionamiento registrado
+  if (!currentParkingLot && hasFetchedOnce) {
+    return (
+      <NoParkingMessage
+        variant="warning"
+        title="No hay estacionamiento registrado"
+        message="Para gestionar códigos QR, primero debes tener un estacionamiento registrado y activo."
+        buttonText="Registrar estacionamiento"
+      />
+    );
+  }
+
+  // 4️⃣ Cargando QR (cuando ya hay parking pero los QR se están cargando)
+  if (isLoadingQr && !qrData.checkIn && !qrData.checkOut && currentParkingLot) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
+      </div>
+    );
+  }
+
+  // ✅ Renderizado principal con los QR
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate('/owner/parking')}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver al panel
-          </button>
+        <div className="mb-6">         
           
           <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
             <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">

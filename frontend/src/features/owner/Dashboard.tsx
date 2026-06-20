@@ -9,6 +9,7 @@ import { useReservationsStore } from '../../stores/reservationStore';
 import { VehicleType, SpaceStatus } from '../../types/auth.types';
 import ParkingMap from '../../shared/components/parking/ParkingMap';
 import ReservationPanel from '../../shared/components/reservation/ReservationPanel';
+import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 
 const DashboardOwner: React.FC = () => {
   const { token } = useAuthStore();
@@ -108,17 +109,12 @@ const DashboardOwner: React.FC = () => {
 
   if (!currentParkingLot) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-gray-500">No tenés un estacionamiento registrado.</p>
-          <button
-            onClick={() => window.location.href = '/create-company'}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-xl"
-          >
-            Crear estacionamiento
-          </button>
-        </div>
-      </div>
+     <NoParkingMessage
+             variant="info"
+             title="Error al cargar el estacionamiento"
+             message={'No tienes ningún estacionamiento registrado'}
+             
+           />
     );
   }
 

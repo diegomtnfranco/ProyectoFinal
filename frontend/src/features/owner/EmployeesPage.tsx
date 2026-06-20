@@ -1,44 +1,66 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useEmployeeStore } from '../../stores/employeeStore';
 import { useParkingLotsStore } from '../../stores/parkingStore';
 import { EmployeeList } from './Employees/EmployeeList';
-import  EmployeeFormModal  from './Employees/components/EmployeeFormModal';
-import { Users, UserPlus, Loader2, XCircle } from 'lucide-react';
+import EmployeeFormModal from './Employees/components/EmployeeFormModal';
+import { Users, UserPlus, Loader2} from 'lucide-react';
+import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 
 function EmployeesPage() {
-  const { currentParkingLot, fetchMyParkingLot, isLoading: parkingLoading, error: parkingError } = useParkingLotsStore();
-  const { employees, isLoading, fetchEmployees } = useEmployeeStore();
+  const { 
+    currentParkingLot, 
+    fetchMyParkingLot, 
+    isLoading: parkingLoading, 
+    error: parkingError,
+    hasFetchedOnce,
+    clearError,
+  } = useParkingLotsStore();
+  const { employees, isLoading: isLoadingEmployees, fetchEmployees } = useEmployeeStore();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const fetchAttempted = useRef(false);
 
+  // ✅ Solo cargar si no se ha intentado antes y no hay parking
   useEffect(() => {
-    if (!currentParkingLot && !parkingLoading) {
+    if (fetchAttempted.current) return;
+    if (currentParkingLot) return;
+    if (hasFetchedOnce) return;
+    
+    if (!parkingLoading) {
+      fetchAttempted.current = true;
+      console.log('📡 EmployeesPage: Cargando estacionamiento...');
       fetchMyParkingLot();
     }
-  }, [currentParkingLot, parkingLoading, fetchMyParkingLot]);
+  }, [parkingLoading, currentParkingLot, hasFetchedOnce, fetchMyParkingLot]);
 
+  // ✅ Cargar empleados solo si hay parking
   useEffect(() => {
     if (currentParkingLot?.id) {
+      console.log('📡 EmployeesPage: Cargando empleados...');
       fetchEmployees(currentParkingLot.id);
     }
   }, [currentParkingLot, fetchEmployees]);
 
-  if (parkingError) {
+  // ✅ 1️⃣ Error al cargar el estacionamiento
+  if (parkingError && hasFetchedOnce && !currentParkingLot) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="bg-red-50 rounded-xl p-6 max-w-md">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
-          <p className="text-red-600 mb-4">{parkingError}</p>
-          <button onClick={() => fetchMyParkingLot()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl">
-            Reintentar
-          </button>
-        </div>
-      </div>
+      <NoParkingMessage
+        variant="info"
+        title="Error al cargar el estacionamiento"
+        message={parkingError}
+        buttonText="Reintentar"
+        buttonAction={() => {
+          clearError();
+          fetchAttempted.current = false;
+          useParkingLotsStore.setState({ hasFetchedOnce: false });
+          fetchMyParkingLot();
+        }}
+      />
     );
   }
 
-  if ((parkingLoading || isLoading) && employees.length === 0) {
+  // ✅ 2️⃣ Cargando inicial
+  if ((parkingLoading || isLoadingEmployees) && !currentParkingLot && !hasFetchedOnce) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
@@ -46,20 +68,28 @@ function EmployeesPage() {
     );
   }
 
-  if (!currentParkingLot && !parkingLoading) {
+  // ✅ 3️⃣ No hay estacionamiento registrado
+  if (!currentParkingLot && hasFetchedOnce) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="bg-yellow-50 rounded-xl p-6 max-w-md">
-          <h2 className="text-xl font-semibold text-yellow-800 mb-2">No hay estacionamiento registrado</h2>
-          <p className="text-yellow-600 mb-4">Para gestionar empleados, primero debes tener un estacionamiento registrado.</p>
-          <button onClick={() => window.location.href = '/create-company'} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl">
-            Registrar estacionamiento
-          </button>
-        </div>
+      <NoParkingMessage
+        variant="warning"
+        title="No hay estacionamiento registrado"
+        message="Para gestionar empleados, primero debes tener un estacionamiento registrado y activo."
+        buttonText="Registrar estacionamiento"
+      />
+    );
+  }
+
+  // ✅ 4️⃣ Cargando empleados (cuando ya hay parking pero los empleados se están cargando)
+  if (isLoadingEmployees && employees.length === 0 && currentParkingLot) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
       </div>
     );
   }
 
+  // ✅ Renderizado principal
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
