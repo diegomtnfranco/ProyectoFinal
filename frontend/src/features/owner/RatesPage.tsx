@@ -9,12 +9,13 @@ import {
   X,
   DollarSign,
   Loader2,
-  Plus,
+  
 } from "lucide-react";
 import { useRatesStore } from "../../stores/ratesStore";
 import { useParkingLotsStore } from "../../stores/parkingStore";
 import { VehicleType, type UserVehicleType } from "../../types/auth.types";
 import type { Rate, CreateRateDto } from "../../types/parking.types";
+import { NoParkingMessage } from "../../shared/components/common/NoParkingMessage";
 
 // Mapeo de UserVehicleType a nombre y icono
 const vehicleConfig: Record<UserVehicleType, { name: string; icon: JSX.Element }> = {
@@ -124,17 +125,12 @@ export default function RatesPage() {
 
   if (!currentParkingLot) {
     return (
-      <div className="w-full min-h-screen bg-slate-100 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-slate-500">No tenés un estacionamiento registrado.</p>
-          <button 
-            onClick={() => window.location.href = '/create-company'}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-xl"
-          >
-            Crear estacionamiento
-          </button>
-        </div>
-      </div>
+   <NoParkingMessage
+         variant="info"
+         title="Error al cargar el estacionamiento"
+         message={'No tienes ningún estacionamiento registrado'}
+                 
+       />
     );
   }
 
