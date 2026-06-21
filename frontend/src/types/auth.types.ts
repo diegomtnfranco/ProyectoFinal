@@ -92,7 +92,7 @@ export interface RegisterEmployeeDto {
   position?: string;
 }
 
-// Update Profile
+// Update Profile - ACTUALIZADO ✅
 export interface UpdateProfileDto {
   user?: {
     email?: string;
@@ -106,9 +106,16 @@ export interface UpdateProfileDto {
     defaultVehicleType?: UserVehicleType;
   };
   owner?: {
+    name?: string;           
     businessName?: string;
     phone?: string;
     address?: string;
+  };
+  employee?: {               
+    name?: string;
+    employeeCode?: string;
+    position?: string;
+    isActive?: boolean;
   };
 }
 
@@ -135,6 +142,9 @@ export interface UserResponseDto {
   isActive: boolean;
   avatarUrl?: string;
   createdAt: string;
+  clientProfile?: ClientProfileResponseDto;
+  parkingOwnerProfile?: OwnerProfileResponseDto;
+  employeeProfile?: EmployeeProfileResponseDto;
 }
 
 // Perfil de cliente
@@ -150,6 +160,7 @@ export interface ClientProfileResponseDto {
 export interface OwnerProfileResponseDto {
   id: string;
   businessName: string;
+  name:string;
   cuit?: string;
   phone?: string;
   address?: string;

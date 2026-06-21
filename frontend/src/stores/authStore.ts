@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/auth.service';
-import type { UserResponseDto, LoginDto, UpdateProfileDto, RegisterClientDto, RegisterOwnerCompleteResponseDto, RegisterOwnerCompleteDto, LoginResponseDto } from '../types/auth.types';
+import type { UserResponseDto, LoginDto, UpdateProfileDto, RegisterClientDto, RegisterOwnerCompleteResponseDto, RegisterOwnerCompleteDto, LoginResponseDto, ClientProfileResponseDto, OwnerProfileResponseDto, EmployeeProfileResponseDto, ProfileResponseDto } from '../types/auth.types';
 
 interface AuthState {
     user: UserResponseDto | null;
+    //profile: ClientProfileResponseDto| OwnerProfileResponseDto| EmployeeProfileResponseDto |null;
     token: string | null;
     isLoading: boolean;
     error: string | null;
@@ -28,6 +29,7 @@ export const useAuthStore = create<AuthState>()(
         (set, get) => ({ // ← Añadimos 'get' que ahora si se usa para leer el estado actual.
             // Estado inicial
             user: null,
+            //profile:null,
             token: null,
             isLoading: false,
             error: null,
@@ -39,11 +41,13 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null });
                 try {
                     const response = await authService.login(credentials);
+                    
                     set({
-                        user: response.user,
+                        user: response.user,                                                          
                         token: response.access_token,
                         isLoading: false,
                     });
+                                     
                 } catch (error) {
                     set({ error: error as string, isLoading: false });
                     throw error;

@@ -13,6 +13,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { clientMenu } from '../components/ClientMenu'
 
 function Navbar() {
+  const { user}=useAuthStore()
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
     useState(false)
 
@@ -96,7 +97,7 @@ function Navbar() {
             }
           >
             <img
-              src="https://i.pravatar.cc/40"
+              src={user?.avatarUrl? user.avatarUrl:"https://i.pravatar.cc/40"}
               alt="Perfil"
               className="w-10 h-10 rounded-full border-2 border-white"
             />
