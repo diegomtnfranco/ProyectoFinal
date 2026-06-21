@@ -128,16 +128,20 @@ function ProfilePage() {
     }
 
     if (userRole === 'parking_employee') {
-      // Los empleados solo pueden actualizar: email, password y avatar
-      // El nombre NO se actualiza desde aquí
+      // ✅ Los empleados pueden actualizar: email, password, avatar y name
+      const employeeData: any = {};
+      const currentEmployee = (user as any).employeeProfile;
       
-      // Solo enviamos actualizaciones de usuario (email, password)
-      // No incluimos employee en updateData
+      // El empleado puede actualizar su nombre
+      if (formData.employeeName !== currentEmployee?.name) {
+        employeeData.name = formData.employeeName;
+      }
       
-      if (!updateData.user && !formData.email && !formData.newPassword) {
-        showSuccess('No hay cambios pendientes');
-        setIsEditing(false);
-        return;
+      // ⛔ El empleado NO puede actualizar: position, employeeCode, isActive
+      // Esos campos son administrados por el dueño
+      
+      if (Object.keys(employeeData).length > 0) {
+        updateData.employee = employeeData;
       }
     }
 
@@ -204,7 +208,7 @@ function ProfilePage() {
       return formData.clientName || user?.email?.split('@')[0] || 'Cliente';
     }
     if (isOwner) {
-      return  formData.ownerName || user?.email?.split('@')[0] || 'Propietario';
+      return formData.ownerName || user?.email?.split('@')[0] || 'Propietario';
     }
     if (isEmployee) {
       return formData.employeeName || user?.email?.split('@')[0] || 'Empleado';
@@ -480,7 +484,7 @@ function ProfilePage() {
                 </>
               )}
 
-              {/* Datos de Empleado - SOLO LECTURA */}
+              {/* Datos de Empleado - EDITABLE SOLO EL NOMBRE */}
               {isEmployee && (
                 <>
                   <div>
@@ -491,12 +495,11 @@ function ProfilePage() {
                       type='text'
                       name='employeeName'
                       value={formData.employeeName}
-                      disabled={true}
-                      className='w-full border border-gray-300 rounded-xl px-4 py-2 bg-gray-100 cursor-not-allowed'
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                      className='w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
+                      placeholder='Tu nombre completo'
                     />
-                    <p className='text-xs text-gray-400 mt-1'>
-                      <span className="text-blue-500">ℹ️</span> El nombre solo puede ser modificado por el propietario del estacionamiento.
-                    </p>
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -511,6 +514,21 @@ function ProfilePage() {
                     />
                     <p className='text-xs text-gray-400 mt-1'>
                       <span className="text-blue-500">ℹ️</span> El cargo solo puede ser modificado por el propietario del estacionamiento.
+                    </p>
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      <BadgeCheck size={14} className="inline mr-1" /> Código de empleado
+                    </label>
+                    <input
+                      type='text'
+                      name='employeeCode'
+                      value={formData.employeeCode || ''}
+                      disabled={true}
+                      className='w-full border border-gray-300 rounded-xl px-4 py-2 bg-gray-100 cursor-not-allowed'
+                    />
+                    <p className='text-xs text-gray-400 mt-1'>
+                      <span className="text-blue-500">ℹ️</span> El código solo puede ser modificado por el propietario del estacionamiento.
                     </p>
                   </div>
                 </>
