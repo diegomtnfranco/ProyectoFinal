@@ -222,7 +222,7 @@ const formatCurrency = (amount: number | string) => {
     style: 'currency',
     currency: 'ARS',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(Number(amount));
 };
 
@@ -270,7 +270,9 @@ const formatCurrency = (amount: number | string) => {
               <p className='text-xs text-gray-500'>Pendientes</p>
             </div>
             <div className='bg-green-50 rounded-xl px-4 py-2 shadow-sm text-center'>
-              <p className='text-2xl font-bold text-green-600'>${totalSpent.toLocaleString()}</p>
+              <p className='text-2xl font-bold text-green-600'>
+  {formatCurrency(totalSpent)}
+</p>
               <p className='text-xs text-gray-500'>Total gastado</p>
             </div>
           </div>
@@ -448,7 +450,7 @@ const formatCurrency = (amount: number | string) => {
                       {reservation.totalAmount && reservation.status === 'completed' && (
                         <div className='mt-3 flex items-center gap-2 text-green-600 font-semibold'>
                           <CreditCard size={16} />
-                          <span>Total: ${reservation.totalAmount}</span>
+                          <span>Total: {formatCurrency(reservation.totalAmount)}</span>
                         </div>
                       )}
                     </div>
