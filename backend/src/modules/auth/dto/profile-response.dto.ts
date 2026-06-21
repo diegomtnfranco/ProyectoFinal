@@ -23,6 +23,7 @@ export class ClientProfileDto {
 export class OwnerProfileDto {
   id!: string;
   businessName!: string;
+  name!:string;
   cuit?: string;
   phone?: string;
   address?: string;

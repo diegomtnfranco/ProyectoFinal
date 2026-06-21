@@ -5,8 +5,14 @@ import { useAuthStore } from '../../../stores/authStore';
 function LandingPage() {
   const { user } = useAuthStore();
   
-  
-  const userRole = user?.role;
+  let userName =''
+
+  if (user?.clientProfile?.name) userName=user.clientProfile.name
+if (user?.parkingOwnerProfile?.name) userName=user.parkingOwnerProfile.name
+if (user?.employeeProfile?.name) userName=user.employeeProfile.name
+if (userName==='' && user?.email) userName=user?.email
+
+const userRole = user?.role;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans scroll-smooth">
@@ -25,7 +31,7 @@ function LandingPage() {
 
         <div className="flex gap-2 md:gap-4 items-center">
           {user ? (
-            <span className="text-blue-600 font-bold px-4">¡Hola!</span>
+            <span className="text-blue-600 font-bold px-4">{'¡Hola, '+ userName.trim()+'!'}</span>
           ) : (
             <>
               <Link 

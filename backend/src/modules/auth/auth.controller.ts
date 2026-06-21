@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Res, HttpStatus, HttpCode, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Res, HttpStatus, HttpCode, ParseUUIDPipe, Patch, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterClientDto } from './dto/register-client.dto';
@@ -13,7 +13,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { UserRole } from 'src/modules/users/entities/user.entity';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
 import { Roles } from './decorators/roles.decorator';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateEmployeeDataDto, UpdateProfileDto } from './dto/update-profile.dto';
 import { RegisterOwnerCompleteDto } from './dto/register-owner-complete';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -313,4 +313,32 @@ async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
   return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
 }
 
+
+/**
+   * Actualizar empleado (solo dueño)
+   * PATCH /auth/employee/:employeeId
+   */
+  @Patch('employee/:employeeId')
+  @Roles(UserRole.PARKING_OWNER)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Actualizar un empleado',
+    description: 'Actualiza los datos de un empleado. Solo el propietario del estacionamiento puede hacer esto.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Empleado actualizado exitosamente'
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'No autorizado (solo propietarios)' })
+  @ApiResponse({ status: 404, description: 'Empleado no encontrado' })
+  @ApiBody({ type: UpdateEmployeeDataDto })
+  async updateEmployee(
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @CurrentUser('id') ownerId: string,
+    @Body() updateDto: UpdateProfileDto['employee'],
+  ) {
+    return this.authService.updateEmployeeByOwner(ownerId, employeeId, updateDto);
+  }
 }

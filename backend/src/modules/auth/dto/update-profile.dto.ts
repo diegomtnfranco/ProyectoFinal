@@ -1,5 +1,5 @@
 // src/auth/dto/update-profile.dto.ts
-import { IsEmail, IsOptional, IsString, MinLength, IsPhoneNumber, IsEnum, IsObject, IsUrl } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength, IsPhoneNumber, IsEnum, IsObject, IsUrl, IsBoolean, IsUUID } from 'class-validator';
 import { VehicleTypeEnum } from '../../client-profiles/entities/client-profile.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,11 +17,11 @@ class UpdateUserDataDto {
   @ApiProperty({ 
     example: 'NuevaPassword123!', 
     description: 'Nueva contraseña (mínimo 6 caracteres)',
-    minLength: 6,
+    minLength: 8,
     required: false 
   })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   @IsOptional()
   password?: string;
 
@@ -87,6 +87,15 @@ class UpdateOwnerDataDto {
   businessName?: string;
 
   @ApiProperty({ 
+    example: 'Juan Torres', 
+    description: 'Nombre del dueño',
+    required: false 
+  })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({ 
     example: '+5493818888888', 
     description: 'Nuevo teléfono de contacto',
     required: false 
@@ -103,6 +112,45 @@ class UpdateOwnerDataDto {
   @IsString()
   @IsOptional()
   address?: string;
+}
+
+// Datos específicos de empleado de parking
+export class UpdateEmployeeDataDto {
+  @ApiProperty({ 
+    example: 'Carlos Rodríguez', 
+    description: 'Nombre del empleado',
+    required: false 
+  })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({ 
+    example: 'EMP-001', 
+    description: 'Código del empleado',
+    required: false 
+  })
+  @IsString()
+  @IsOptional()
+  employeeCode?: string;
+
+  @ApiProperty({ 
+    example: 'Supervisor', 
+    description: 'Cargo del empleado',
+    required: false 
+  })
+  @IsString()
+  @IsOptional()
+  position?: string;
+
+  @ApiProperty({ 
+    example: true, 
+    description: 'Estado del empleado (activo/inactivo)',
+    required: false 
+  })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }
 
 // DTO principal unificado
@@ -133,4 +181,13 @@ export class UpdateProfileDto {
   @IsObject()
   @IsOptional()
   owner?: UpdateOwnerDataDto;
+
+  @ApiProperty({ 
+    type: UpdateEmployeeDataDto, 
+    description: 'Datos del perfil de empleado a actualizar',
+    required: false 
+  })
+  @IsObject()
+  @IsOptional()
+  employee?: UpdateEmployeeDataDto;
 }

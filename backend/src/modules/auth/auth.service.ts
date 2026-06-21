@@ -450,6 +450,7 @@ export class AuthService {
   if (user.parkingOwnerProfile) {
     userResponse.parkingOwnerProfile = {
       id: user.parkingOwnerProfile.id,
+      name:user.parkingOwnerProfile.name,
       businessName: user.parkingOwnerProfile.businessName,
       cuit: user.parkingOwnerProfile.cuit,
       phone: user.parkingOwnerProfile.phone,
@@ -476,16 +477,23 @@ export class AuthService {
 
   return { user: userResponse };
 }
-  /**
-   * Actualizar perfil unificado
-   */
-  async updateProfile(userId: string, updateDto: UpdateProfileDto): Promise<ProfileResponseDto> {
+   async updateProfile(userId: string, updateDto: UpdateProfileDto): Promise<ProfileResponseDto> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Actualizar User
+      // 1. Obtener el usuario actual para conocer su rol
+      const currentUser = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        relations: ['clientProfile', 'parkingOwnerProfile', 'parkingEmployeeProfile'],
+      });
+
+      if (!currentUser) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      // 2. Actualizar User
       if (updateDto.user) {
         const userUpdate: any = {};
         if (updateDto.user.email) userUpdate.email = updateDto.user.email;
@@ -497,8 +505,8 @@ export class AuthService {
         }
       }
 
-      // 2. Actualizar ClientProfile
-      if (updateDto.client) {
+      // 3. Actualizar ClientProfile (solo si es cliente)
+      if (updateDto.client && currentUser.role === UserRole.CLIENT) {
         const clientProfile = await queryRunner.manager.findOne(ClientProfile, {
           where: { userId },
         });
@@ -517,14 +525,43 @@ export class AuthService {
         }
       }
 
-      // 3. Actualizar ParkingOwnerProfile
-      if (updateDto.owner) {
+      // 4. Actualizar ParkingOwnerProfile (solo si es dueño)
+      if (updateDto.owner && currentUser.role === UserRole.PARKING_OWNER) {
         const ownerProfile = await queryRunner.manager.findOne(ParkingOwner, {
           where: { userId },
         });
 
         if (ownerProfile) {
-          await queryRunner.manager.update(ParkingOwner, ownerProfile.id, updateDto.owner);
+          // Si el dueño intenta actualizar su propio perfil
+          const ownerUpdate: any = { ...updateDto.owner };
+          
+          // Los dueños NO pueden cambiar su estado de aprobación desde aquí
+          delete ownerUpdate.isApproved;
+          
+          await queryRunner.manager.update(ParkingOwner, ownerProfile.id, ownerUpdate);
+        }
+      }
+
+      // 5. Actualizar ParkingEmployeeProfile
+      // NOTA: Los empleados NO pueden actualizar sus propios datos (name, position, employeeCode, isActive)
+      // Esto debería ser manejado por el dueño en un endpoint separado
+      // Pero permitimos que el dueño pueda actualizar empleados (para futuro)
+      if (updateDto.employee) {
+        const employeeProfile = await queryRunner.manager.findOne(ParkingEmployee, {
+          where: { userId },
+        });
+
+        if (employeeProfile) {
+          // Verificar permisos: solo el dueño puede actualizar empleados
+          // Si el usuario actual NO es dueño, no permitir actualizar datos de empleado
+          if (currentUser.role !== UserRole.PARKING_OWNER) {
+            // Los empleados no pueden modificar sus datos
+            this.logger.warn(`Empleado ${userId} intentó actualizar datos de empleado, ignorando...`);
+            // No lanzamos error, simplemente ignoramos la actualización
+          } else {
+            // El dueño puede actualizar empleados
+            await queryRunner.manager.update(ParkingEmployee, employeeProfile.id, updateDto.employee);
+          }
         }
       }
 
@@ -539,6 +576,63 @@ export class AuthService {
       await queryRunner.release();
     }
   }
+
+  /**
+   * Método específico para que el dueño actualice un empleado
+   * (Para uso futuro desde el panel del dueño)
+   */
+  async updateEmployeeByOwner(ownerId: string, employeeId: string, updateData: UpdateProfileDto['employee']) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Verificar que el dueño existe
+      const owner = await queryRunner.manager.findOne(ParkingOwner, {
+        where: { userId: ownerId },
+      });
+
+      if (!owner) {
+        throw new UnauthorizedException('Dueño no encontrado');
+      }
+
+      // 2. Verificar que el empleado existe y pertenece al estacionamiento del dueño
+      const employee = await queryRunner.manager.findOne(ParkingEmployee, {
+        where: { id: employeeId },
+        relations: ['parkingLot'],
+      });
+
+      if (!employee) {
+        throw new UnauthorizedException('Empleado no encontrado');
+      }
+
+      // Verificar que el estacionamiento pertenece al dueño
+      const parkingLot = await queryRunner.manager.findOne(ParkingLot, {
+        where: { id: employee.parkingLotId, ownerId: owner.id },
+      });
+
+      if (!parkingLot) {
+        throw new UnauthorizedException('No tienes permiso para actualizar este empleado');
+      }
+
+      // 3. Actualizar empleado
+      await queryRunner.manager.update(ParkingEmployee, employeeId, updateData!);
+
+      await queryRunner.commitTransaction();
+
+      // Retornar el empleado actualizado
+      return queryRunner.manager.findOne(ParkingEmployee, {
+        where: { id: employeeId },
+        relations: ['user', 'parkingLot'],
+      });
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
 
   async registerOwnerComplete(registerDto: RegisterOwnerCompleteDto) {
     const queryRunner = this.dataSource.createQueryRunner();
