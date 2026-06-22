@@ -378,6 +378,7 @@ async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInRespon
     const occupancy = this.occupancyRepository.create({
       spaceId: availableSpace.id,
       vehicleType: dto.vehicleType,
+      vehiclePlate:dto.vehiclePlate.trim().toUpperCase(),
       checkInTime: new Date(),
       isCompleted: false,
       isAnonymous: true,
@@ -390,6 +391,7 @@ async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInRespon
     availableSpace.status = SpaceStatus.OCCUPIED;
     availableSpace.occupiedSince = new Date();
     availableSpace.occupiedByVehicleType = dto.vehicleType;
+    availableSpace.occupiedByVehiclePlate=dto.vehiclePlate.trim().toUpperCase()
     await queryRunner.manager.save(availableSpace);
 
     await queryRunner.commitTransaction();
@@ -400,6 +402,7 @@ async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInRespon
     this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
       spaceId: availableSpace.id,
       spaceNumber: availableSpace.spaceNumber,
+      vehiclePlate:availableSpace.occupiedByVehiclePlate,
       action: 'check-in',
       vehicleType: dto.vehicleType,
       isAnonymous: true,
@@ -409,6 +412,7 @@ async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInRespon
       success: true,
       message: 'Check-in registrado exitosamente',
       spaceNumber: availableSpace.spaceNumber,
+      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
       checkInTime: occupancy.checkInTime,
     };
   } catch (error) {
@@ -440,6 +444,7 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
         space: { parkingLotId: parkingLot.id },
         isCompleted: false,
         isAnonymous: true,
+        vehiclePlate:dto.vehiclePlate.trim().toUpperCase()
       },
       relations: ['space'],
       order: { checkInTime: 'DESC' },
@@ -496,6 +501,7 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
     this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
       spaceId: space.id,
       spaceNumber: space.spaceNumber,
+      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
       action: 'check-out',
       totalAmount,
       isAnonymous: true,
@@ -505,6 +511,7 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
       success: true,
       message: 'Check-out registrado exitosamente',
       spaceNumber: space.spaceNumber,
+      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
       totalAmount,
       hours: hoursToCharge,
       checkInTime: occupancy.checkInTime,
