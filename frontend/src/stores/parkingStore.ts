@@ -1,7 +1,7 @@
 // frontend/src/stores/parkingStore.ts
 import { create } from 'zustand';
 import { parkingLotsService } from '../services/parking.service';
-import type { ParkingLot, ParkingLotWithStats, CreateParkingLotDto, UpdateParkingLotDto, ParkingLotNearbyResponseDto } from '../types/parking.types';
+import type { ParkingLotWithStats, CreateParkingLotDto, UpdateParkingLotDto, ParkingLotNearbyResponseDto } from '../types/parking.types';
 
 interface ParkingLotsState {
   // Estado
