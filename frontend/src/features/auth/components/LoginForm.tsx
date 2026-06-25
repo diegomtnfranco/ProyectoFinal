@@ -1,6 +1,7 @@
 // frontend/src/features/auth/components/LoginForm.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react'; 
 import { UserRole, type LoginDto } from '../../../types/auth.types';
 import { useAuthStore } from '../../../stores';
 
@@ -62,7 +63,7 @@ function LoginForm() {
       const loginData: LoginDto = { email, password };
       await login(loginData);
       
-      // El useEffect se encargará de redirigir
+      // redirigir
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : '';
       
@@ -117,7 +118,18 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6 relative">
+      
+      {/* 1. BOTÓN SUPERIOR (Requerimiento del Backlog) */}
+      <button 
+        type="button" 
+        onClick={() => navigate(-1)} 
+        className="flex items-center text-gray-500 hover:text-gray-800 transition-colors w-fit -ml-2"
+      >
+        <ChevronLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Volver</span>
+      </button>
+
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Bienvenido</h1>
         <p className="text-gray-500">Ingresá para continuar</p>
@@ -195,6 +207,18 @@ function LoginForm() {
           </button>
         </p>
       </div>
+
+      {/* 2. ENLACE AL PIE (Requerimiento del Backlog) */}
+      <div className="text-center pt-2">
+        <button 
+          type="button" 
+          onClick={() => navigate('/')} 
+          className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          Volver al inicio
+        </button>
+      </div>
+      
     </form>
   );
 }

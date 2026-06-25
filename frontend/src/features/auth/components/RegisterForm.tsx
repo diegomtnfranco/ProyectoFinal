@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../stores';
 import { useToast } from '../../../shared/hooks/useToast';
 import { type RegisterClientDto } from '../../../types/auth.types';
-import { CheckCircle, XCircle, Info } from 'lucide-react';
+import { CheckCircle, XCircle, Info, ChevronLeft } from 'lucide-react'; 
 
 function RegisterForm() {
   const navigate = useNavigate();
   const { registerClient, isLoading, lastRegisterMessage, clearRegisterMessage } = useAuthStore();
   const { showSuccess, showError } = useToast();
-    const { user, token, isLoading: authLoading } = useAuthStore();
+  const { user, token, isLoading: authLoading } = useAuthStore();
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -22,7 +22,7 @@ function RegisterForm() {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
 
-useEffect(() => {
+  useEffect(() => {
     if (token && user) {
       // Si ya es dueño, redirigir a su dashboard
       if (user.role === 'parking_owner') {
@@ -127,8 +127,19 @@ useEffect(() => {
     <>
       <form
         onSubmit={handleSubmit}
-        className='bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6'
+        className='bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6 relative'
       >
+        {/* --- NUEVO: BOTÓN SUPERIOR --- */}
+        <button 
+          type="button" 
+          onClick={() => navigate(-1)} 
+          className="flex items-center text-gray-500 hover:text-gray-800 transition-colors w-fit -ml-2"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Volver</span>
+        </button>
+        {/* ----------------------------- */}
+
         <div>
           <h1 className='text-3xl font-bold'>Crear cuenta</h1>
           <p className='text-gray-500'>Unite a EstacionamientoTUC</p>
@@ -238,9 +249,21 @@ useEffect(() => {
         >
           Crear empresa
         </button>
+
+        {/* --- NUEVO: ENLACE AL PIE --- */}
+        <div className="text-center pt-2 border-t border-gray-100 mt-2">
+          <button 
+            type="button" 
+            onClick={() => navigate('/')} 
+            className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            Volver al inicio
+          </button>
+        </div>
+        {/* ----------------------------- */}
       </form>
 
-      {/* Modal de éxito */}
+      {/* éxito */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center flex flex-col gap-6 shadow-2xl animate-fade-in">
