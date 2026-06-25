@@ -101,12 +101,12 @@ export class ParkingLotsController {
     return this.parkingLotsService.findNearby(lat, lng, radius ? parseInt(radius) : 1000);
   }
 
-  /**
+   /**
    * Obtener mi estacionamiento
    * GET /parking-lots/my
    */
   @Get('my')
-  @Roles(UserRole.PARKING_OWNER)
+  @Roles(UserRole.PARKING_OWNER,UserRole.PARKING_EMPLOYEE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener mi estacionamiento',
@@ -120,8 +120,15 @@ export class ParkingLotsController {
   @ApiResponse({ status: 401, description: 'No autenticado' })
   @ApiResponse({ status: 403, description: 'Solo propietarios' })
   @ApiResponse({ status: 404, description: 'Estacionamiento no encontrado' })
-  async getMyParkingLot(@CurrentUser('id', ParseUUIDPipe) userId: string) {
-    return this.parkingLotsService.getOwnerParkingLot(userId);
+  async getMyParkingLot(@CurrentUser('id', ParseUUIDPipe) userId: string,@CurrentUser('role') rol:UserRole) {
+    console.log(rol)
+    if (rol===UserRole.PARKING_OWNER){
+      return this.parkingLotsService.getOwnerParkingLot(userId);
+
+    }else if (rol===UserRole.PARKING_EMPLOYEE){
+      return this.parkingLotsService.getEmployeeParkingLot(userId)
+    }
+
   }
 
   @Public()

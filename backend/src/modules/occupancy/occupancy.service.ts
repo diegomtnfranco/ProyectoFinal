@@ -157,7 +157,7 @@ export class OccupancyService {
       // 1. Obtener la ocupación activa del espacio
       const occupancy = await queryRunner.manager.findOne(Occupancy, {
         where: { spaceId: checkOutDto.spaceId, isCompleted: false },
-        relations: ['space'],
+        relations: ['space','space.parkingLot'],
       });
 
       if (!occupancy) {
@@ -446,7 +446,7 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
         isAnonymous: true,
         vehiclePlate:dto.vehiclePlate.trim().toUpperCase()
       },
-      relations: ['space'],
+      relations: ['space','space.parkingLot'],
       order: { checkInTime: 'DESC' },
     });
 
