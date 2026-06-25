@@ -294,7 +294,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {truncateText(parking.owner?.businessName || parking.owner?.name || 'N/A', 25)}
+                        {truncateText( parking.owner?.name || 'N/A', 25)}
                       </p>
                       <p className="text-xs text-gray-400">
                         {parking.owner?.email || ''}
