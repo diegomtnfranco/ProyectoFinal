@@ -2,8 +2,8 @@ import {
   ParkingMeter,
   QrCode,
   Receipt,
-  UserRoundCog,
   Users,
+  Settings,
   type LucideIcon
 } from 'lucide-react'
 
@@ -33,5 +33,10 @@ export const ownerMenu: OwnerMenuItem[] = [
   name: 'Códigos QR',
   path: '/owner/qr',
   icon: QrCode,
-}
+},
+{ 
+    name: 'Configuración',
+    path: '/owner/settings',
+    icon: Settings,
+  }
 ]

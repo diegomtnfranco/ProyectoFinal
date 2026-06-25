@@ -26,6 +26,7 @@ import QRManagementPage from '../../features/owner/QRManagementPage';
 import ScanQRPage from '../../features/qr/pages/ScanQRPage';
 import TotemCheckIn from '../../features/totem/pages/TotemCheckIn';
 import TotemCheckOut from '../../features/totem/pages/TotemCheckOut';
+import ParkingSettingsPage from '../../features/owner/ParkingSettingsPage';
 
 // Actualizado al 18/06/2026
 function AppRouter() {
@@ -67,6 +68,7 @@ function AppRouter() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
+            <Route path="settings" element={<ParkingSettingsPage />} />
           </Route>
         </Route>
 
