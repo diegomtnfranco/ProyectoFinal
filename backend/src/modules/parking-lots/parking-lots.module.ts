@@ -7,9 +7,10 @@ import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 import { Rate } from '../rates/entities/rate.entity';
 import { Space } from '../spaces/entities/space.entity';
 import { CommonModule } from '../common/common.module';
+import { ParkingEmployee } from '../parking-employees/entities/parking-employee.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ParkingLot, ParkingOwner, Rate,Space]), CommonModule],
+  imports: [TypeOrmModule.forFeature([ParkingLot, ParkingOwner, Rate,Space,ParkingEmployee]), CommonModule],
   controllers: [ParkingLotsController],
   providers: [ParkingLotsService],
   exports: [ParkingLotsService],
