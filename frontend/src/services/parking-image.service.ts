@@ -4,7 +4,7 @@ export const parkingImageService = {
   async updateParkingImage(parkingLotId: string, imageFile: File): Promise<{ imageUrl: string }> {
     
     const formData = new FormData();
-    formData.append('image', imageFile);
+    formData.append('file', imageFile);
 
     const response = await api.patch(`/parking-lots/${parkingLotId}/image`, formData, {
       headers: {

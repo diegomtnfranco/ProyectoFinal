@@ -211,32 +211,46 @@ export class ParkingLotsService {
   }
 
 
-  async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
-    const parkingLot = await this.findOne(id);
+async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
+  const parkingLot = await this.findOne(id);
 
-    // Verificar permisos
-    if (userRole === UserRole.PARKING_OWNER) {
-      const owner = await this.parkingOwnerRepository.findOne({
-        where: { userId },
-      });
-      if (!owner || parkingLot.ownerId !== owner.id) {
-        throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
-      }
-    } else if (userRole !== UserRole.ADMIN) {
-      throw new UnauthorizedException('No tienes permiso para realizar esta acción');
-    }
-
-    Object.assign(parkingLot, {
-      name: updateDto.name,
-      address: updateDto.address,
-      latitude: updateDto.latitude,
-      longitude: updateDto.longitude,
-      openTime: updateDto.openTime,
-      closeTime: updateDto.closeTime,
-      settings: updateDto.settings,
+  // Verificar permisos
+  if (userRole === UserRole.PARKING_OWNER) {
+    const owner = await this.parkingOwnerRepository.findOne({
+      where: { userId },
     });
-    return this.parkingLotRepository.save(parkingLot);
+    if (!owner || parkingLot.ownerId !== owner.id) {
+      throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+    }
+  } else if (userRole !== UserRole.ADMIN) {
+    throw new UnauthorizedException('No tienes permiso para realizar esta acción');
   }
+
+  // ✅ Construir objeto de actualización con merge profundo para settings
+  const updateData: any = {};
+
+  // Campos simples
+  if (updateDto.name !== undefined) updateData.name = updateDto.name;
+  if (updateDto.address !== undefined) updateData.address = updateDto.address;
+  if (updateDto.latitude !== undefined) updateData.latitude = updateDto.latitude;
+  if (updateDto.longitude !== undefined) updateData.longitude = updateDto.longitude;
+  if (updateDto.openTime !== undefined) updateData.openTime = updateDto.openTime;
+  if (updateDto.closeTime !== undefined) updateData.closeTime = updateDto.closeTime;
+  if (updateDto.isActive !== undefined) updateData.isActive = updateDto.isActive;
+  if (updateDto.imageUrl !== undefined) updateData.imageUrl = updateDto.imageUrl;
+
+  // ✅ Merge profundo para settings
+  if (updateDto.settings) {
+    updateData.settings = {
+      ...parkingLot.settings,      // Mantener valores existentes
+      ...updateDto.settings,       // Sobrescribir con los nuevos
+    };
+  }
+
+  // Aplicar todos los cambios
+  Object.assign(parkingLot, updateData);
+  return this.parkingLotRepository.save(parkingLot);
+}
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
     const parkingLot = await this.findOne(id);

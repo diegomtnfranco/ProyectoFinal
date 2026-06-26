@@ -64,7 +64,7 @@ export class UsersController {
     })
   )
   async uploadAvatar(
-    @UploadedFile(new FileValidationPipe({ maxSizeMB: 2 })) file: Express.Multer.File,
+    @UploadedFile(new FileValidationPipe({ maxSizeMB: 5 })) file: Express.Multer.File,
     @CurrentUser('id') userId: string
   ) {
     // Subir a Cloudinary con optimización
