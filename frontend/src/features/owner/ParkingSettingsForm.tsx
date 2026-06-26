@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useParkingLotsStore } from '../../stores/parkingStore';
+import { useToast } from '../../shared/hooks/useToast'; 
 
 export interface ParkingData {
   id: string | number;
@@ -14,6 +15,7 @@ export interface ParkingData {
 
 const ParkingSettingsForm = ({ parkingData }: { parkingData: ParkingData }) => {
   const { updateParkingLot } = useParkingLotsStore();
+  const { showSuccess, showError } = useToast(); 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ParkingData>(parkingData);
 
@@ -23,13 +25,17 @@ const ParkingSettingsForm = ({ parkingData }: { parkingData: ParkingData }) => {
     try {
       await updateParkingLot(String(parkingData.id), {
         name: formData.name,
-        is_active: formData.is_active,
-        image_url: formData.image_url,
+        isActive: formData.is_active, 
+        imageUrl: formData.image_url, 
         settings: formData.settings
       } as any);
-      alert("Configuración guardada correctamente");
+      
+      
+      showSuccess("Configuración guardada correctamente"); 
+      
     } catch (error) {
-      alert("Error al guardar");
+      
+      showError("Error al guardar la configuración");
     } finally {
       setLoading(false);
     }
@@ -82,7 +88,7 @@ const ParkingSettingsForm = ({ parkingData }: { parkingData: ParkingData }) => {
         />
       </div>
 
-      <button type="submit" disabled={loading} className="bg-blue-500 text-white px-4 py-2 rounded">
+      <button type="submit" disabled={loading} className="bg-blue-500 text-white px-4 py-2 rounded transition-colors hover:bg-blue-600">
         {loading ? "Guardando..." : "Guardar Cambios"}
       </button>
     </form>
