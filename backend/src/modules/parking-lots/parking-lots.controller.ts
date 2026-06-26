@@ -253,7 +253,7 @@ export class ParkingLotsController {
     return this.parkingLotsService.toggleStatus(id, isActive, user.id, user.role);
   }
 
-  @Post(':id/image')
+  @Patch(':id/image')
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
   @UseInterceptors(
@@ -266,7 +266,7 @@ export class ParkingLotsController {
   )
   async uploadParkingImage(
     @Param('id', ParseUUIDPipe) parkingLotId: string,
-    @UploadedFile(new FileValidationPipe({ maxSizeMB: 2 })) file: Express.Multer.File,
+    @UploadedFile(new FileValidationPipe({ maxSizeMB: 5 })) file: Express.Multer.File,
     @CurrentUser() user: any
   ) {
     // Subir a Cloudinary con optimización para estacionamientos
