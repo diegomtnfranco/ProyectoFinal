@@ -2,11 +2,11 @@ import { useParkingLotsStore } from '../../stores/parkingStore';
 import ParkingSettingsForm, { type ParkingData } from './ParkingSettingsForm';
 
 const ParkingSettingsPage = () => {
+
   const { currentParkingLot, isLoading } = useParkingLotsStore();
 
   if (isLoading) return <div>Cargando...</div>;
   if (!currentParkingLot) return <div>No hay estacionamiento seleccionado.</div>;
-
 
   const parkingDataForForm: ParkingData = {
     id: currentParkingLot.id,
@@ -19,11 +19,19 @@ const ParkingSettingsPage = () => {
     }
   };
 
+  const handleCancel = () => {
+    
+    window.location.reload(); 
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Configuración del Parking</h1>
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <ParkingSettingsForm parkingData={parkingDataForForm} />
+        <ParkingSettingsForm 
+          parkingData={parkingDataForForm} 
+          onCancel={handleCancel} 
+        />
       </div>
     </div>
   );

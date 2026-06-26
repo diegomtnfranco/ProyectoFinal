@@ -248,7 +248,7 @@ import { ChevronLeft } from 'lucide-react';
 function CreateCompanyForm() {
   const navigate = useNavigate();
   const { showError } = useToast();
-  const { user, token, isLoading: authLoading } = useAuthStore();
+  const { user, token } = useAuthStore();
   
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
