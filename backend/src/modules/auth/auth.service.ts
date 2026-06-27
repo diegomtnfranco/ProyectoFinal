@@ -463,7 +463,7 @@ export class AuthService {
 
   // Siempre incluir employeeProfile (puede ser null)
   if (user.parkingEmployeeProfile) {
-    userResponse.employeeProfile = {
+    userResponse.parkingEmployeeProfile = {
       id: user.parkingEmployeeProfile.id,
       name: user.parkingEmployeeProfile.name,
       position: user.parkingEmployeeProfile.position,
@@ -546,7 +546,7 @@ export class AuthService {
       // NOTA: Los empleados NO pueden actualizar sus propios datos (name, position, employeeCode, isActive)
       // Esto debería ser manejado por el dueño en un endpoint separado
       // Pero permitimos que el dueño pueda actualizar empleados (para futuro)
-      if (updateDto.employee) {
+      if (updateDto.employee && (currentUser.role === UserRole.PARKING_OWNER|| currentUser.role === UserRole.PARKING_EMPLOYEE)) {
         const employeeProfile = await queryRunner.manager.findOne(ParkingEmployee, {
           where: { userId },
         });
@@ -554,14 +554,14 @@ export class AuthService {
         if (employeeProfile) {
           // Verificar permisos: solo el dueño puede actualizar empleados
           // Si el usuario actual NO es dueño, no permitir actualizar datos de empleado
-          if (currentUser.role !== UserRole.PARKING_OWNER) {
+          //if (currentUser.role !== UserRole.PARKING_OWNER) {
             // Los empleados no pueden modificar sus datos
-            this.logger.warn(`Empleado ${userId} intentó actualizar datos de empleado, ignorando...`);
+            //this.logger.warn(`Empleado ${userId} intentó actualizar datos de empleado, ignorando...`);
             // No lanzamos error, simplemente ignoramos la actualización
-          } else {
+        //  } else {
             // El dueño puede actualizar empleados
             await queryRunner.manager.update(ParkingEmployee, employeeProfile.id, updateDto.employee);
-          }
+          //}
         }
       }
 
@@ -729,8 +729,6 @@ export class AuthService {
     const spaces: Space[] = [];
     const totalSpaces = ownerData.totalSpaces;
 
-    console.log(`Creando ${totalSpaces} espacios para el estacionamiento ${parkingLot.name}`);
-
     for (let i = 1; i <= totalSpaces; i++) {
       const space = new Space();
       space.parkingLotId = parkingLot.id;
@@ -748,8 +746,7 @@ export class AuthService {
     }
 
     await queryRunner.manager.save(spaces);
-    console.log(`Creados ${spaces.length} espacios exitosamente`)
-
+    
       // 7. Enviar email de verificación
       await this.notificationsService.sendVerificationEmail(
         user.email,

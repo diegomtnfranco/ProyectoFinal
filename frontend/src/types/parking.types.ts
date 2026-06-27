@@ -129,7 +129,7 @@ export interface Reservation {
   createdAt: string;
   clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
   expiresAt?: string;   // ← Agregar (para saber si expira pronto)
-
+  avatarUrl?:string;
 }
 
 export interface CreateReservationDto {
