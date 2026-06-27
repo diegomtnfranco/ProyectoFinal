@@ -10,7 +10,7 @@ interface ParkingLotsState {
   isLoading: boolean;
   error: string | null;
   hasFetchedOnce: boolean;
-  
+
   // Acciones
   fetchMyParkingLot: () => Promise<void>;
   fetchNearby: (lat: number, lng: number, radius?: number) => Promise<void>;
@@ -20,6 +20,7 @@ interface ParkingLotsState {
   clearCurrentParkingLot: () => void;
   clearError: () => void;
   reset: () => void;
+  updateParkingImage: (userData: Partial<ParkingLotWithStats>) => void;
 }
 
 // ✅ Función auxiliar para extraer mensaje de error de forma segura
@@ -58,21 +59,21 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
       console.log('🔍 fetchMyParkingLot: Ya se intentó una vez, omitiendo...');
       return;
     }
-    
+
     // ✅ Si ya está cargando, no hacer nada
     if (get().isLoading) {
       console.log('🔍 fetchMyParkingLot: Ya está cargando, omitiendo...');
       return;
     }
-    
+
     console.log('🔍 fetchMyParkingLot: Iniciando petición...');
     set({ isLoading: true, error: null });
-    
+
     try {
       const data = await parkingLotsService.getMyParkingLot();
       console.log('✅ fetchMyParkingLot: Éxito', data);
-      set({ 
-        currentParkingLot: data, 
+      set({
+        currentParkingLot: data,
         isLoading: false,
         hasFetchedOnce: true,
         error: null,
@@ -81,9 +82,9 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
       // ✅ Usar la función auxiliar para obtener el mensaje
       const errorMessage = getErrorMessage(error);
       console.log('❌ fetchMyParkingLot: Error', errorMessage);
-      
-      set({ 
-        error: errorMessage, 
+
+      set({
+        error: errorMessage,
         isLoading: false,
         hasFetchedOnce: true,
         currentParkingLot: null,
@@ -135,7 +136,7 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
     try {
       const updated = await parkingLotsService.update(id, data);
       set((state) => ({
-        currentParkingLot: state.currentParkingLot?.id === id 
+        currentParkingLot: state.currentParkingLot?.id === id
           ? { ...state.currentParkingLot, ...updated }
           : state.currentParkingLot,
         isLoading: false,
@@ -147,20 +148,33 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
     }
   },
 
-  clearCurrentParkingLot: () => set({ 
+  clearCurrentParkingLot: () => set({
     currentParkingLot: null,
     hasFetchedOnce: false,
   }),
-  
-  clearError: () => set({ 
+
+  clearError: () => set({
     error: null,
   }),
-  
-  reset: () => set({ 
+
+  reset: () => set({
     currentParkingLot: null,
     nearbyParkings: [],
     isLoading: false,
     error: null,
     hasFetchedOnce: false,
   }),
+
+  updateParkingImage: (parkingData) => {
+    const currentParking = get().currentParkingLot;
+
+    if (!currentParking) return;
+
+    set({
+      currentParkingLot: {
+        ...currentParking,
+        ...parkingData,
+      },
+    });
+  },
 }));
