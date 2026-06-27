@@ -1,7 +1,7 @@
 // stores/spacesStore.ts
 import { create } from 'zustand';
 import { spacesService } from '../services/spaces.service';
-import type { Space, CreateSpaceDto, UpdateSpaceStatusDto } from '../types/parking.types';
+import type { Space, CreateSpaceDto, UpdateSpaceStatusDto, Occupancy } from '../types/parking.types';
 import type { UserVehicleType } from '../types/auth.types';
 import { SpaceStatus } from '../types/auth.types';
 
@@ -30,7 +30,7 @@ interface SpacesState {
   createSpace: (data: CreateSpaceDto) => Promise<void>;
   updateSpaceStatus: (id: string, data: UpdateSpaceStatusDto) => Promise<void>;
   occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => Promise<void>;  // ← Actualizar firma
-  liberateSpace: (id: string) => Promise<void>;
+  liberateSpace: (id: string) => Promise<Occupancy>;
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
   clearError: () => void;
@@ -157,7 +157,7 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
     try {
       // Llamar al servicio de occupancy para check-out
       const { occupancyService } = await import('../services/occupancy.service');
-      await occupancyService.checkOut({ spaceId: id });
+        const result =await occupancyService.checkOut({ spaceId: id });
       
       // Actualizar el espacio localmente
       set((state) => {
@@ -182,7 +182,9 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
           availableSpaces: updatedAvailable,
           isLoading: false,
         };
+        
       });
+       return result;
     } catch (error) {
       set({ error: error as string, isLoading: false });
       throw error;

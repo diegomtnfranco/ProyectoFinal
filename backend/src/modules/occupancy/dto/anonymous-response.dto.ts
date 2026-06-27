@@ -41,4 +41,22 @@ export class AnonymousCheckOutResponseDto {
 
   @ApiProperty()
   checkOutTime!: Date;
+
+  // ✅ AGREGAR
+  @ApiProperty({
+    description: 'Datos del estacionamiento',
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' },
+      address: { type: 'string' },
+      phone: { type: 'string', nullable: true },
+    },
+  })
+  parkingLot!: {
+    id: string;
+    name: string;
+    address: string;
+    phone?: string;
+  };
 }

@@ -158,20 +158,20 @@ export interface FilterReservationsDto {
 // OCCUPANCY
 // ============================================
 
-export interface Occupancy {
-  id: string;
-  spaceId: string;
-  spaceNumber: string;
-  vehiclePlate: string;
-  vehicleType: UserVehicleType;
-  checkInTime: string;
-  checkOutTime?: string;
-  checkedInBy: string;
-  checkedOutBy?: string;
-  totalAmount?: number;
-  isCompleted: boolean;
-  reservationId?: string;  // ← AGREGO
-}
+// export interface Occupancy {
+//   id: string;
+//   spaceId: string;
+//   spaceNumber: string;
+//   vehiclePlate: string;
+//   vehicleType: UserVehicleType;
+//   checkInTime: string;
+//   checkOutTime?: string;
+//   checkedInBy: string;
+//   checkedOutBy?: string;
+//   totalAmount?: number;
+//   isCompleted: boolean;
+//   reservationId?: string;  // ← AGREGO
+// }
 
 export interface CheckInDto {
   spaceId: string;
@@ -293,19 +293,19 @@ export interface ParkingLotWithStats extends ParkingLot {
   rates?: Rate[];
 }
 
-// Occupancy (respuesta completa del servicio)
-export interface Occupancy {
-  id: string;
-  spaceId: string;
-  vehiclePlate: string;
-  vehicleType: UserVehicleType;
-  checkInTime: string;
-  checkOutTime?: string;
-  checkedInBy: string;
-  checkedOutBy?: string;
-  totalAmount?: number;
-  isCompleted: boolean;
-}
+// // Occupancy (respuesta completa del servicio)
+// export interface Occupancy {
+//   id: string;
+//   spaceId: string;
+//   vehiclePlate: string;
+//   vehicleType: UserVehicleType;
+//   checkInTime: string;
+//   checkOutTime?: string;
+//   checkedInBy: string;
+//   checkedOutBy?: string;
+//   totalAmount?: number;
+//   isCompleted: boolean;
+// }
 
 // ActiveOccupancy (para mostrar en UI - tiene información del espacio)
 export interface ActiveOccupancy {
@@ -353,3 +353,67 @@ export interface ParkingLotNearbyResponseDto {
 }
 
 
+// ✅ ACTUALIZAR Occupancy (unificar las dos definiciones)
+export interface Occupancy {
+  id: string;
+  spaceId: string;
+  reservationId?: string;
+  vehiclePlate: string;
+  vehicleType: UserVehicleType;
+  checkInTime: string;
+  checkOutTime?: string;
+  checkedInBy?: string;
+  checkedOutBy?: string;
+  totalAmount?: number;
+  isCompleted: boolean;
+  isAnonymous?: boolean;
+  checkedInViaQr?: boolean;
+  checkedOutViaQr?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Relaciones
+  space?: {
+    id: string;
+    spaceNumber: string;
+    parkingLot?: {
+      id: string;
+      name: string;
+      address: string;
+      phone?: string;
+    };
+  };
+  reservation?: {
+    id: string;
+    vehiclePlate?: string;
+    client?: {
+      name?: string;
+    };
+  };
+}
+
+// ✅ AGREGAR respuesta para checkout anónimo
+export interface AnonymousCheckOutResponse {
+  success: boolean;
+  message: string;
+  spaceNumber: string;
+  vehiclePlate: string;
+  totalAmount: number;
+  hours: number;
+  checkInTime: string;
+  checkOutTime: string;
+  parkingLot: {
+    id: string;
+    name: string;
+    address: string;
+    phone?: string;
+  };
+}
+
+// ✅ AGREGAR respuesta para check-in anónimo
+export interface AnonymousCheckInResponse {
+  success: boolean;
+  message: string;
+  spaceNumber: string;
+  vehiclePlate: string;
+  checkInTime: string;
+}
