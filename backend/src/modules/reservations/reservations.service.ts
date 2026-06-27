@@ -504,7 +504,7 @@ export class ReservationsService {
       throw new ForbiddenException('No tienes permiso para ver estas reservas');
     const reservations = await this.reservationRepository.find({
       where: { space: { parkingLotId } },
-      relations: ['client', 'space', 'space.parkingLot'],
+      relations: ['client', 'space', 'space.parkingLot','client.user'],
       order: { startTime: 'ASC' },
     });
     return reservations.map(r => this.mapToResponseDto(r));
@@ -785,7 +785,6 @@ export class ReservationsService {
       const argentinaDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
       return argentinaDate.toISOString();
     };
-
     return {
       id: reservation.id,
       spaceId: reservation.spaceId,
@@ -801,6 +800,7 @@ export class ReservationsService {
       createdAt: formatDate(reservation.createdAt) || reservation.createdAt.toISOString(),
       expiresAt: formatDate(reservation.expiresAt) || reservation.expiresAt?.toISOString(),
       clientName: reservation.client?.name,
+      avatarUrl:reservation.client?.user?.avatarUrl || ''
     };
 
   }

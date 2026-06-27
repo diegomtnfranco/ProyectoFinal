@@ -12,7 +12,6 @@ import OwnerLayout from '../layouts/owner-layout';
 import EmployeeLayout from '../layouts/employee-layout';
 import DashboardOwner from '../../features/owner/Dashboard';
 import RatesPage from '../../features/owner/RatesPage';
-import UsersPage from '../../features/owner/UsersPage';
 import CreateCompanyForm from '../../features/auth/components/CreateCompanyForm';
 import CompanyLocationForm from '../../features/auth/components/CompanyLocationForm';
 import AdminLayout from '../layouts/admin-layout';
@@ -65,7 +64,6 @@ function AppRouter() {
             <Route index element={<Navigate to="parking" replace />} />
             <Route path="parking" element={<DashboardOwner />} />
             <Route path="rates" element={<RatesPage />} />
-            <Route path="users" element={<UsersPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
