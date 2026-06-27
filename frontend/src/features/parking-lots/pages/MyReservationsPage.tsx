@@ -464,13 +464,13 @@ const formatCurrency = (amount: number | string) => {
                       >
                         {expandedReservation === reservation.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleViewDetails(reservation.id)}
                         className='p-2 text-gray-400 hover:text-blue-600 transition-colors'
                         title="Ver más detalles"
                       >
                         <Eye size={20} />
-                      </button>
+                      </button> */}
                       {(reservation.status === 'pending_confirmation' || reservation.status === 'confirmed') && (
                         <button
                           onClick={() => handleCancelReservation(reservation.id)}

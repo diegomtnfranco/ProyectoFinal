@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../shared/hooks/useToast';
 import { api } from '../../../services/api';
 import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motorbike, Clipboard } from 'lucide-react';
+import type { AnonymousCheckOutResponse } from '../../../types/parking.types';
 
 // Mapeo de tipos de vehículo
 const vehicleIcons = {
@@ -39,7 +40,7 @@ function ScanQRPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
   const [message, setMessage] = useState('');
-  const [responseData, setResponseData] = useState<any>(null);
+const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | null>(null);
 
   // Validar token al cargar
   useEffect(() => {
@@ -102,7 +103,7 @@ function ScanQRPage() {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/occupancy/anonymous/check-out', {
+      const response = await api.post<AnonymousCheckOutResponse>('/occupancy/anonymous/check-out', {
         token,
         vehiclePlate: plate,
       });
@@ -111,6 +112,8 @@ function ScanQRPage() {
       setStatus('success');
       setMessage(`✅ ¡Check-out registrado! Total: $${response.data.totalAmount}`);
       showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
+
+      console.log(response)
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Error al registrar salida';
       setStatus('error');

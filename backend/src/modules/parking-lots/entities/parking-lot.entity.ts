@@ -94,4 +94,7 @@ export class ParkingLot {
 
   @OneToMany(() => Rate, rate => rate.parkingLot)
   rates!: Rate[];
+
+  @Column({ name: 'phone', nullable: true })
+  phone?: string;
 }

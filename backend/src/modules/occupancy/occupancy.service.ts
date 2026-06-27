@@ -516,6 +516,12 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
       hours: hoursToCharge,
       checkInTime: occupancy.checkInTime,
       checkOutTime,
+       parkingLot: {
+        id: parkingLot.id,
+        name: parkingLot.name,
+        address: parkingLot.address,
+        phone: parkingLot.phone,
+      },
     };
   } catch (error) {
     await queryRunner.rollbackTransaction();

@@ -86,7 +86,7 @@ function ParkingCard({ parking, isClosest = false }: Props) {
       <div className='md:flex'>
         {/* Imagen placeholder */}
         <div className='md:w-72 h-56 bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center'>
-          <span className='text-white text-6xl'>🅿️</span>
+          {parking.imageUrl?<img src={parking.imageUrl}  className=''/> :<span className='text-white text-6xl'>🅿️</span> }
         </div>
 
         <div className='flex-1 p-6 flex flex-col justify-between'>
