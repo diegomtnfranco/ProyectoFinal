@@ -5,17 +5,20 @@ import { useParkingLotsStore } from '../../stores/parkingStore';
 import { useToast } from '../../shared/hooks/useToast';
 import { api } from '../../services/api';
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
-import { 
-  Loader2, 
-  Download, 
-  RefreshCw,   
-  QrCode, 
-  Printer, 
-  Monitor, 
+import {
+  Loader2,
+  Download,
+  RefreshCw,
+  QrCode,
+  Printer,
+  Monitor,
   Copy,
   CheckCircle,
   XCircle
 } from 'lucide-react';
+
+// importo los roles de usuario
+import { UserRole } from "../../types/auth.types";
 
 interface QRData {
   checkIn: { qrUrl: string; token: string } | null;
@@ -25,32 +28,36 @@ interface QRData {
 function QRManagementPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { 
-    currentParkingLot, 
-    fetchMyParkingLot, 
+  const {
+    currentParkingLot,
+    fetchMyParkingLot,
     isLoading: parkingLoading,
     error: parkingError,
     hasFetchedOnce,
     clearError,
   } = useParkingLotsStore();
   const { showSuccess, showError } = useToast();
-  
+
   const [qrData, setQrData] = useState<QRData>({ checkIn: null, checkOut: null });
   const [isLoadingQr, setIsLoadingQr] = useState(true);
   const [regeneratingType, setRegeneratingType] = useState<'check-in' | 'check-out' | null>(null);
   const fetchAttempted = useRef(false);
+  const isParkingEmployee = user?.role === UserRole.PARKING_EMPLOYEE;
+
 
   // ✅ Verificar rol y cargar estacionamiento solo una vez
+  // Nota, añadí que parking_employee también pueda acceder a esta página y no lo devuelva al login.
   useEffect(() => {
-    if (user?.role !== 'parking_owner') {
+    if (user?.role !== 'parking_owner' && user?.role !== 'parking_employee') {
       navigate('/login');
       return;
     }
-    
+
+
     if (fetchAttempted.current) return;
     if (currentParkingLot) return;
     if (hasFetchedOnce) return;
-    
+
     if (!parkingLoading) {
       fetchAttempted.current = true;
       console.log('📡 QRManagementPage: Cargando estacionamiento...');
@@ -90,9 +97,9 @@ function QRManagementPage() {
         showError('No hay estacionamiento registrado');
         return;
       }
-      
+
       const response = await api.post(`/parking-lots/${id}/generate-qr/${type === 'check-in' ? 'check-in' : 'check-out'}`);
-      
+
       if (type === 'check-in' && response.data.checkInQrUrl) {
         setQrData(prev => ({
           ...prev,
@@ -248,8 +255,8 @@ function QRManagementPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">         
-          
+        <div className="mb-6">
+
           <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
             <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <QrCode size={40} className="text-blue-600" />
@@ -280,7 +287,7 @@ function QRManagementPage() {
                 )}
               </div>
             </div>
-            
+
             <div className="p-6 text-center">
               {qrData.checkIn ? (
                 <>
@@ -289,46 +296,50 @@ function QRManagementPage() {
                     alt="QR Check-in"
                     className="w-48 h-48 mx-auto mb-4 border rounded-2xl p-3 shadow-md"
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => downloadQR(qrData.checkIn!.qrUrl, 'checkin')}
-                      className="py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Download size={14} /> Descargar
-                    </button>
-                    <button
-                      onClick={() => printQR(qrData.checkIn!.qrUrl, parkingName, 'check-in')}
-                      className="py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Printer size={14} /> Imprimir
-                    </button>
-                    <button
-                      onClick={() => copyQRUrl(qrData.checkIn!.token, 'check-in')}
-                      className="py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Copy size={14} /> Copiar URL
-                    </button>
-                    <button
-                      onClick={() => openPublicDisplay('check-in')}
-                      className="py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Monitor size={14} /> Pantalla
-                    </button>
-                    <button
-                      onClick={() => regenerateQR('check-in')}
-                      disabled={regeneratingType === 'check-in'}
-                      className="col-span-2 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
-                    >
-                      {regeneratingType === 'check-in' ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <RefreshCw size={14} />
-                      )}
-                      Regenerar QR
-                    </button>
-                  </div>
+                  {!isParkingEmployee && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button disabled={isParkingEmployee}
+                        onClick={() => downloadQR(qrData.checkIn!.qrUrl, 'checkin')}
+                        className="py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Download size={14} /> Descargar
+                      </button>
+                      <button disabled={isParkingEmployee}
+                        onClick={() => printQR(qrData.checkIn!.qrUrl, parkingName, 'check-in')}
+                        className="py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Printer size={14} /> Imprimir
+                      </button>
+                      <button disabled={isParkingEmployee}
+                        onClick={() => copyQRUrl(qrData.checkIn!.token, 'check-in')}
+                        className="py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Copy size={14} /> Copiar URL
+                      </button>
+                      <button disabled={isParkingEmployee}
+                        onClick={() => openPublicDisplay('check-in')}
+                        className="py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Monitor size={14} /> Pantalla
+                      </button>
+                      <button
+                        onClick={() => regenerateQR('check-in')}
+                        disabled={isParkingEmployee || regeneratingType === 'check-in'}
+                        className="col-span-2 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                      >
+                        {regeneratingType === 'check-in' ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={14} />
+                        )}
+                        Regenerar QR
+                      </button>
+                    </div>
+                  )}
                 </>
+
               ) : (
+
                 <div className="py-8">
                   <p className="text-gray-500 mb-4">No hay código QR generado</p>
                   <button
@@ -362,7 +373,7 @@ function QRManagementPage() {
                 )}
               </div>
             </div>
-            
+
             <div className="p-6 text-center">
               {qrData.checkOut ? (
                 <>
@@ -371,26 +382,29 @@ function QRManagementPage() {
                     alt="QR Check-out"
                     className="w-48 h-48 mx-auto mb-4 border rounded-2xl p-3 shadow-md"
                   />
+
+                  {/* Botones de acción */}
+                  {!isParkingEmployee && (
                   <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <button disabled={isParkingEmployee}
                       onClick={() => downloadQR(qrData.checkOut!.qrUrl, 'checkout')}
                       className="py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
                     >
                       <Download size={14} /> Descargar
                     </button>
-                    <button
+                    <button disabled={isParkingEmployee}
                       onClick={() => printQR(qrData.checkOut!.qrUrl, parkingName, 'check-out')}
                       className="py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
                     >
                       <Printer size={14} /> Imprimir
                     </button>
-                    <button
+                    <button disabled={isParkingEmployee}
                       onClick={() => copyQRUrl(qrData.checkOut!.token, 'check-out')}
                       className="py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
                     >
                       <Copy size={14} /> Copiar URL
                     </button>
-                    <button
+                    <button disabled={isParkingEmployee}
                       onClick={() => openPublicDisplay('check-out')}
                       className="py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors"
                     >
@@ -398,7 +412,7 @@ function QRManagementPage() {
                     </button>
                     <button
                       onClick={() => regenerateQR('check-out')}
-                      disabled={regeneratingType === 'check-out'}
+                      disabled={isParkingEmployee || (regeneratingType === 'check-out')}
                       className="col-span-2 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                     >
                       {regeneratingType === 'check-out' ? (
@@ -409,6 +423,7 @@ function QRManagementPage() {
                       Regenerar QR
                     </button>
                   </div>
+                )}
                 </>
               ) : (
                 <div className="py-8">

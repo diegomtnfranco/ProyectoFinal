@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom'
-import { ownerMenu } from './OwnerMenu'
+import { employeeMenu } from './EmployeeMenu'
 
   
-const SideBarMenu = () => {
+const SideBarMenuEmployee = () => {
   return (
     <aside
       className="
@@ -19,7 +19,7 @@ const SideBarMenu = () => {
       "
     >
       <nav className="flex flex-col gap-2">
-        {ownerMenu.map((item) => {
+        {employeeMenu.map((item) => {
           const Icon = item.icon
 
           return (
@@ -56,4 +56,4 @@ const SideBarMenu = () => {
   )
 }
 
-export default SideBarMenu
+export default SideBarMenuEmployee
