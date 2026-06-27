@@ -16,4 +16,5 @@ export class ReservationResponseDto {
   createdAt!: string;
   clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
   expiresAt?: string; 
+  avatarUrl?:string
 }

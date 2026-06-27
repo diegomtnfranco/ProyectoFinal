@@ -204,7 +204,6 @@ export class AuthController {
 @ApiResponse({ status: 409, description: 'El email ya está registrado' })
 @ApiBody({ type: RegisterOwnerCompleteDto })
 async registerOwnerComplete(@Body() registerDto: RegisterOwnerCompleteDto) {
-  console.log('Received registerOwnerComplete request with data:', registerDto);
   return this.authService.registerOwnerComplete(registerDto);
 }
 

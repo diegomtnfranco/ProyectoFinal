@@ -132,7 +132,7 @@ function ReservationPanel({ className = '' }: ReservationPanelProps) {
           <div key={reservation.id} className="border border-slate-200 rounded-xl p-3 shadow-sm">
             <div className="flex items-center gap-3">
               <img
-                src={`https://i.pravatar.cc/100?img=${reservation.id?.charCodeAt(0) || 1}`}
+                src={reservation.avatarUrl || `https://i.pravatar.cc/100?img=${reservation.id?.charCodeAt(0) || 1}`}
                 alt={getClientName(reservation)}
                 className="w-10 h-10 sm:w-14 sm:h-14 rounded-full object-cover"
               />

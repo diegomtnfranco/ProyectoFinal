@@ -1,18 +1,38 @@
+import { useEffect } from 'react';
 import { useParkingLotsStore } from '../../stores/parkingStore';
 import ParkingSettingsForm, { type ParkingData } from './ParkingSettingsForm';
 
 const ParkingSettingsPage = () => {
 
-  const { currentParkingLot, isLoading } = useParkingLotsStore();
+  const { currentParkingLot, isLoading, fetchMyParkingLot  } = useParkingLotsStore();
 
-  if (isLoading) return <div>Cargando...</div>;
-  if (!currentParkingLot) return <div>No hay estacionamiento seleccionado.</div>;
+  useEffect(() => {
+    if (!currentParkingLot && !isLoading) {
+      fetchMyParkingLot();
+    }
+  }, [currentParkingLot, isLoading, fetchMyParkingLot]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-gray-500">Cargando configuración...</div>
+      </div>
+    );
+  }
+
+  if (!currentParkingLot) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-gray-500">No hay estacionamiento seleccionado.</div>
+      </div>
+    );
+  }
 
   const parkingDataForForm: ParkingData = {
     id: currentParkingLot.id,
     name: currentParkingLot.name,
-    is_active: (currentParkingLot as any).is_active ?? true,
-    image_url: (currentParkingLot as any).image_url ?? "",
+    is_active: currentParkingLot.isActive ?? true,
+    image_url: (currentParkingLot as any).imageUrl ?? "",
     total_spaces: currentParkingLot.stats?.totalSpaces ?? 0,
     settings: {
       allowOnlineReservations: (currentParkingLot as any).settings?.allowOnlineReservations ?? false

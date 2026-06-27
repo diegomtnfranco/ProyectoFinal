@@ -40,7 +40,6 @@ function ProfilePage() {
   useEffect(() => {
     if (user) {
       const userData: any = user;
-      
       setFormData({
         email: user.email || '',
         newPassword: '',
@@ -56,9 +55,9 @@ function ProfilePage() {
         ownerPhone: userData.parkingOwnerProfile?.phone || '',
         ownerAddress: userData.parkingOwnerProfile?.address || '',
         // Datos de empleado
-        employeeName: userData.employeeProfile?.name || '',
-        employeePosition: userData.employeeProfile?.position || '',
-        employeeCode: userData.employeeProfile?.employeeCode || '',
+        employeeName: userData.parkingEmployeeProfile?.name || '',
+        employeePosition: userData.parkingEmployeeProfile?.position || '',
+        employeeCode: userData.parkingEmployeeProfile?.employeeCode || '',
       });
     }
   }, [user]);
@@ -96,7 +95,7 @@ function ProfilePage() {
     if (userRole === 'client') {
       const clientData: any = {};
       const currentClient = (user as any).clientProfile;
-      
+
       if (formData.clientName !== currentClient?.name) clientData.name = formData.clientName;
       if (formData.clientPhone !== currentClient?.phone) clientData.phone = formData.clientPhone;
       if (formData.defaultVehiclePlate !== currentClient?.defaultVehiclePlate) {
@@ -105,7 +104,7 @@ function ProfilePage() {
       if (formData.defaultVehicleType !== currentClient?.defaultVehicleType) {
         clientData.defaultVehicleType = formData.defaultVehicleType;
       }
-      
+
       if (Object.keys(clientData).length > 0) {
         updateData.client = clientData;
       }
@@ -114,14 +113,14 @@ function ProfilePage() {
     if (userRole === 'parking_owner') {
       const ownerData: any = {};
       const currentOwner = (user as any).parkingOwnerProfile;
-      
+
       if (formData.ownerName !== currentOwner?.name) ownerData.name = formData.ownerName;
       if (formData.ownerBusinessName !== currentOwner?.businessName) {
         ownerData.businessName = formData.ownerBusinessName;
       }
       if (formData.ownerPhone !== currentOwner?.phone) ownerData.phone = formData.ownerPhone;
       if (formData.ownerAddress !== currentOwner?.address) ownerData.address = formData.ownerAddress;
-      
+
       if (Object.keys(ownerData).length > 0) {
         updateData.owner = ownerData;
       }
@@ -130,16 +129,15 @@ function ProfilePage() {
     if (userRole === 'parking_employee') {
       // ✅ Los empleados pueden actualizar: email, password, avatar y name
       const employeeData: any = {};
-      const currentEmployee = (user as any).employeeProfile;
-      
+      const currentEmployee = (user as any).parkingEmployeeProfile;
+
       // El empleado puede actualizar su nombre
       if (formData.employeeName !== currentEmployee?.name) {
-        employeeData.name = formData.employeeName;
-      }
-      
+        employeeData.name = formData.employeeName;      }
+
       // ⛔ El empleado NO puede actualizar: position, employeeCode, isActive
       // Esos campos son administrados por el dueño
-      
+
       if (Object.keys(employeeData).length > 0) {
         updateData.employee = employeeData;
       }
@@ -188,7 +186,6 @@ function ProfilePage() {
       updateUser({ avatarUrl: response.url });
       showSuccess('Avatar actualizado exitosamente');
     } catch (error) {
-      console.error('Error al subir avatar:', error);
       showError('Error al subir la imagen. Intenta de nuevo.');
     } finally {
       setIsUploadingAvatar(false);
@@ -321,23 +318,23 @@ function ProfilePage() {
 
             <div className='md:ml-auto'>
               {!isEditing ? (
-                <button 
-                  onClick={() => setIsEditing(true)} 
+                <button
+                  onClick={() => setIsEditing(true)}
                   className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl'
                 >
                   Editar perfil
                 </button>
               ) : (
                 <div className='flex gap-2'>
-                  <button 
-                    onClick={() => setIsEditing(false)} 
+                  <button
+                    onClick={() => setIsEditing(false)}
                     className='bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-xl'
                   >
                     Cancelar
                   </button>
-                  <button 
-                    onClick={handleSubmit} 
-                    disabled={authLoading} 
+                  <button
+                    onClick={handleSubmit}
+                    disabled={authLoading}
                     className='bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl flex items-center gap-2'
                   >
                     {authLoading ? <Loader2 size={18} className='animate-spin' /> : <Save size={18} />}
@@ -351,22 +348,22 @@ function ProfilePage() {
 
         {/* Tabs - Los empleados NO ven la pestaña de vehículos */}
         <div className='flex gap-2 mb-6 border-b border-gray-200'>
-          <button 
-            onClick={() => setActiveTab('info')} 
+          <button
+            onClick={() => setActiveTab('info')}
             className={`px-4 py-2 font-medium ${activeTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
           >
             Información personal
           </button>
           {!isEmployee && (
-            <button 
-              onClick={() => setActiveTab('vehicles')} 
+            <button
+              onClick={() => setActiveTab('vehicles')}
               className={`px-4 py-2 font-medium ${activeTab === 'vehicles' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
             >
               {isClient ? 'Vehículos' : 'Información del negocio'}
             </button>
           )}
-          <button 
-            onClick={() => setActiveTab('security')} 
+          <button
+            onClick={() => setActiveTab('security')}
             className={`px-4 py-2 font-medium ${activeTab === 'security' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
           >
             Seguridad
@@ -583,19 +580,19 @@ function ProfilePage() {
                   </h3>
                   <div className="space-y-2 text-sm">
                     <p>
-                      <span className="font-medium text-gray-600">Razón social:</span> 
+                      <span className="font-medium text-gray-600">Razón social:</span>
                       <span className="text-gray-800 ml-2">{formData.ownerBusinessName || 'No especificado'}</span>
                     </p>
                     <p>
-                      <span className="font-medium text-gray-600">Propietario:</span> 
+                      <span className="font-medium text-gray-600">Propietario:</span>
                       <span className="text-gray-800 ml-2">{formData.ownerName || 'No especificado'}</span>
                     </p>
                     <p>
-                      <span className="font-medium text-gray-600">Teléfono:</span> 
+                      <span className="font-medium text-gray-600">Teléfono:</span>
                       <span className="text-gray-800 ml-2">{formData.ownerPhone || 'No especificado'}</span>
                     </p>
                     <p>
-                      <span className="font-medium text-gray-600">Dirección:</span> 
+                      <span className="font-medium text-gray-600">Dirección:</span>
                       <span className="text-gray-800 ml-2">{formData.ownerAddress || 'No especificado'}</span>
                     </p>
                   </div>
