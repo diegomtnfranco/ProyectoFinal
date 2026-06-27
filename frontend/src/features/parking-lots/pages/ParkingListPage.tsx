@@ -405,13 +405,11 @@ function ParkingListPage() {
               />
             </div>
           </div>
-        ) : 
-        
-        (
-          
-           <div className='grid lg:grid-cols-4 gap-6'>
+        ):(
+
+           <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar */}
-          <aside className='flex flex-col gap-4'>
+          <aside className="hidden lg:flex flex-col gap-4">
             <div className='bg-white rounded-2xl shadow-sm p-5'>
               <div className='flex items-start gap-3'>
                 <div className='bg-blue-100 p-3 rounded-full'>🎯</div>
@@ -458,7 +456,7 @@ function ParkingListPage() {
           </aside>
 
           {/* Tarjetas */}
-          <section className='lg:col-span-3 flex flex-col gap-6'>
+          <section className="order-1 lg:order-2 lg:col-span-3 flex flex-col gap-6">
             {filteredParkings.length === 0 && !isLoading ? (
               <div className='bg-white rounded-2xl shadow-sm p-6 text-center text-gray-500'>
                 <p>No se encontraron estacionamientos para tu búsqueda</p>
@@ -483,7 +481,25 @@ function ParkingListPage() {
         )
         }
 
-        
+        {/* Resumen de funcionalidades (solo mobile) */}
+<div className="lg:hidden bg-white rounded-2xl shadow-sm p-4 mt-4">
+  <div className="space-y-3 text-sm">
+    <div className="flex items-center gap-3">
+      <span>🎯</span>
+      <span>{filteredParkings.length} estacionamientos disponibles</span>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <span>🕒</span>
+      <span>Actualización en tiempo real</span>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <span>🔒</span>
+      <span>Reserva rápida y segura</span>
+    </div>
+  </div>
+</div>
        
 
         {/* Footer */}
