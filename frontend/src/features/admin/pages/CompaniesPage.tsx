@@ -1,4 +1,3 @@
-// frontend/src/features/admin/pages/CompaniesPage.tsx
 import { useEffect, useState } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { useToast } from '../../../shared/hooks/useToast';

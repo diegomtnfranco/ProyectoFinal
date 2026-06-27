@@ -4,14 +4,14 @@ import LoginPage from '../../features/auth/pages/LoginPage';
 import RegisterPage from '../../features/auth/pages/RegisterPage';
 import VerifyEmailPage from '../../features/auth/pages/VerifyEmailPage';
 import ResetPasswordPage from '../../features/auth/pages/ResetPasswordPage';
-import LandingPage from '../../features/landing/pages/LandingPage' 
+import LandingPage from '../../features/landing/pages/LandingPage'
 import ClientLayout from '../layouts/client-layout';
 import ParkingListPage from '../../features/parking-lots/pages/ParkingListPage';
 import ParkingDetailsPage from '../../features/parking-lots/pages/ParkingDetailsPage';
 import OwnerLayout from '../layouts/owner-layout';
+import EmployeeLayout from '../layouts/employee-layout';
 import DashboardOwner from '../../features/owner/Dashboard';
 import RatesPage from '../../features/owner/RatesPage';
-import UsersPage from '../../features/owner/UsersPage';
 import CreateCompanyForm from '../../features/auth/components/CreateCompanyForm';
 import CompanyLocationForm from '../../features/auth/components/CompanyLocationForm';
 import AdminLayout from '../layouts/admin-layout';
@@ -26,6 +26,7 @@ import QRManagementPage from '../../features/owner/QRManagementPage';
 import ScanQRPage from '../../features/qr/pages/ScanQRPage';
 import TotemCheckIn from '../../features/totem/pages/TotemCheckIn';
 import TotemCheckOut from '../../features/totem/pages/TotemCheckOut';
+import ParkingSettingsPage from '../../features/owner/ParkingSettingsPage';
 
 // Actualizado al 18/06/2026
 function AppRouter() {
@@ -33,8 +34,8 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
         {/* RUTAS PÚBLICAS */}
-        <Route path='/' element={<LandingPage />} />       
-        <Route path='/login' element={<LoginPage />} /> 
+        <Route path='/' element={<LandingPage />} />
+        <Route path='/login' element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
@@ -42,7 +43,7 @@ function AppRouter() {
         <Route path="/company-location" element={<CompanyLocationForm />} />
         <Route path="/scan/:type" element={<ScanQRPage />} />
         <Route path="/register" element={<RegisterPage />} />
-   
+
         {/* RUTAS DE TÓTEM */}
         <Route path="/public/qr/:parkingId/checkin" element={<TotemCheckIn />} />
         <Route path="/public/qr/:parkingId/checkout" element={<TotemCheckOut />} />
@@ -63,10 +64,10 @@ function AppRouter() {
             <Route index element={<Navigate to="parking" replace />} />
             <Route path="parking" element={<DashboardOwner />} />
             <Route path="rates" element={<RatesPage />} />
-            <Route path="users" element={<UsersPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
+            <Route path="settings" element={<ParkingSettingsPage />} />
           </Route>
         </Route>
 
@@ -76,16 +77,18 @@ function AppRouter() {
             <Route index element={<Navigate to="companies" replace />} />
             <Route path="companies" element={<CompaniesPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path='actives' element={<PendingCompaniesPages/>}/>
+            <Route path='actives' element={<PendingCompaniesPages />} />
           </Route>
         </Route>
 
         {/* EMPLEADO */}
         <Route element={<ProtectedRoute allowedRoles={[UserRole.PARKING_EMPLOYEE]} redirectTo="/" />}>
-          <Route path="/employee" element={<OwnerLayout />}>
+          <Route path="/employee" element={<EmployeeLayout />}>
             <Route index element={<Navigate to="parking" replace />} />
             <Route path="parking" element={<DashboardOwner />} />
+            <Route path="rates" element={<RatesPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="qr" element={<QRManagementPage />} />
           </Route>
         </Route>
       </Routes>

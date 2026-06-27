@@ -11,6 +11,9 @@ export class AnonymousCheckInResponseDto {
   spaceNumber!: string;
 
   @ApiProperty()
+  vehiclePlate!: string;
+
+  @ApiProperty()
   checkInTime!: Date;
 }
 
@@ -23,6 +26,9 @@ export class AnonymousCheckOutResponseDto {
 
   @ApiProperty()
   spaceNumber!: string;
+
+  @ApiProperty()
+  vehiclePlate!: string;
 
   @ApiProperty()
   totalAmount!: number;

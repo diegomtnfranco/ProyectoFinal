@@ -9,13 +9,19 @@ import {
   X,
   DollarSign,
   Loader2,
-  
+
 } from "lucide-react";
 import { useRatesStore } from "../../stores/ratesStore";
 import { useParkingLotsStore } from "../../stores/parkingStore";
 import { VehicleType, type UserVehicleType } from "../../types/auth.types";
 import type { Rate, CreateRateDto } from "../../types/parking.types";
 import { NoParkingMessage } from "../../shared/components/common/NoParkingMessage";
+
+// Importo los roles de usuarios definidos en auth.types.ts
+import { useAuthStore } from "../../stores/authStore";
+
+// importo los roles de usuario
+import { UserRole } from "../../types/auth.types";
 
 // Mapeo de UserVehicleType a nombre y icono
 const vehicleConfig: Record<UserVehicleType, { name: string; icon: JSX.Element }> = {
@@ -42,6 +48,10 @@ export default function RatesPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+
+  const role = useAuthStore((state) => state.user?.role);
+
+  const isParkingEmployee = role === UserRole.PARKING_EMPLOYEE;
   // Cargar el estacionamiento del dueño
   useEffect(() => {
     fetchMyParkingLot();
@@ -100,7 +110,7 @@ export default function RatesPage() {
         await createRate(createData);
         setToastMessage(`Tarifa de ${vehicleConfig[selectedVehicleType].name} creada correctamente`);
       }
-      
+
       setSelectedVehicleType(null);
       setEditedPrice("");
       setShowToast(true);
@@ -125,12 +135,12 @@ export default function RatesPage() {
 
   if (!currentParkingLot) {
     return (
-   <NoParkingMessage
-         variant="info"
-         title="Error al cargar el estacionamiento"
-         message={'No tienes ningún estacionamiento registrado'}
-                 
-       />
+      <NoParkingMessage
+        variant="info"
+        title="Error al cargar el estacionamiento"
+        message={'No tienes ningún estacionamiento registrado'}
+
+      />
     );
   }
 
@@ -140,36 +150,42 @@ export default function RatesPage() {
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div
+        className={`grid gap-6 ${isParkingEmployee
+            ? "grid-cols-1"
+            : "grid-cols-1 lg:grid-cols-2"
+          }`}
+      >
         {/* SECTION IZQUIERDA - Editar/Crear tarifa */}
-        <section className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">
-              {isEditing ? "Editar tarifa" : "Crear nueva tarifa"}
-            </h2>
+        {!isParkingEmployee && (
+          <section className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">
+                {isEditing ? "Editar tarifa" : "Crear nueva tarifa"}
+              </h2>
 
-            {/* SELECTOR DE VEHÍCULO */}
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                Seleccionar vehículo
-              </label>
-              
-              <select
-                value={selectedVehicleType || ""}
-                onChange={(e) => handleVehicleSelect(e.target.value as UserVehicleType)}
-                className="w-full h-12 rounded-xl border border-slate-300 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">-- Seleccione un vehículo --</option>
-                {vehicleOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* SELECTOR DE VEHÍCULO */}
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-slate-600 mb-2">
+                  Seleccionar vehículo
+                </label>
 
-            {/* VEHÍCULO SELECCIONADO */}
-            {/* {selectedVehicleType && (
+                <select
+                  value={selectedVehicleType || ""}
+                  onChange={(e) => handleVehicleSelect(e.target.value as UserVehicleType)}
+                  className="w-full h-12 rounded-xl border border-slate-300 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">-- Seleccione un vehículo --</option>
+                  {vehicleOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* VEHÍCULO SELECCIONADO */}
+              {/* {selectedVehicleType && (
               <div className="mb-5">
                 <label className="block text-sm font-medium text-slate-600 mb-2">
                   Vehículo seleccionado
@@ -181,58 +197,59 @@ export default function RatesPage() {
               </div>
             )} */}
 
-            {/* TARIFA ACTUAL (solo si existe) */}
-            {selectedRate && (
-              <div className="mb-4">
+              {/* TARIFA ACTUAL (solo si existe) */}
+              {selectedRate && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-600 mb-2">
+                    Tarifa actual
+                  </label>
+                  <div className="w-full h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 flex items-center text-slate-700">
+                    ${selectedRate.pricePerHour} / hora
+                  </div>
+                </div>
+              )}
+
+              {/* NUEVA TARIFA */}
+              <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">
-                  Tarifa actual
+                  {isEditing ? "Nueva tarifa por hora ($)" : "Tarifa por hora ($)"}
                 </label>
-                <div className="w-full h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 flex items-center text-slate-700">
-                  ${selectedRate.pricePerHour} / hora
+
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                  <input
+                    type="number"
+                    value={editedPrice}
+                    onChange={(e) => setEditedPrice(e.target.value)}
+                    disabled={!selectedVehicleType}
+                    className="w-full h-12 rounded-xl border border-slate-300 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                    placeholder="Ingrese la tarifa"
+                  />
                 </div>
               </div>
-            )}
-
-            {/* NUEVA TARIFA */}
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                {isEditing ? "Nueva tarifa por hora ($)" : "Tarifa por hora ($)"}
-              </label>
-
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                <input
-                  type="number"
-                  value={editedPrice}
-                  onChange={(e) => setEditedPrice(e.target.value)}
-                  disabled={!selectedVehicleType}
-                  className="w-full h-12 rounded-xl border border-slate-300 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                  placeholder="Ingrese la tarifa"
-                />
-              </div>
             </div>
-          </div>
 
-          {/* BOTONES */}
-          <div className="flex justify-between mt-10">
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl transition"
-            >
-              <X className="w-4 h-4" />
-              Cancelar
-            </button>
+            {/* BOTONES */}
+            <div className="flex justify-between mt-10">
+              <button disabled={isParkingEmployee}
+                onClick={handleCancel}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl transition"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
 
-            <button
-              onClick={handleConfirm}
-              disabled={!selectedVehicleType || !editedPrice}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white px-5 py-2.5 rounded-xl transition"
-            >
-              <Check className="w-4 h-4" />
-              {isEditing ? "Actualizar" : "Crear"}
-            </button>
-          </div>
-        </section>
+              <button
+                onClick={handleConfirm}
+                disabled={!selectedVehicleType || !editedPrice || isParkingEmployee}
+                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white px-5 py-2.5 rounded-xl transition"
+              >
+                <Check className="w-4 h-4" />
+                {isEditing ? "Actualizar" : "Crear"}
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* SECTION DERECHA - Lista de tarifas */}
         <section className="bg-white rounded-2xl shadow-md p-6">
@@ -268,7 +285,7 @@ export default function RatesPage() {
                     </div>
                   </div>
 
-                  <button
+                  <button disabled={isParkingEmployee} hidden={isParkingEmployee}
                     onClick={() => handleVehicleSelect(rate.vehicleType)}
                     className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-xl transition"
                   >

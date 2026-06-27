@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../shared/hooks/useToast';
 import { api } from '../../../services/api';
-import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motorbike } from 'lucide-react';
+import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motorbike, Clipboard } from 'lucide-react';
 
 // Mapeo de tipos de vehículo
 const vehicleIcons = {
@@ -22,7 +23,6 @@ const vehicleLabels = {
 const vehicleTypes = [
   { id: 'car', label: 'Auto', icon: <Car size={24} />, color: 'blue' },
   { id: 'motorcycle', label: 'Moto', icon: <Motorbike size={24} />, color: 'green' },
- // { id: 'van', label: 'Camioneta', icon: <Truck size={24} />, color: 'orange' },
   { id: 'truck', label: 'Camioneta', icon: <Bus size={24} />, color: 'orange' },
 ];
 
@@ -35,6 +35,7 @@ function ScanQRPage() {
   const token = searchParams.get('token');
 
   const [selectedVehicle, setSelectedVehicle] = useState<string>('car');
+  const [vehiclePlate, setVehiclePlate] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
   const [message, setMessage] = useState('');
@@ -48,6 +49,12 @@ function ScanQRPage() {
     }
   }, [token]);
 
+  // Formatear patente a mayúsculas
+  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    setVehiclePlate(value);
+  };
+
   // Check-in: seleccionar vehículo y enviar
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,11 +64,18 @@ function ScanQRPage() {
       return;
     }
 
+    const plate = vehiclePlate.trim().toUpperCase();
+    if (!plate) {
+      showError('Ingresá la patente del vehículo');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await api.post('/occupancy/anonymous/check-in', {
         token,
         vehicleType: selectedVehicle,
+        vehiclePlate: plate,
       });
       
       setResponseData(response.data);
@@ -80,10 +94,17 @@ function ScanQRPage() {
 
   // Check-out: confirmar salida
   const handleCheckOut = async () => {
+    const plate = vehiclePlate.trim().toUpperCase();
+    if (!plate) {
+      showError('Ingresá la patente del vehículo');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await api.post('/occupancy/anonymous/check-out', {
         token,
+        vehiclePlate: plate,
       });
       
       setResponseData(response.data);
@@ -119,6 +140,14 @@ function ScanQRPage() {
             <div className={`${bgColor} rounded-xl p-4 mb-4`}>
               <p className={`font-semibold ${isCheckIn ? 'text-green-700' : 'text-blue-700'}`}>
                 Espacio asignado: <span className="font-bold text-2xl">{responseData.spaceNumber}</span>
+              </p>
+            </div>
+          )}
+          
+          {responseData?.vehiclePlate && (
+            <div className="bg-gray-50 rounded-xl p-3 mb-4">
+              <p className="text-gray-600 text-sm">
+                Patente: <span className="font-mono font-bold">{responseData.vehiclePlate}</span>
               </p>
             </div>
           )}
@@ -181,16 +210,34 @@ function ScanQRPage() {
               <Car size={40} className="text-blue-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Registrar entrada</h1>
-            <p className="text-gray-500 mt-2">Seleccioná el tipo de vehículo para comenzar</p>
+            <p className="text-gray-500 mt-2">Completá los datos para comenzar tu estadía</p>
           </div>
 
           {/* Formulario */}
           <form onSubmit={handleCheckIn} className="bg-white rounded-3xl shadow-xl p-6">
+            {/* Campo de patente */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clipboard size={16} className="inline mr-1" />
+                Patente del vehículo <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={vehiclePlate}
+                onChange={handlePlateChange}
+                placeholder="Ingresá la patente"
+                maxLength={10}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase text-lg font-mono"
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Tipo de vehículo
+                Tipo de vehículo <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {vehicleTypes.map((vehicle) => (
                   <button
                     key={vehicle.id}
@@ -213,7 +260,7 @@ function ScanQRPage() {
 
             <button
               type="submit"
-              disabled={isLoading || !selectedVehicle}
+              disabled={isLoading || !selectedVehicle || !vehiclePlate.trim()}
               className="w-full py-3 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
             >
               {isLoading ? (
@@ -250,23 +297,41 @@ function ScanQRPage() {
               <Car size={40} className="text-green-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Registrar salida</h1>
-            <p className="text-gray-500 mt-2">Confirmá tu salida para finalizar la estadía</p>
+            <p className="text-gray-500 mt-2">Ingresá tu patente para finalizar la estadía</p>
           </div>
 
           {/* Confirmación */}
-          <div className="bg-white rounded-3xl shadow-xl p-6 text-center">
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            {/* Campo de patente */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clipboard size={16} className="inline mr-1" />
+                Patente del vehículo <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={vehiclePlate}
+                onChange={handlePlateChange}
+                placeholder="Ingresá la patente"
+                maxLength={10}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all uppercase text-lg font-mono"
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
             <div className="mb-6">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Clock size={32} className="text-yellow-600" />
               </div>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-center">
                 Al confirmar tu salida, se calculará el tiempo de estadía y el monto a pagar.
               </p>
             </div>
 
             <button
               onClick={handleCheckOut}
-              disabled={isLoading}
+              disabled={isLoading || !vehiclePlate.trim()}
               className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
             >
               {isLoading ? (

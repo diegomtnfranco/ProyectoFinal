@@ -14,6 +14,7 @@ import { Space } from '../spaces/entities/space.entity';
 import { FindAllParkingLotsDto, SortByField, SortOrder } from './dto/find-all-parking-lots.dto';
 import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 import { QRService } from '../common/qr/qr.service';
+import { ParkingEmployee } from '../parking-employees/entities/parking-employee.entity';
 
 @Injectable()
 export class ParkingLotsService {
@@ -26,6 +27,8 @@ export class ParkingLotsService {
     private rateRepository: Repository<Rate>,
     @InjectRepository(Space)
     private spaceRepository: Repository<Space>,
+    @InjectRepository(ParkingEmployee)
+    private parkingEmployeeRepository:Repository<ParkingEmployee>,
     private cloudinaryService: CloudinaryService,
     private qrService: QRService,
   ) { }
@@ -208,32 +211,46 @@ export class ParkingLotsService {
   }
 
 
-  async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
-    const parkingLot = await this.findOne(id);
+async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
+  const parkingLot = await this.findOne(id);
 
-    // Verificar permisos
-    if (userRole === UserRole.PARKING_OWNER) {
-      const owner = await this.parkingOwnerRepository.findOne({
-        where: { userId },
-      });
-      if (!owner || parkingLot.ownerId !== owner.id) {
-        throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
-      }
-    } else if (userRole !== UserRole.ADMIN) {
-      throw new UnauthorizedException('No tienes permiso para realizar esta acción');
-    }
-
-    Object.assign(parkingLot, {
-      name: updateDto.name,
-      address: updateDto.address,
-      latitude: updateDto.latitude,
-      longitude: updateDto.longitude,
-      openTime: updateDto.openTime,
-      closeTime: updateDto.closeTime,
-      settings: updateDto.settings,
+  // Verificar permisos
+  if (userRole === UserRole.PARKING_OWNER) {
+    const owner = await this.parkingOwnerRepository.findOne({
+      where: { userId },
     });
-    return this.parkingLotRepository.save(parkingLot);
+    if (!owner || parkingLot.ownerId !== owner.id) {
+      throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+    }
+  } else if (userRole !== UserRole.ADMIN) {
+    throw new UnauthorizedException('No tienes permiso para realizar esta acción');
   }
+
+  // ✅ Construir objeto de actualización con merge profundo para settings
+  const updateData: any = {};
+
+  // Campos simples
+  if (updateDto.name !== undefined) updateData.name = updateDto.name;
+  if (updateDto.address !== undefined) updateData.address = updateDto.address;
+  if (updateDto.latitude !== undefined) updateData.latitude = updateDto.latitude;
+  if (updateDto.longitude !== undefined) updateData.longitude = updateDto.longitude;
+  if (updateDto.openTime !== undefined) updateData.openTime = updateDto.openTime;
+  if (updateDto.closeTime !== undefined) updateData.closeTime = updateDto.closeTime;
+  if (updateDto.isActive !== undefined) updateData.isActive = updateDto.isActive;
+  if (updateDto.imageUrl !== undefined) updateData.imageUrl = updateDto.imageUrl;
+
+  // ✅ Merge profundo para settings
+  if (updateDto.settings) {
+    updateData.settings = {
+      ...parkingLot.settings,      // Mantener valores existentes
+      ...updateDto.settings,       // Sobrescribir con los nuevos
+    };
+  }
+
+  // Aplicar todos los cambios
+  Object.assign(parkingLot, updateData);
+  return this.parkingLotRepository.save(parkingLot);
+}
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
     const parkingLot = await this.findOne(id);
@@ -336,6 +353,79 @@ export class ParkingLotsService {
       rates,
     };
   }
+
+  async getEmployeeParkingLot(employeeUserId: string): Promise<ParkingLotOwnerResponseDto> {
+    // 1. Obtener el perfil del dueño
+    const employee = await this.parkingEmployeeRepository.findOne({
+      where: { userId: employeeUserId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Perfil de empleado no encontrado');
+    }
+
+    // 2. Obtener el parking lot (solo uno para MVP)
+    const parkingLot = await this.parkingLotRepository.findOne({
+      where: { id:employee.parkingLotId, isActive: true },
+      relations: ['spaces'],
+    });
+
+    if (!parkingLot) {
+      throw new NotFoundException('No tienes ningún estacionamiento registrado');
+    }
+
+    // 3. Calcular estadísticas
+    const spaces = parkingLot.spaces || [];
+    const totalSpaces = spaces.length;
+    const availableSpaces = spaces.filter(s => s.status === 'available').length;
+    const occupiedSpaces = spaces.filter(s => s.status === 'occupied').length;
+    const reservedSpaces = spaces.filter(s => s.status === 'reserved').length;
+    const maintenanceSpaces = spaces.filter(s => s.status === 'maintenance').length;
+
+    // 4. Mapear espacios para el frontend
+    const spacesDto: SpaceOwnerDto[] = spaces.map(space => ({
+      id: space.id,
+      spaceNumber: space.spaceNumber,
+      status: space.status,
+      allowedVehicleTypes: space.allowedVehicleTypes,
+      isReserved: space.isReserved,
+      reservedUntil: space.reservedUntil,
+      occupiedSince: space.occupiedSince,
+      occupiedByVehiclePlate: space.occupiedByVehiclePlate,
+      metadata: space.metadata,
+    }));
+
+    // 5. Obtener tarifas (opcional)
+    const rates = await this.rateRepository.find({
+      where: { parkingLotId: parkingLot.id, isActive: true },
+      select: ['vehicleType', 'pricePerHour'],
+    });
+
+    return {
+      id: parkingLot.id,
+      name: parkingLot.name,
+      address: parkingLot.address,
+      latitude: parkingLot.latitude,
+      longitude: parkingLot.longitude,
+      openTime: parkingLot.openTime,
+      closeTime: parkingLot.closeTime,
+      settings: parkingLot.settings,
+      isActive: parkingLot.isActive,
+      stats: {
+        totalSpaces,
+        availableSpaces,
+        occupiedSpaces,
+        reservedSpaces,
+        maintenanceSpaces,
+      },
+      spaces: spacesDto,
+      rates,
+    };
+  }
+
+
+
+
   /**
   * Obtener todos los estacionamientos con paginación y filtros (solo admin)
   */

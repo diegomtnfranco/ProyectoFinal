@@ -11,6 +11,7 @@ import { adminMenu } from '../components/AdminMenu'
 
 import { useAuthStore } from '../../stores/authStore'
 import { clientMenu } from '../components/ClientMenu'
+import { employeeMenu } from './EmployeeMenu'
 
 function Navbar() {
   const { user}=useAuthStore()
@@ -34,7 +35,7 @@ function Navbar() {
     : location.pathname.startsWith('/client')
     ? clientMenu
     : location.pathname.startsWith('/employee')
-    ? ownerMenu
+    ? employeeMenu
     : []
 
   const profilePath =
