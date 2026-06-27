@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { useToast } from '../../../shared/hooks/useToast';
-import { 
-  Eye, 
-  Pencil, 
-  Power, 
+import {
+  Eye,
+  Pencil,
+  Power,
   Loader2,
   Search,
   ChevronLeft,
@@ -19,18 +19,18 @@ import {
 } from 'lucide-react';
 
 function CompaniesPage() {
-  const { 
-    parkingLots = [], 
-    isLoading, 
-    total = 0, 
-    currentPage = 1, 
+  const {
+    parkingLots = [],
+    isLoading,
+    total = 0,
+    currentPage = 1,
     totalPages = 1,
-    fetchAllParkingLots, 
+    fetchAllParkingLots,
     toggleParkingLotStatus,
     setPage
   } = useAdminStore();
   const { showSuccess, showError } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -56,21 +56,21 @@ function CompaniesPage() {
     });
   }, [fetchAllParkingLots, currentPage, debouncedSearch, statusFilter]);
 
-const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-  setActionLoading(id);
-  try {
-    await toggleParkingLotStatus(id, !currentStatus);
-    showSuccess(`Estacionamiento ${!currentStatus ? 'activado' : 'desactivado'} exitosamente`);
-    // El store ya actualizó el estado local, la UI se actualizará automáticamente
-  } catch (error) {
-    showError('Error al cambiar el estado del estacionamiento');
-  } finally {
-    // Pequeño delay para que se vea el loading
-    setTimeout(() => {
-      setActionLoading(null);
-    }, 300);
-  }
-};
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    setActionLoading(id);
+    try {
+      await toggleParkingLotStatus(id, !currentStatus);
+      showSuccess(`Estacionamiento ${!currentStatus ? 'activado' : 'desactivado'} exitosamente`);
+      // El store ya actualizó el estado local, la UI se actualizará automáticamente
+    } catch (error) {
+      showError('Error al cambiar el estado del estacionamiento');
+    } finally {
+      // Pequeño delay para que se vea el loading
+      setTimeout(() => {
+        setActionLoading(null);
+      }, 300);
+    }
+  };
 
   const handleViewDetails = (id: string) => {
     window.open(`/admin/parking-lots/${id}`, '_blank');
@@ -169,7 +169,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
+
         <select
           value={statusFilter}
           onChange={(e) => {
@@ -194,7 +194,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
       </div>
 
       {/* Estadísticas rápidas - responsive */}
-        <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto pb-2">
+      <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto pb-2">
         <div className="min-w-[180px] sm:min-w-0 flex-shrink-0 bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2.5 rounded-lg">
@@ -231,119 +231,115 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
       </div>
 
       {/* Grid responsiva de estacionamientos */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-  {safeParkingLots.length === 0 ? (
-    <div className="col-span-full bg-white rounded-xl shadow-sm p-10 text-center text-gray-500">
-      <Building2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-      <p>No se encontraron estacionamientos</p>
-    </div>
-  ) : (
-    safeParkingLots.map((parking) => (
-      <div
-        key={parking.id}
-        className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col"
-      >
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">
-              {parking.name}
-            </h3>
-
-            <span
-              className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-medium ${
-                parking.isActive
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {safeParkingLots.length === 0 ? (
+          <div className="col-span-full bg-white rounded-xl shadow-sm p-10 text-center text-gray-500">
+            <Building2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+            <p>No se encontraron estacionamientos</p>
+          </div>
+        ) : (
+          safeParkingLots.map((parking) => (
+            <div
+              key={parking.id}
+              className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col"
             >
-              {parking.isActive ? "Activo" : "Inactivo"}
-            </span>
-          </div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {parking.name}
+                  </h3>
 
-          <div className="text-right">
-            <p className="text-2xl font-bold text-blue-600">
-              {parking.stats?.totalSpaces || 0}
-            </p>
-            <p className="text-xs text-gray-500">
-              espacios
-            </p>
-          </div>
-        </div>
+                  <span
+                    className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-medium ${parking.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                      }`}
+                  >
+                    {parking.isActive ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
 
-        <div className="mt-4 space-y-3 flex-1">
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {parking.stats?.totalSpaces || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    espacios
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex items-start gap-2">
-            <MapPin size={16} className="text-gray-400 mt-1 flex-shrink-0" />
-            <p className="text-sm text-gray-600 line-clamp-2">
-              {parking.address}
-            </p>
-          </div>
+              <div className="mt-4 space-y-3 flex-1">
 
-          <div className="flex items-center gap-2">
-            <Clock size={16} className="text-gray-400 flex-shrink-0" />
-            <span className="text-sm text-gray-600">
-              {parking.openTime} - {parking.closeTime}
-            </span>
-          </div>
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-gray-400 mt-1 flex-shrink-0" />
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {parking.address}
+                  </p>
+                </div>
 
-          <div className="border-t pt-3">
-            <div className="flex items-start gap-2">
-              <User size={16} className="text-gray-400 mt-1 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="font-medium text-gray-800">
-                  {parking.owner?.businessName ||
-                    parking.owner?.name ||
-                    "N/A"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-600">
+                    {parking.openTime} - {parking.closeTime}
+                  </span>
+                </div>
 
-                <p className="text-sm text-gray-500 truncate">
-                  {parking.owner?.email}
-                </p>
+                <div className="border-t pt-3">
+                  <div className="flex items-start gap-2">
+                    <User size={16} className="text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800">
+                        {parking.owner?.name || "N/A"}
+                      </p>
+
+                      <p className="text-sm text-gray-500 truncate">
+                        {parking.owner?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="flex justify-end gap-2 mt-5 border-t pt-4">
+
+                <button
+                  onClick={() => handleViewDetails(parking.id)}
+                  className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  <Eye size={18} />
+                </button>
+
+                <button
+                  onClick={() => handleEdit(parking.id)}
+                  className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  <Pencil size={18} />
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleToggleStatus(parking.id, parking.isActive)
+                  }
+                  disabled={actionLoading === parking.id}
+                  className={`p-2 rounded-lg transition-colors ${parking.isActive
+                      ? "hover:bg-red-50 hover:text-red-600"
+                      : "hover:bg-green-50 hover:text-green-600"
+                    }`}
+                >
+                  {actionLoading === parking.id ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <Power size={18} />
+                  )}
+                </button>
+
               </div>
             </div>
-          </div>
-
-        </div>
-
-        <div className="flex justify-end gap-2 mt-5 border-t pt-4">
-
-          <button
-            onClick={() => handleViewDetails(parking.id)}
-            className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
-          >
-            <Eye size={18} />
-          </button>
-
-          <button
-            onClick={() => handleEdit(parking.id)}
-            className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
-          >
-            <Pencil size={18} />
-          </button>
-
-          <button
-            onClick={() =>
-              handleToggleStatus(parking.id, parking.isActive)
-            }
-            disabled={actionLoading === parking.id}
-            className={`p-2 rounded-lg transition-colors ${
-              parking.isActive
-                ? "hover:bg-red-50 hover:text-red-600"
-                : "hover:bg-green-50 hover:text-green-600"
-            }`}
-          >
-            {actionLoading === parking.id ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Power size={18} />
-            )}
-          </button>
-
-        </div>
+          ))
+        )}
       </div>
-    ))
-  )}
-</div>
 
       {/* Tooltip flotante para dirección */}
       {tooltipContent && (
@@ -383,24 +379,23 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
                 const maxVisible = 5;
                 let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
                 let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-                
+
                 if (endPage - startPage + 1 < maxVisible) {
                   startPage = Math.max(1, endPage - maxVisible + 1);
                 }
-                
+
                 for (let i = startPage; i <= endPage; i++) {
                   pages.push(i);
                 }
-                
+
                 return pages.map((page) => (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`w-8 h-8 rounded-lg text-sm transition-colors ${
-                      currentPage === page
+                    className={`w-8 h-8 rounded-lg text-sm transition-colors ${currentPage === page
                         ? 'bg-blue-600 text-white'
                         : 'hover:bg-gray-100 text-gray-600'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
