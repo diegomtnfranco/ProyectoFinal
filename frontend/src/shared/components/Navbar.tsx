@@ -3,7 +3,7 @@ import {
   Link,
   useLocation
 } from 'react-router-dom'
-import ParkingLogo from '../../assets/logos/Parking-Logo.jpg'
+import ParkingLogo from '../../assets/logos/logo-eapp5.png'
 import { ownerMenu } from '../components/OwnerMenu'
 import { adminMenu } from '../components/AdminMenu'
 import { employeeMenu } from '../components/EmployeeMenu'
@@ -97,12 +97,10 @@ function Navbar() {
         <img
           src={ParkingLogo}
           alt="Parking Logo"
-          className="w-10 h-10 rounded-md"
+          className="w-12 h-12 rounded-md "
         />
 
-        <span className="text-white font-bold text-xl">
-          Estacionapp
-        </span>
+      
       </Link>
 
       {/* Desktop */}
@@ -163,9 +161,9 @@ function Navbar() {
           setIsProfileOpen(!isProfileOpen)
         }
       >
-        <span className="w-6 h-1 bg-white rounded"></span>
-        <span className="w-6 h-1 bg-white rounded"></span>
-        <span className="w-6 h-1 bg-white rounded"></span>
+        <span className="w-7 h-1 bg-white rounded"></span>
+        <span className="w-7 h-1 bg-white rounded"></span>
+        <span className="w-7 h-1 bg-white rounded"></span>
       </button>
 
       {/* Menú Mobile */}

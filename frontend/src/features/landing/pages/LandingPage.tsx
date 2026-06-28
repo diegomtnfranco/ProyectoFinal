@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Smartphone, MapPin, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
+import ParkingLogo2 from '../../../assets/logos/logo-app.png'
 
 function LandingPage() {
   const { user } = useAuthStore();
@@ -19,9 +20,19 @@ const userRole = user?.role;
       
       {/* navbar */}
       <nav className="bg-white shadow-md py-4 px-4 md:px-8 flex justify-between items-center sticky top-0 z-50">
-        <div className="text-2xl md:text-3xl font-extrabold text-blue-600 tracking-tight">
-          Estacionapp
-        </div>
+       
+        <Link
+                to="/"
+                className="flex items-center gap-2"
+              >
+                <img
+                  src={ParkingLogo2}
+                  alt="Parking Logo"
+                  className="w-12 h-12 rounded-md"
+                />
+        
+              
+              </Link>
         
         <div className="hidden md:flex gap-8 text-gray-600 font-medium items-center">
           <a href="#inicio" className="hover:text-blue-600 transition-colors">Inicio</a>
