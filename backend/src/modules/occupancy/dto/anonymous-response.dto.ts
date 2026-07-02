@@ -38,10 +38,10 @@ export class AnonymousCheckOutResponseDto {
   hours!: number;
 
   @ApiProperty()
-  checkInTime!: Date;
+  checkInTime!: string;
 
   @ApiProperty()
-  checkOutTime!: Date;
+  checkOutTime!: string;
 
   // ✅ AGREGAR
   @ApiProperty({
