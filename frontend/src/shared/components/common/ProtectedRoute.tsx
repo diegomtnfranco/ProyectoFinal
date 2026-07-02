@@ -1,4 +1,3 @@
-// frontend/src/shared/components/common/ProtectedRoute.tsx
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
 import { type UserRoleType } from '../../../types/auth.types';
@@ -35,14 +34,9 @@ export const ProtectedRoute = ({
     );
   }
 
-  // Log para debug
-  console.log('ProtectedRoute - location:', location.pathname);
-  console.log('ProtectedRoute - user:', user);
-  console.log('ProtectedRoute - token:', token);
 
   // Si no hay token o usuario, redirigir
   if (!token || !user) {
-    console.log('No authenticated, redirecting to', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -55,7 +49,6 @@ export const ProtectedRoute = ({
       admin: '/admin/companies',
     };
     const redirectPath = roleRoutes[user.role] || '/';
-    console.log(`Role not allowed. Redirecting to ${redirectPath}`);
     return <Navigate to={redirectPath} replace />;
   }
 

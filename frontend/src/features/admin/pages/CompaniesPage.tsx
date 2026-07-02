@@ -1,11 +1,10 @@
-// frontend/src/features/admin/pages/CompaniesPage.tsx
 import { useEffect, useState } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { useToast } from '../../../shared/hooks/useToast';
-import { 
-  Eye, 
-  Pencil, 
-  Power, 
+import {
+  Eye,
+  Pencil,
+  Power,
   Loader2,
   Search,
   ChevronLeft,
@@ -20,18 +19,18 @@ import {
 } from 'lucide-react';
 
 function CompaniesPage() {
-  const { 
-    parkingLots = [], 
-    isLoading, 
-    total = 0, 
-    currentPage = 1, 
+  const {
+    parkingLots = [],
+    isLoading,
+    total = 0,
+    currentPage = 1,
     totalPages = 1,
-    fetchAllParkingLots, 
+    fetchAllParkingLots,
     toggleParkingLotStatus,
     setPage
   } = useAdminStore();
   const { showSuccess, showError } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -57,21 +56,21 @@ function CompaniesPage() {
     });
   }, [fetchAllParkingLots, currentPage, debouncedSearch, statusFilter]);
 
-const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-  setActionLoading(id);
-  try {
-    await toggleParkingLotStatus(id, !currentStatus);
-    showSuccess(`Estacionamiento ${!currentStatus ? 'activado' : 'desactivado'} exitosamente`);
-    // El store ya actualizó el estado local, la UI se actualizará automáticamente
-  } catch (error) {
-    showError('Error al cambiar el estado del estacionamiento');
-  } finally {
-    // Pequeño delay para que se vea el loading
-    setTimeout(() => {
-      setActionLoading(null);
-    }, 300);
-  }
-};
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    setActionLoading(id);
+    try {
+      await toggleParkingLotStatus(id, !currentStatus);
+      showSuccess(`Estacionamiento ${!currentStatus ? 'activado' : 'desactivado'} exitosamente`);
+      // El store ya actualizó el estado local, la UI se actualizará automáticamente
+    } catch (error) {
+      showError('Error al cambiar el estado del estacionamiento');
+    } finally {
+      // Pequeño delay para que se vea el loading
+      setTimeout(() => {
+        setActionLoading(null);
+      }, 300);
+    }
+  };
 
   const handleViewDetails = (id: string) => {
     window.open(`/admin/parking-lots/${id}`, '_blank');
@@ -170,7 +169,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
+
         <select
           value={statusFilter}
           onChange={(e) => {
@@ -194,9 +193,9 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
         )}
       </div>
 
-      {/* Estadísticas rápidas - responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl shadow-sm p-4">
+      {/* Estadísticas rápidas - responsive */}
+      <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto pb-2">
+        <div className="min-w-[180px] sm:min-w-0 flex-shrink-0 bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2.5 rounded-lg">
               <Building2 className="text-blue-600" size={20} />
@@ -207,7 +206,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="min-w-[180px] sm:min-w-0 flex-shrink-0 bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center gap-3">
             <div className="bg-green-100 p-2.5 rounded-lg">
               <Car className="text-green-600" size={20} />
@@ -218,7 +217,7 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="min-w-[180px] sm:min-w-0 flex-shrink-0 bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center gap-3">
             <div className="bg-red-100 p-2.5 rounded-lg">
               <Power className="text-red-600" size={20} />
@@ -231,151 +230,115 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
         </div>
       </div>
 
-      {/* Tabla responsive con scroll horizontal */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Estacionamiento
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">
-                Dueño
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Capacidad
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
-                Horario
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {safeParkingLots.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
-                  <Building2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-                  <p>No se encontraron estacionamientos</p>
-                </td>
-              </tr>
-            ) : (
-              safeParkingLots.map((parking) => (
-                <tr key={parking.id} className="hover:bg-gray-50 transition-colors">
-                  {/* Nombre y dirección - con tooltip */}
-                  <td className="px-4 py-3">
-                    <div className="space-y-1">
-                      <button
-                        onMouseEnter={(e) => handleShowTooltip(parking.address, e)}
-                        onMouseLeave={handleHideTooltip}
-                        className="font-medium text-gray-900 hover:text-blue-600 transition-colors text-left cursor-help"
-                      >
-                        {truncateText(parking.name, 25)}
-                      </button>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 md:hidden">
-                        <User size={12} />
-                        <span className="truncate max-w-[150px]">
-                          {parking.owner?.businessName || parking.owner?.name || 'N/A'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 lg:hidden">
-                        <Clock size={12} />
-                        <span>{parking.openTime} - {parking.closeTime}</span>
-                      </div>
-                    </div>
-                  </td>
+      {/* Grid responsiva de estacionamientos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {safeParkingLots.length === 0 ? (
+          <div className="col-span-full bg-white rounded-xl shadow-sm p-10 text-center text-gray-500">
+            <Building2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+            <p>No se encontraron estacionamientos</p>
+          </div>
+        ) : (
+          safeParkingLots.map((parking) => (
+            <div
+              key={parking.id}
+              className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {parking.name}
+                  </h3>
 
-                  {/* Dueño - desktop */}
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {truncateText( parking.owner?.name || 'N/A', 25)}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {parking.owner?.email || ''}
-                      </p>
-                    </div>
-                  </td>
-
-                  {/* Capacidad */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Car size={14} className="text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">
-                        {parking.stats?.totalSpaces || 0}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Horario - desktop */}
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={14} className="text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">
-                        {parking.openTime} - {parking.closeTime}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Estado */}
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        parking.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
+                  <span
+                    className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-medium ${parking.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                       }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${parking.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {parking.isActive ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
+                  >
+                    {parking.isActive ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
 
-                  {/* Acciones */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => handleViewDetails(parking.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Ver detalles"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(parking.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(parking.id, parking.isActive)}
-                        disabled={actionLoading === parking.id}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          parking.isActive
-                            ? 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                            : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                        } disabled:opacity-50`}
-                        title={parking.isActive ? 'Desactivar' : 'Activar'}
-                      >
-                        {actionLoading === parking.id ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <Power size={16} />
-                        )}
-                      </button>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {parking.stats?.totalSpaces || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    espacios
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3 flex-1">
+
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-gray-400 mt-1 flex-shrink-0" />
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {parking.address}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-600">
+                    {parking.openTime} - {parking.closeTime}
+                  </span>
+                </div>
+
+                <div className="border-t pt-3">
+                  <div className="flex items-start gap-2">
+                    <User size={16} className="text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800">
+                        {parking.owner?.name || "N/A"}
+                      </p>
+
+                      <p className="text-sm text-gray-500 truncate">
+                        {parking.owner?.email}
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="flex justify-end gap-2 mt-5 border-t pt-4">
+
+                <button
+                  onClick={() => handleViewDetails(parking.id)}
+                  className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  <Eye size={18} />
+                </button>
+
+                <button
+                  onClick={() => handleEdit(parking.id)}
+                  className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  <Pencil size={18} />
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleToggleStatus(parking.id, parking.isActive)
+                  }
+                  disabled={actionLoading === parking.id}
+                  className={`p-2 rounded-lg transition-colors ${parking.isActive
+                      ? "hover:bg-red-50 hover:text-red-600"
+                      : "hover:bg-green-50 hover:text-green-600"
+                    }`}
+                >
+                  {actionLoading === parking.id ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <Power size={18} />
+                  )}
+                </button>
+
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Tooltip flotante para dirección */}
@@ -416,24 +379,23 @@ const handleToggleStatus = async (id: string, currentStatus: boolean) => {
                 const maxVisible = 5;
                 let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
                 let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-                
+
                 if (endPage - startPage + 1 < maxVisible) {
                   startPage = Math.max(1, endPage - maxVisible + 1);
                 }
-                
+
                 for (let i = startPage; i <= endPage; i++) {
                   pages.push(i);
                 }
-                
+
                 return pages.map((page) => (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`w-8 h-8 rounded-lg text-sm transition-colors ${
-                      currentPage === page
+                    className={`w-8 h-8 rounded-lg text-sm transition-colors ${currentPage === page
                         ? 'bg-blue-600 text-white'
                         : 'hover:bg-gray-100 text-gray-600'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
