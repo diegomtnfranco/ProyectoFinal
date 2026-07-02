@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
 export class AnonymousCheckInResponseDto {
   @ApiProperty()
@@ -58,5 +59,10 @@ export class AnonymousCheckOutResponseDto {
     name: string;
     address: string;
     phone?: string;
-  };
+  }
+  rate!:{
+    id: string;
+    VehicleType: VehicleType;
+    pricePerHour: number;
+  }
 }

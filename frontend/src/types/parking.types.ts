@@ -391,6 +391,15 @@ export interface Occupancy {
   };
 }
 
+export interface CheckOutResponseDto{
+  occupancy: Occupancy;
+  rate:{
+    id: string;
+    vehicleType: UserVehicleType;
+    pricePerHour: number;
+  }
+}
+
 // ✅ AGREGAR respuesta para checkout anónimo
 export interface AnonymousCheckOutResponse {
   success: boolean;
@@ -407,6 +416,11 @@ export interface AnonymousCheckOutResponse {
     address: string;
     phone?: string;
   };
+  rate:{
+    id: string;
+    vehicleType: UserVehicleType;
+    pricePerHour: number;
+  }
 }
 
 // ✅ AGREGAR respuesta para check-in anónimo

@@ -1,4 +1,4 @@
-import type { CheckInDto, CheckOutDto, ActiveOccupancy, Occupancy } from '../types/parking.types';
+import type { CheckInDto, CheckOutDto, ActiveOccupancy, Occupancy, CheckOutResponseDto } from '../types/parking.types';
 import { api } from './api';
 
 
@@ -14,8 +14,8 @@ export const occupancyService = {
   /**
    * Registrar check-out (dueño/empleado/admin)
    */
-  async checkOut(data: CheckOutDto): Promise<Occupancy> {
-    const response = await api.post<Occupancy>('/occupancy/check-out', data);
+  async checkOut(data: CheckOutDto): Promise<CheckOutResponseDto> {
+    const response = await api.post<CheckOutResponseDto>('/occupancy/check-out', data);
     return response.data;
   },
 
