@@ -113,7 +113,7 @@ const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | nul
       setMessage(`✅ ¡Check-out registrado! Total: $${response.data.totalAmount}`);
       showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
 
-      console.log(response)
+      console.log(JSON.stringify(response.data)); // Mostrar datos en un alert
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Error al registrar salida';
       setStatus('error');

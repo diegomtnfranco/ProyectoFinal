@@ -1,7 +1,7 @@
 // stores/spacesStore.ts
 import { create } from 'zustand';
 import { spacesService } from '../services/spaces.service';
-import type { Space, CreateSpaceDto, UpdateSpaceStatusDto, Occupancy } from '../types/parking.types';
+import type { Space, CreateSpaceDto, UpdateSpaceStatusDto, Occupancy, CheckOutResponseDto } from '../types/parking.types';
 import type { UserVehicleType } from '../types/auth.types';
 import { SpaceStatus } from '../types/auth.types';
 
@@ -30,7 +30,7 @@ interface SpacesState {
   createSpace: (data: CreateSpaceDto) => Promise<void>;
   updateSpaceStatus: (id: string, data: UpdateSpaceStatusDto) => Promise<void>;
   occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => Promise<void>;  // ← Actualizar firma
-  liberateSpace: (id: string) => Promise<Occupancy>;
+  liberateSpace: (id: string) => Promise<CheckOutResponseDto>;  // ← Actualizar firma
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
   clearError: () => void;

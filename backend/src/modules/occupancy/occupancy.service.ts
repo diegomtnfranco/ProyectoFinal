@@ -21,6 +21,7 @@ import { ParkingLotsService } from '../parking-lots/parking-lots.service';
 import { AnonymousCheckInDto } from './dto/anonymous-check-in.dto';
 import { AnonymousCheckInResponseDto, AnonymousCheckOutResponseDto } from './dto/anonymous-response.dto';
 import { AnonymousCheckOutDto } from './dto/anonymous-check-out.dto';
+import { CheckOutResponseDto } from './dto/check-out-response.dto';
 
 @Injectable()
 export class OccupancyService {
@@ -143,7 +144,7 @@ export class OccupancyService {
     }
   }
 
-  async checkOut(checkOutDto: CheckOutDto, userId: string, userRole: string): Promise<Occupancy> {
+  async checkOut(checkOutDto: CheckOutDto, userId: string, userRole: string): Promise<CheckOutResponseDto> {
     // Solo empleados o dueños pueden hacer check-out
     if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('No tienes permiso para realizar check-out');
@@ -221,7 +222,16 @@ export class OccupancyService {
       //const availability = await this.calculateAvailability(space.parkingLotId);
       this.websocketGateway.emitParkingAvailability(space.parkingLotId);
 
-      return occupancy;
+      const response: CheckOutResponseDto = {
+        occupancy,
+        rate: {
+          id: rate.id,
+          VehicleType: rate.vehicleType,
+          pricePerHour: rate.pricePerHour,
+        }
+      };
+
+      return response;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -522,6 +532,11 @@ async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutRes
         address: parkingLot.address,
         phone: parkingLot.phone,
       },
+      rate:{
+        id: rate.id,
+        VehicleType: rate.vehicleType,
+        pricePerHour: rate.pricePerHour,
+      }
     };
   } catch (error) {
     await queryRunner.rollbackTransaction();
