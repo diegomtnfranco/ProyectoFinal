@@ -121,7 +121,7 @@ export class ParkingLotsController {
   @ApiResponse({ status: 403, description: 'Solo propietarios' })
   @ApiResponse({ status: 404, description: 'Estacionamiento no encontrado' })
   async getMyParkingLot(@CurrentUser('id', ParseUUIDPipe) userId: string,@CurrentUser('role') rol:UserRole) {
-    console.log(rol)
+    
     if (rol===UserRole.PARKING_OWNER){
       return this.parkingLotsService.getOwnerParkingLot(userId);
 

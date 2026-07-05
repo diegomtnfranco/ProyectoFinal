@@ -1,16 +1,28 @@
-import { useEffect } from 'react';
+// frontend/src/features/owner/pages/ParkingSettingsPage.tsx
+import { useEffect, useState } from 'react';
 import { useParkingLotsStore } from '../../stores/parkingStore';
 import ParkingSettingsForm, { type ParkingData } from './ParkingSettingsForm';
+import SpaceManagementModal from './components/SpaceManagementModal';
+import { Settings, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ParkingSettingsPage = () => {
-
-  const { currentParkingLot, isLoading, fetchMyParkingLot  } = useParkingLotsStore();
+  const navigate = useNavigate();
+  const { currentParkingLot, isLoading, fetchMyParkingLot, hasFetchedOnce } = useParkingLotsStore();
+  const [showSpaceModal, setShowSpaceModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // ✅ Para forzar refresco
 
   useEffect(() => {
-    if (!currentParkingLot && !isLoading) {
+    if (!hasFetchedOnce && !isLoading) {
       fetchMyParkingLot();
     }
-  }, [currentParkingLot, isLoading, fetchMyParkingLot]);
+  }, [hasFetchedOnce, isLoading, fetchMyParkingLot]);
+
+  // ✅ Función para recargar después de cambios en espacios
+  const handleSpaceUpdate = async () => {
+    await fetchMyParkingLot(true);
+    setRefreshKey(prev => prev + 1); // ✅ Forzar re-render
+  };
 
   if (isLoading) {
     return (
@@ -20,10 +32,18 @@ const ParkingSettingsPage = () => {
     );
   }
 
+  if (!currentParkingLot && hasFetchedOnce) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-gray-500">No hay estacionamiento registrado.</div>
+      </div>
+    );
+  }
+
   if (!currentParkingLot) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-gray-500">No hay estacionamiento seleccionado.</div>
+        <div className="text-gray-500">Cargando...</div>
       </div>
     );
   }
@@ -39,20 +59,42 @@ const ParkingSettingsPage = () => {
     }
   };
 
-  const handleCancel = () => {
-    
-    window.location.reload(); 
-  };
-
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Configuración del Parking</h1>
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+      {/* Header con navegación */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/owner/parking')}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <Settings size={20} />
+          Configuración del Parking
+        </h1>
+      </div>
+
+      {/* Formulario principal - key para forzar refresh */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
         <ParkingSettingsForm 
+          key={refreshKey} // ✅ Forzar re-render cuando cambia
           parkingData={parkingDataForForm} 
-          onCancel={handleCancel} 
+          onCancel={() => navigate('/owner/settings')}
+          onManageSpaces={() => setShowSpaceModal(true)}
         />
       </div>
+
+      {/* Modal de gestión de espacios */}
+      <SpaceManagementModal
+        isOpen={showSpaceModal}
+        onClose={() => {
+          setShowSpaceModal(false);
+          handleSpaceUpdate(); // ✅ Recargar al cerrar
+        }}
+        parkingLotId={currentParkingLot.id}
+        onSpaceUpdate={handleSpaceUpdate} // ✅ Recargar después de cada cambio
+      />
     </div>
   );
 };

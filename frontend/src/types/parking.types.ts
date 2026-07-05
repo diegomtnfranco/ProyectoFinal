@@ -56,6 +56,7 @@ export interface Space {
   occupiedByVehicleType?: UserVehicleType;
   metadata?: SpaceMetadata;
   parkingLotId?: string;
+  isActive: boolean;
 }
 
 export interface CreateSpaceDto {
@@ -64,6 +65,7 @@ export interface CreateSpaceDto {
   allowedVehicleTypes: UserVehicleType[];
   status?: SpaceStatusType;
   metadata?: SpaceMetadata;
+  allowsReservations?: boolean;
 }
 
 export interface UpdateSpaceDto extends Partial<CreateSpaceDto> {
@@ -278,6 +280,7 @@ export interface ParkingLot {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string;
 }
 
 // ParkingLotWithStats (con stats - para dashboard del dueño)

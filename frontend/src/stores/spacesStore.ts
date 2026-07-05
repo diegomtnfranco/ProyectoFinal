@@ -34,6 +34,9 @@ interface SpacesState {
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
   clearError: () => void;
+  removeSpace: (id: string) => Promise<void>;  
+  fetchAllSpaces: (parkingLotId: string) => Promise<void>; 
+  reactivateSpace: (id: string) => Promise<void>;
 }
 
 
@@ -210,4 +213,55 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
 
   // Limpiar error
   clearError: () => set({ error: null }),
+
+    removeSpace: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await spacesService.delete(id);
+      set((state) => ({
+        spaces: state.spaces.filter(space => space.id !== id),
+        availableSpaces: state.availableSpaces.filter(space => space.id !== id),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: error as string, isLoading: false });
+      throw error;
+    }
+  },
+
+  fetchAllSpaces: async (parkingLotId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await spacesService.getAllByParkingLot(parkingLotId);
+      const sortedSpaces = sortSpacesByNumber(data);
+      set({ spaces: sortedSpaces, isLoading: false });
+    } catch (error) {
+      set({ error: error as string, isLoading: false });
+      throw error;
+    }
+  },
+  
+  reactivateSpace: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      const reactivated = await spacesService.reactivate(id,{ isActive:true });
+      console.log('Espacio reactivado:', reactivated);
+      set((state) => {
+        const updatedSpaces = state.spaces.map(space => 
+          space.id === id ? { ...reactivated, status: SpaceStatus.AVAILABLE, isActive: true } : space
+        );
+        const updatedAvailable = sortSpacesByNumber(
+          updatedSpaces.filter(space => space.status === SpaceStatus.AVAILABLE && space.isActive !== false)
+        );
+        return {
+          spaces: sortSpacesByNumber(updatedSpaces),
+          availableSpaces: updatedAvailable,
+          isLoading: false,
+        };
+      });
+    } catch (error) {
+      set({ error: error as string, isLoading: false });
+      throw error;
+    }
+  },
 }));
