@@ -10,12 +10,13 @@ import { UserRole } from '../users/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { SpaceResponseDto } from './dto/space-response.dto';
+import { ReactivateSpaceDto } from './dto/reactivate-space.dto';
 
 @ApiTags('spaces')
 @Controller('spaces')
 @UseGuards(JwtAuthGuard)
 export class SpacesController {
-  constructor(private readonly spacesService: SpacesService) {}
+  constructor(private readonly spacesService: SpacesService) { }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.PARKING_OWNER)
@@ -197,4 +198,54 @@ export class SpacesController {
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.spacesService.remove(id, user.id, user.role);
   }
+
+  @Patch(':id/reactivate')
+  @Roles(UserRole.ADMIN, UserRole.PARKING_OWNER)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'id', type: String, description: 'UUID del espacio' })
+  @ApiOperation({
+    summary: 'Reactivar un espacio',
+    description: 'Cambia el estado isActive de un espacio a true. Solo para administradores y dueños.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Espacio reactivado exitosamente',
+    type: SpaceResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado' })
+  @ApiResponse({ status: 404, description: 'Espacio no encontrado' })
+  @ApiBody({ type: ReactivateSpaceDto })
+  async reactivateSpace(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() reactivateDto: ReactivateSpaceDto,
+    @CurrentUser() user: any,
+  ) {
+    console.log('reactivacion')
+    return this.spacesService.reactivateSpace(id, reactivateDto!.isActive, user.id, user.role);
+  }
+
+  @Get('parking-lot/:parkingLotId/all')
+  @Roles(UserRole.ADMIN, UserRole.PARKING_OWNER)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'parkingLotId', type: String, description: 'UUID del estacionamiento' })
+  @ApiOperation({
+    summary: 'Obtener todos los espacios de un estacionamiento (incluyendo inactivos)',
+    description: 'Retorna todos los espacios de un estacionamiento, incluyendo los desactivados. Solo para administradores y dueños.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Espacios obtenidos exitosamente',
+    type: [SpaceResponseDto]
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado' })
+  async findAllSpaces(
+    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.spacesService.findAllSpaces(parkingLotId);
+  }
+
+  
 }

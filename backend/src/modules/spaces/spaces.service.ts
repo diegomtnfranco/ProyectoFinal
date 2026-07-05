@@ -54,7 +54,12 @@ export class SpacesService {
       spaceNumber: createDto.spaceNumber,
       allowedVehicleTypes: createDto.allowedVehicleTypes,
       status: createDto.status || SpaceStatus.AVAILABLE,
-      metadata: createDto.metadata,
+      allowsReservations: createDto.allowsReservations,
+      isActive: true,
+      metadata: {
+        floor: 0,
+        zone: '',
+      }
     });
     return this.spaceRepository.save(space);
   }
@@ -190,5 +195,71 @@ export class SpacesService {
     }
 
     return query.getMany();
+  }
+
+  /**
+ * Obtener todos los espacios de un estacionamiento (incluyendo inactivos)
+ * Solo para admin y dueños
+ */
+async findAllSpaces(parkingLotId: string): Promise<Space[]> {
+  // Verificar que el parking exista
+  const parkingLot = await this.parkingLotRepository.findOne({
+    where: { id: parkingLotId },
+  });
+  if (!parkingLot) {
+    throw new NotFoundException(`Parking lot with ID ${parkingLotId} not found`);
+  }
+
+  // ✅ Obtener TODOS los espacios (sin filtro isActive)
+  return this.spaceRepository.find({
+    where: { parkingLotId },
+    relations: ['parkingLot'],
+    order: {
+      spaceNumber: 'ASC',
+    },
+  });
+}
+
+ /**
+   * Reactivar un espacio (cambiar isActive a true)
+   * Solo para admin y dueños
+   */
+  async reactivateSpace(id: string, isActive: boolean, userId: string, userRole: string): Promise<Space> {
+    const space = await this.spaceRepository.findOne({
+      where: { id },
+      relations: ['parkingLot'],
+    });
+
+    if (!space) {
+      throw new NotFoundException(`Espacio con ID ${id} no encontrado`);
+    }
+
+    // Verificar permisos
+    if (userRole === UserRole.PARKING_OWNER) {
+      const parkingLot = await this.parkingLotRepository.findOne({
+        where: { id: space.parkingLotId },
+        relations: ['owner'],
+      });
+      if (parkingLot?.owner.userId !== userId) {
+        throw new ForbiddenException('No tienes permiso para reactivar este espacio');
+      }
+    } else if (userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('No tienes permiso para realizar esta acción');
+    }
+
+    // ✅ Actualizar isActive
+    space.isActive = isActive;
+
+    // Si se está reactivando, cambiar el estado a AVAILABLE
+    if (isActive) {
+      space.status = SpaceStatus.AVAILABLE;
+    }
+
+    const updatedSpace = await this.spaceRepository.save(space);
+
+    // Emitir evento WebSocket para actualizar en tiempo real
+    this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, space.status);
+
+    return updatedSpace;
   }
 }

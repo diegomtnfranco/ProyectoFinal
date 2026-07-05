@@ -136,4 +136,6 @@ export class SpaceResponseDto {
     description: 'Fecha de última actualización',
   })
   updatedAt!: Date;
+
+  
 }

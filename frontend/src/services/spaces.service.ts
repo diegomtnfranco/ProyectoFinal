@@ -54,9 +54,27 @@ export const spacesService = {
   },
 
   /**
-   * Eliminar espacio (dueño/admin)
+   * desativar espacio (dueño/admin)
    */
   async delete(id: string): Promise<void> {
     await api.delete(`/spaces/${id}`);
+  },
+
+   /**
+   * Obtener todos los espacios de un estacionamiento (incluyendo inactivos)
+   * Solo para admin y dueños
+   */
+  async getAllByParkingLot(parkingLotId: string): Promise<Space[]> {
+    const response = await api.get<Space[]>(`/spaces/parking-lot/${parkingLotId}/all`);
+    return response.data;
+  },
+
+  /**
+   * Reactivar espacio (cambiar isActive a true)
+   */
+  async reactivate(id: string, data: { isActive: boolean }): Promise<Space> {
+    console.log('service front', id, data.isActive);
+    const response = await api.patch<Space>(`/spaces/${id}/reactivate`, data);
+    return response.data;
   },
 };
