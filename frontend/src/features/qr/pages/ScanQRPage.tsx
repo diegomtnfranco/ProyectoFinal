@@ -5,6 +5,8 @@ import { useToast } from '../../../shared/hooks/useToast';
 import { api } from '../../../services/api';
 import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motorbike, Clipboard } from 'lucide-react';
 import type { AnonymousCheckOutResponse } from '../../../types/parking.types';
+import { DownloadTicketModal } from '../../../shared/components/tickets/DownloadTicketModal';
+import { generateTicketPDF } from '../../../shared/utils/GenerateTicketPDF';
 
 // Mapeo de tipos de vehículo
 const vehicleIcons = {
@@ -40,7 +42,8 @@ function ScanQRPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
   const [message, setMessage] = useState('');
-const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | null>(null);
+  const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | null>(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
 
   // Validar token al cargar
   useEffect(() => {
@@ -109,8 +112,13 @@ const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | nul
       });
       
       setResponseData(response.data);
+
+      setShowTicketModal(true);
+
       setStatus('success');
+
       setMessage(`✅ ¡Check-out registrado! Total: $${response.data.totalAmount}`);
+
       showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
 
       console.log(JSON.stringify(response.data)); // Mostrar datos en un alert
@@ -124,6 +132,34 @@ const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | nul
     }
   };
 
+  const handleDownloadTicket = () => {
+  if (!responseData) return;
+
+  generateTicketPDF({
+    ticketNumber: Date.now().toString(),
+
+    parkingLot: responseData.parkingLot,
+
+    vehiclePlate: responseData.vehiclePlate,
+
+    vehicleType: responseData.rate.vehicleType,
+
+    checkInTime: responseData.checkInTime,
+
+    checkOutTime: responseData.checkOutTime,
+
+    duration: `${responseData.hours} horas`,
+
+    pricePerHour: responseData.rate.pricePerHour,
+
+    totalAmount: responseData.totalAmount,
+
+    isAnonymous: true,
+  });
+
+  setShowTicketModal(false);
+};
+
   // Pantalla de éxito
   if (status === 'success') {
     const isCheckIn = type === 'check-in';
@@ -132,6 +168,8 @@ const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | nul
     
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+
+
         <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full text-center">
           <CheckCircle size={64} className={`${successColor} mx-auto mb-4`} />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -170,6 +208,12 @@ const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | nul
           >
             Volver al inicio
           </button>
+
+          <DownloadTicketModal
+            isOpen={showTicketModal}
+            onClose={() => setShowTicketModal(false)}
+            onDownload={handleDownloadTicket}/>
+            
         </div>
       </div>
     );
