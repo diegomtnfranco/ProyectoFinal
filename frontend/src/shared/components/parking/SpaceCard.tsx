@@ -8,9 +8,10 @@ import { useReservationsStore } from '../../../stores/reservationStore';
 import { CheckInModal } from '../occupancy/CheckInModal';
 import { CheckOutModal } from '../occupancy/CheckOutModal';
 
+
 interface SpaceCardProps {
-  space: Space;
-  onSpaceUpdate?: () => void;
+    space: Space;
+      onSpaceUpdate?: (checkOutResult?: any) => void;
 }
 
 type UserVehicleType = 'car' | 'truck' | 'motorcycle' | 'van';
@@ -25,7 +26,7 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
-    const [checkOutResult, setCheckOutResult] = useState<any>(null);
+    useState(false);
 
   const { updateSpaceStatus, occupySpace, liberateSpace } = useSpacesStore();
   const { showNotification } = useUIStore();
@@ -114,27 +115,38 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   };
 
   const handleLiberate = () => {
-    // Abrir modal de confirmación en lugar de confirm nativo
-    setShowCheckOutModal(true);
-  };
+  setShowCheckOutModal(true);
+};
 
-  const handleConfirmLiberate = async () => {
+const handleConfirmLiberate = async () => {
+  setIsLoading(true);
+
+  try {
+
+    const result = await liberateSpace(space.id);
+    console.log("RESULTADO CHECKOUT", result);
+
     setShowCheckOutModal(false);
-    setIsLoading(true);
-    try {
-       const result = await liberateSpace(space.id);
 
-         setCheckOutResult(result);
-      showNotification(`Espacio ${space.spaceNumber} liberado correctamente`, 'success');
-      onSpaceUpdate?.();
+    showNotification(
+      `Espacio ${space.spaceNumber} liberado correctamente`,
+      "success"
+    );
 
-      console.log(result)
-    } catch (error) {
-      showNotification(error as string, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    onSpaceUpdate?.(result);
+    console.log("ENVIANDO RESULTADO AL PARKINGMAP");
+
+  } catch (error) {
+
+    showNotification(error as string, "error");
+
+  } finally {
+
+    setIsLoading(false);
+
+  }
+};
+
 
   const handleMaintenance = async () => {
     setIsLoading(true);
@@ -215,14 +227,17 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
         onConfirm={handleModalConfirm}
         isLoading={isLoading}
       />
+      
       <CheckOutModal
-        isOpen={showCheckOutModal}
-        onClose={() => setShowCheckOutModal(false)}
-        onConfirm={handleConfirmLiberate}
-        spaceNumber={space.spaceNumber}
-        vehiclePlate={space.occupiedByVehiclePlate}
-        isLoading={isLoading}
+      isOpen={showCheckOutModal}
+      onClose={() => setShowCheckOutModal(false)}
+      onConfirm={handleConfirmLiberate}
+      spaceNumber={space.spaceNumber}
+      vehiclePlate={space.occupiedByVehiclePlate}
+      isLoading={isLoading}
       />
+
+    
     </>
   );
 };

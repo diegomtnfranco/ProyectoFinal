@@ -10,6 +10,9 @@ import { VehicleType, SpaceStatus } from '../../types/auth.types';
 import ParkingMap from '../../shared/components/parking/ParkingMap';
 import ReservationPanel from '../../shared/components/reservation/ReservationPanel';
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
+import { useState } from 'react';
+import { DownloadTicketModal } from '../../shared/components/tickets/DownloadTicketModal';
+import { generateTicketPDF } from '../../shared/utils/GenerateTicketPDF';
 
 const DashboardOwner: React.FC = () => {
   const { token } = useAuthStore();
@@ -18,6 +21,8 @@ const DashboardOwner: React.FC = () => {
   const { spaces, fetchSpaces, isLoading: spacesLoading } = useSpacesStore();
   const { activeOccupancies, fetchActiveOccupancies } = useOccupancyStore();
   const { fetchParkingReservations } = useReservationsStore();
+  const [showTicketModal, setShowTicketModal] = useState(false);
+const [ticketData, setTicketData] = useState<any>(null);
 
   useEffect(() => {
     fetchMyParkingLot();
@@ -95,6 +100,57 @@ const DashboardOwner: React.FC = () => {
   const totalSpaces = spaces.length;
   const activeReservationsCount = activeOccupancies.filter(o => o.hasReservation === true).length;
   const reservationCount = activeReservationsCount;
+
+  const handleManualCheckout = (result: any) => {
+  console.log("DASHBOARD RECIBE", result);
+
+  if (!result) return;
+
+  setTicketData(result);
+  setShowTicketModal(true);
+};
+
+const handleDownloadTicket = () => {
+   console.log("TICKET DATA", ticketData);
+     console.log("OCCUPANCY", ticketData.occupancy);
+  console.log("PARKING LOT", ticketData.occupancy.space.parkingLot);
+  if (!ticketData) return;
+
+   // Calcular duración
+  const checkIn = new Date(ticketData.occupancy.checkInTime);
+  const checkOut = new Date(ticketData.occupancy.checkOutTime);
+
+  const diffMs = checkOut.getTime() - checkIn.getTime();
+  const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+
+  const duration =
+    diffMinutes >= 60
+      ? `${(diffMinutes / 60).toFixed(1)} horas`
+      : `${diffMinutes} minutos`;
+
+
+  generateTicketPDF({
+  ticketNumber: Date.now().toString(),
+
+  parkingLot: ticketData.occupancy.space.parkingLot,
+
+  vehiclePlate: ticketData.occupancy.vehiclePlate,
+
+  checkInTime: ticketData.occupancy.checkInTime,
+
+  checkOutTime: ticketData.occupancy.checkOutTime,
+
+  duration, 
+
+  pricePerHour: Number(ticketData.rate.pricePerHour),
+
+  totalAmount: ticketData.occupancy.totalAmount,
+
+  isAnonymous: ticketData.occupancy.isAnonymous,
+});
+
+  setShowTicketModal(false);
+};
 
   if (parkingLoading || spacesLoading) {
     return (
@@ -205,9 +261,16 @@ const DashboardOwner: React.FC = () => {
             fetchSpaces(currentParkingLot.id);
             fetchActiveOccupancies(currentParkingLot.id);
           }}
+          onManualCheckout={handleManualCheckout}
           className="w-full lg:w-4/6"
-        />
+/>
         <ReservationPanel className="w-full lg:w-2/6" />
+
+        <DownloadTicketModal
+            isOpen={showTicketModal}
+            onClose={() => setShowTicketModal(false)}
+            onDownload={handleDownloadTicket}
+        />
       </div>
     </div>
   );
