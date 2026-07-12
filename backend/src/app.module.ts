@@ -20,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
+import { SeedModule } from './modules/seed/seed.module';
 
 
 @Module({
@@ -37,7 +38,7 @@ import { CloudinaryService } from './modules/common/cloudinary/cloudinary.servic
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: true,
+      //synchronize: true,
       //logging:true,
       extra: {
         timezone: 'America/Argentina/Buenos_Aires',
@@ -58,7 +59,8 @@ import { CloudinaryService } from './modules/common/cloudinary/cloudinary.servic
     CommonModule,
     ParkingEmployeesModule,
     NotificationsModule,
-    WebsocketModule, 
+    WebsocketModule,
+    SeedModule, 
 
   ],
   controllers: [],
