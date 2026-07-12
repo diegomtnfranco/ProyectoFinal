@@ -10,7 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { UserRole } from 'src/modules/users/entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
 import { Roles } from './decorators/roles.decorator';
 import { UpdateEmployeeDataDto, UpdateProfileDto } from './dto/update-profile.dto';

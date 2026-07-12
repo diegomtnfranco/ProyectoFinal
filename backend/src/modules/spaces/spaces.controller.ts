@@ -221,7 +221,6 @@ export class SpacesController {
     @Body() reactivateDto: ReactivateSpaceDto,
     @CurrentUser() user: any,
   ) {
-    console.log('reactivacion')
     return this.spacesService.reactivateSpace(id, reactivateDto!.isActive, user.id, user.role);
   }
 
