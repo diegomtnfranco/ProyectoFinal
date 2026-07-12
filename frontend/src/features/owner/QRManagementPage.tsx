@@ -60,7 +60,6 @@ function QRManagementPage() {
 
     if (!parkingLoading) {
       fetchAttempted.current = true;
-      console.log('📡 QRManagementPage: Cargando estacionamiento...');
       fetchMyParkingLot();
     }
   }, [user, navigate, currentParkingLot, parkingLoading, hasFetchedOnce, fetchMyParkingLot]);
@@ -68,7 +67,6 @@ function QRManagementPage() {
   // ✅ Cargar QR solo si hay parking
   useEffect(() => {
     if (currentParkingLot?.id) {
-      console.log('📡 QRManagementPage: Cargando QR...');
       fetchQRCodes(currentParkingLot.id);
     }
   }, [currentParkingLot]);

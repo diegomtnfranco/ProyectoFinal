@@ -82,7 +82,7 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   };
 
   const handleOccupy = async () => {
-    console.log(activeReservation);
+
     if (space.status === SpaceStatus.RESERVED && activeReservation) {
       setIsLoading(true);
       try {
@@ -124,7 +124,6 @@ const handleConfirmLiberate = async () => {
   try {
 
     const result = await liberateSpace(space.id);
-    console.log("RESULTADO CHECKOUT", result);
 
     setShowCheckOutModal(false);
 
@@ -134,7 +133,6 @@ const handleConfirmLiberate = async () => {
     );
 
     onSpaceUpdate?.(result);
-    console.log("ENVIANDO RESULTADO AL PARKINGMAP");
 
   } catch (error) {
 

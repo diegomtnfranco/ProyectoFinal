@@ -228,12 +228,10 @@ useEffect(() => {
         if (companyData.cuit) {
             registerData.cuit = companyData.cuit;
         }
-      console.log('Registrando dueño con estacionamiento:', registerData);
 
       // Llamar al servicio
       const response = await registerOwnerComplete(registerData);
       
-      console.log('Registro exitoso:', response);
       
       // Guardar mensaje de éxito
       setSuccessMessage(response.message || 'Estacionamiento creado exitosamente');
