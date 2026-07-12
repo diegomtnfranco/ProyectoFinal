@@ -34,7 +34,6 @@ export class OccupancyController {
     @Body() checkInDto: CheckInDto,
     @CurrentUser() user: any,
   ) {
-    console.log('Check-in DTO:', checkInDto);
     return this.occupancyService.checkIn(checkInDto, user.id, user.role);
   }
 

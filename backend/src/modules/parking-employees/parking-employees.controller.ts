@@ -93,7 +93,6 @@ async findByParkingLot(
   @Delete(':id')
   @Roles(UserRole.PARKING_OWNER, UserRole.ADMIN)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
-    console.log(userId)
-    return this.employeesService.remove(id, userId);
+       return this.employeesService.remove(id, userId);
   }
 }
