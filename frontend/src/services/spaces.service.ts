@@ -73,7 +73,6 @@ export const spacesService = {
    * Reactivar espacio (cambiar isActive a true)
    */
   async reactivate(id: string, data: { isActive: boolean }): Promise<Space> {
-    console.log('service front', id, data.isActive);
     const response = await api.patch<Space>(`/spaces/${id}/reactivate`, data);
     return response.data;
   },

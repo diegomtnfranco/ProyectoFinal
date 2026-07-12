@@ -56,22 +56,19 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
   fetchMyParkingLot: async (force = false) => {  // ✅ Agregar parámetro force
   // ✅ Si ya se cargó y no es forzado, omitir
   if (get().hasFetchedOnce && !force) {
-    console.log('🔍 fetchMyParkingLot: Ya se cargó, omitiendo...');
     return;
   }
   
   // ✅ Si ya está cargando, no hacer nada
   if (get().isLoading) {
-    console.log('🔍 fetchMyParkingLot: Ya está cargando, omitiendo...');
     return;
   }
   
-  console.log('🔍 fetchMyParkingLot: Iniciando petición...');
-  set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null });
 
   try {
     const data = await parkingLotsService.getMyParkingLot();
-    console.log('✅ fetchMyParkingLot: Éxito', data);
+    
     set({
       currentParkingLot: data,
       isLoading: false,
@@ -80,7 +77,7 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
     });
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
-    console.log('❌ fetchMyParkingLot: Error', errorMessage);
+   
     set({
       error: errorMessage,
       isLoading: false,
@@ -165,7 +162,7 @@ export const useParkingLotsStore = create<ParkingLotsState>((set, get) => ({
 
   updateParkingImage: (parkingData) => {
     const currentParking = get().currentParkingLot;
-    console.log(parkingData)
+   
     if (!currentParking) return;
 
     set({

@@ -21,7 +21,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.log('API Error:', error);
+   
     
     const errorMessage = error.response?.data?.message || error.message || 'Error de conexión';
     

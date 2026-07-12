@@ -55,7 +55,6 @@ function MyReservationsPage() {
     if (!isConnected) return;
 
     const handleReservationUpdate = (data: any) => {
-      console.log('📡 Reserva actualizada:', data);
       if (data?.id && data?.status) {
         updateReservationStatus(data.id, data.status);
         showInfo(`Tu reserva ha sido ${data.status === 'confirmed' ? 'confirmada' : 'actualizada'}`);
@@ -64,13 +63,11 @@ function MyReservationsPage() {
     };
 
     const handleReservationConfirmed = (data: any) => {
-      console.log('✅ Reserva confirmada:', data);
       showSuccess(`¡Tu reserva para el espacio ${data.spaceNumber} ha sido confirmada!`);
       fetchMyReservations();
     };
 
     const handleReservationCancelled = (data: any) => {
-      console.log('❌ Reserva cancelada:', data);
       if (data?.cancelledBy === 'parking') {
         showError(`Tu reserva fue cancelada por el estacionamiento${data.reason ? `: ${data.reason}` : ''}`);
       }

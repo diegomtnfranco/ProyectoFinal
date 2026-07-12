@@ -245,7 +245,7 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const reactivated = await spacesService.reactivate(id,{ isActive:true });
-      console.log('Espacio reactivado:', reactivated);
+     
       set((state) => {
         const updatedSpaces = state.spaces.map(space => 
           space.id === id ? { ...reactivated, status: SpaceStatus.AVAILABLE, isActive: true } : space

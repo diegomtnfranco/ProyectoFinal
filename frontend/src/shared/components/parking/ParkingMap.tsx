@@ -61,9 +61,8 @@ interface ParkingMapProps {
 
 const ParkingMap = ({ spacesList, parkingLotId, onRefresh, className = '', onManualCheckout, }: ParkingMapProps) => {
 
-  console.log("ParkingMap render");
 
-  useEffect(() => { console.log("ParkingMap montado"); return () => { console.log("ParkingMap desmontado"); }; }, []);
+  useEffect(() => { return () => {  }; }, []);
 
   const { fetchSpaces } = useSpacesStore();
 

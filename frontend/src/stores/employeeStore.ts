@@ -52,7 +52,6 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
   },
 
   updateEmployee: async (id: string, data: Partial<ParkingEmployee>) => {
-  console.log('📡 [STORE] updateEmployee llamado con id:', id, data);
   set({ isLoading: true, error: null });
   try {
     const updated = await employeesService.update(id, data);
@@ -67,11 +66,9 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
 },
 
  deleteEmployee: async (id: string) => {
-  console.log('📡 [STORE] deleteEmployee llamado con id:', id);
   set({ isLoading: true, error: null });
   try {
     await employeesService.delete(id);
-    console.log('✅ [STORE] Empleado eliminado exitosamente');
     set((state) => ({
       employees: state.employees.filter(e => e.id !== id),
       isLoading: false,

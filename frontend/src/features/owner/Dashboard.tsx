@@ -54,7 +54,6 @@ const [ticketData, setTicketData] = useState<any>(null);
       fetchParkingReservations(currentParkingLot.id);
     };
     const handleSpaceUpdate = (data?: any) => {
-      console.log('📡 space:update recibido:', data);
       if (currentParkingLot?.id) {
         fetchSpaces(currentParkingLot.id);
         fetchActiveOccupancies(currentParkingLot.id);
@@ -102,7 +101,6 @@ const [ticketData, setTicketData] = useState<any>(null);
   const reservationCount = activeReservationsCount;
 
   const handleManualCheckout = (result: any) => {
-  console.log("DASHBOARD RECIBE", result);
 
   if (!result) return;
 
@@ -111,9 +109,7 @@ const [ticketData, setTicketData] = useState<any>(null);
 };
 
 const handleDownloadTicket = () => {
-   console.log("TICKET DATA", ticketData);
-     console.log("OCCUPANCY", ticketData.occupancy);
-  console.log("PARKING LOT", ticketData.occupancy.space.parkingLot);
+  
   if (!ticketData) return;
 
    // Calcular duración

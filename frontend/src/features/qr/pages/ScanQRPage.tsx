@@ -121,7 +121,6 @@ function ScanQRPage() {
 
       showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
 
-      console.log(JSON.stringify(response.data)); // Mostrar datos en un alert
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Error al registrar salida';
       setStatus('error');

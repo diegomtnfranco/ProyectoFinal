@@ -31,16 +31,12 @@ export const employeesService = {
    * Eliminar empleado (desactivar)
    */
   async delete(id: string): Promise<void> {
-  console.log('📡 [SERVICE] DELETE llamando a:', `/parking-employees/${id}`);
   const token = localStorage.getItem('access_token');
-  console.log('🔑 [SERVICE] Token presente:', !!token);
   
   try {
     const response = await api.delete(`/parking-employees/${id}`);
-    console.log('✅ [SERVICE] Respuesta:', response.status);
     return response.data;
   } catch (error: any) {
-    console.error('❌ [SERVICE] Error:', error.response?.status, error.response?.data);
     throw error;
   }
 },
