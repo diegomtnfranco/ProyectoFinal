@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Smartphone, MapPin, BarChart3 } from 'lucide-react';
+import { Smartphone, MapPin, BarChart3, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import ParkingLogo2 from '../../../assets/logos/logo-app.png'
 
 function LandingPage() {
-  const { user } = useAuthStore();
+  const { user,logout } = useAuthStore();
   
   let userName =''
 
@@ -12,7 +12,11 @@ function LandingPage() {
 if (user?.parkingOwnerProfile?.name) userName=user.parkingOwnerProfile.name
 if (user?.employeeProfile?.name) userName=user.employeeProfile.name
 if (userName==='' && user?.email) userName=user?.email
+const handleLogout = () => {
+    logout()
 
+    window.location.href = '/'
+  }
 const userRole = user?.role;
 
   return (
@@ -41,8 +45,13 @@ const userRole = user?.role;
         </div>
 
         <div className="flex gap-2 md:gap-4 items-center">
-          {user ? (
-            <span className="text-blue-600 font-bold px-4">{'¡Hola, '+ userName.trim()+'!'}</span>
+          {user ? (<div className="flex items-center gap-4">
+
+            <span className="text-blue-600 font-bold px-4">{'¡Hola, '+ userName.trim()+'!'} 
+             
+         </span> <span className=" text-red-500 px-5 py-4 flex gap-2 items-center cursor-pointer"><LogOut onClick={handleLogout} className="w-6 h-6 text-red-500"  />Cerrar sesión</span>
+          </div>
+             
           ) : (
             <>
               <Link 
