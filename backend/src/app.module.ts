@@ -31,6 +31,7 @@ import { SeedModule } from './modules/seed/seed.module';
     }),
 
     TypeOrmModule.forRoot({
+      ssl: process.env.STAGE === 'production' ? true : false,
       type: 'postgres',
       host: process.env.DB_HOST,
       port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
