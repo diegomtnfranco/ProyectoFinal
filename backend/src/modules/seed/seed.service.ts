@@ -464,152 +464,165 @@ export class SeedService implements OnModuleInit {
   }
 
   async clearDatabase() {
+
     this.logger.warn('🗑️ Limpiando base de datos...');
+    
+    // Orden inverso para respetar restricciones de clave foránea
+    await this.spaceRepository.delete({});
+    await this.rateRepository.delete({});
+    await this.parkingLotRepository.delete({});
+    await this.parkingEmployeeRepository.delete({});
+    await this.parkingOwnerRepository.delete({});
+    await this.clientRepository.delete({});
+    await this.userRepository.delete({});
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    this.logger.log('✅ Base de datos limpiada exitosamente');
+    // this.logger.warn('🗑️ Limpiando base de datos...');
 
-    try {
-      const adminUser = await queryRunner.manager.findOne(User, {
-        where: { role: UserRole.ADMIN },
-      });
+    // const queryRunner = this.dataSource.createQueryRunner();
+    // await queryRunner.connect();
+    // await queryRunner.startTransaction();
 
-      if (adminUser) {
-        const adminId = adminUser.id;
+    // try {
+    //   const adminUser = await queryRunner.manager.findOne(User, {
+    //     where: { role: UserRole.ADMIN },
+    //   });
 
-        const usersToDelete = await queryRunner.manager
-          .createQueryBuilder(User, 'user')
-          .where('user.id != :adminId', { adminId })
-          .getMany();
+    //   if (adminUser) {
+    //     const adminId = adminUser.id;
 
-        const userIds = usersToDelete.map(u => u.id);
+    //     const usersToDelete = await queryRunner.manager
+    //       .createQueryBuilder(User, 'user')
+    //       .where('user.id != :adminId', { adminId })
+    //       .getMany();
 
-        if (userIds.length > 0) {
-          await queryRunner.manager
-            .createQueryBuilder()
-            .delete()
-            .from(ClientProfile)
-            .where('userId IN (:...userIds)', { userIds })
-            .execute();
+    //     const userIds = usersToDelete.map(u => u.id);
 
-          await queryRunner.manager
-            .createQueryBuilder()
-            .delete()
-            .from(ParkingEmployee)
-            .where('userId IN (:...userIds)', { userIds })
-            .execute();
+    //     if (userIds.length > 0) {
+    //       await queryRunner.manager
+    //         .createQueryBuilder()
+    //         .delete()
+    //         .from(ClientProfile)
+    //         .where('userId IN (:...userIds)', { userIds })
+    //         .execute();
 
-          const ownersToDelete = await queryRunner.manager
-            .createQueryBuilder(ParkingOwner, 'owner')
-            .where('owner.userId IN (:...userIds)', { userIds })
-            .getMany();
+    //       await queryRunner.manager
+    //         .createQueryBuilder()
+    //         .delete()
+    //         .from(ParkingEmployee)
+    //         .where('userId IN (:...userIds)', { userIds })
+    //         .execute();
 
-          const ownerIds = ownersToDelete.map(o => o.id);
+    //       const ownersToDelete = await queryRunner.manager
+    //         .createQueryBuilder(ParkingOwner, 'owner')
+    //         .where('owner.userId IN (:...userIds)', { userIds })
+    //         .getMany();
 
-          if (ownerIds.length > 0) {
-            const lotsToDelete = await queryRunner.manager
-              .createQueryBuilder(ParkingLot, 'lot')
-              .where('lot.ownerId IN (:...ownerIds)', { ownerIds })
-              .getMany();
+    //       const ownerIds = ownersToDelete.map(o => o.id);
 
-            const lotIds = lotsToDelete.map(l => l.id);
+    //       if (ownerIds.length > 0) {
+    //         const lotsToDelete = await queryRunner.manager
+    //           .createQueryBuilder(ParkingLot, 'lot')
+    //           .where('lot.ownerId IN (:...ownerIds)', { ownerIds })
+    //           .getMany();
 
-            if (lotIds.length > 0) {
-              await queryRunner.manager
-                .createQueryBuilder()
-                .delete()
-                .from(Space)
-                .where('parkingLotId IN (:...lotIds)', { lotIds })
-                .execute();
+    //         const lotIds = lotsToDelete.map(l => l.id);
 
-              await queryRunner.manager
-                .createQueryBuilder()
-                .delete()
-                .from(Rate)
-                .where('parkingLotId IN (:...lotIds)', { lotIds })
-                .execute();
+    //         if (lotIds.length > 0) {
+    //           await queryRunner.manager
+    //             .createQueryBuilder()
+    //             .delete()
+    //             .from(Space)
+    //             .where('parkingLotId IN (:...lotIds)', { lotIds })
+    //             .execute();
 
-              await queryRunner.manager
-                .createQueryBuilder()
-                .delete()
-                .from(ParkingLot)
-                .where('id IN (:...lotIds)', { lotIds })
-                .execute();
-            }
+    //           await queryRunner.manager
+    //             .createQueryBuilder()
+    //             .delete()
+    //             .from(Rate)
+    //             .where('parkingLotId IN (:...lotIds)', { lotIds })
+    //             .execute();
 
-            await queryRunner.manager
-              .createQueryBuilder()
-              .delete()
-              .from(ParkingOwner)
-              .where('id IN (:...ownerIds)', { ownerIds })
-              .execute();
-          }
+    //           await queryRunner.manager
+    //             .createQueryBuilder()
+    //             .delete()
+    //             .from(ParkingLot)
+    //             .where('id IN (:...lotIds)', { lotIds })
+    //             .execute();
+    //         }
 
-          await queryRunner.manager
-            .createQueryBuilder()
-            .delete()
-            .from(User)
-            .where('id != :adminId', { adminId })
-            .execute();
+    //         await queryRunner.manager
+    //           .createQueryBuilder()
+    //           .delete()
+    //           .from(ParkingOwner)
+    //           .where('id IN (:...ownerIds)', { ownerIds })
+    //           .execute();
+    //       }
 
-          this.logger.log(`✅ Eliminados ${userIds.length} usuarios. Admin ${adminUser.email} preservado.`);
-        } else {
-          this.logger.log('ℹ️ No hay usuarios para eliminar (solo admin).');
-        }
-      } else {
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(Space)
-          .execute();
+    //       await queryRunner.manager
+    //         .createQueryBuilder()
+    //         .delete()
+    //         .from(User)
+    //         .where('id != :adminId', { adminId })
+    //         .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(Rate)
-          .execute();
+    //       this.logger.log(`✅ Eliminados ${userIds.length} usuarios. Admin ${adminUser.email} preservado.`);
+    //     } else {
+    //       this.logger.log('ℹ️ No hay usuarios para eliminar (solo admin).');
+    //     }
+    //   } else {
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(Space)
+    //       .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(ParkingLot)
-          .execute();
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(Rate)
+    //       .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(ParkingEmployee)
-          .execute();
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(ParkingLot)
+    //       .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(ParkingOwner)
-          .execute();
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(ParkingEmployee)
+    //       .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(ClientProfile)
-          .execute();
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(ParkingOwner)
+    //       .execute();
 
-        await queryRunner.manager
-          .createQueryBuilder()
-          .delete()
-          .from(User)
-          .execute();
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(ClientProfile)
+    //       .execute();
 
-        this.logger.log('✅ Base de datos limpiada exitosamente (sin admin encontrado).');
-      }
+    //     await queryRunner.manager
+    //       .createQueryBuilder()
+    //       .delete()
+    //       .from(User)
+    //       .execute();
 
-      await queryRunner.commitTransaction();
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      this.logger.error('❌ Error al limpiar base de datos:', error);
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    //     this.logger.log('✅ Base de datos limpiada exitosamente (sin admin encontrado).');
+    //   }
+
+    //   await queryRunner.commitTransaction();
+    // } catch (error) {
+    //   await queryRunner.rollbackTransaction();
+    //   this.logger.error('❌ Error al limpiar base de datos:', error);
+    //   throw error;
+    // } finally {
+    //   await queryRunner.release();
+    // }
   }
 }
