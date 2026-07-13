@@ -8,6 +8,7 @@ process.env.TZ = 'America/Argentina/Buenos_Aires';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+   console.log('🔧 FRONTEND_URL desde env:', process.env.FRONTEND_URL);
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
