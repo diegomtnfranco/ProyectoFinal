@@ -1,3 +1,4 @@
+// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -22,7 +23,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
 import { SeedModule } from './modules/seed/seed.module';
 
-
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -31,7 +31,6 @@ import { SeedModule } from './modules/seed/seed.module';
     }),
 
     TypeOrmModule.forRoot({
-      ssl: process.env.STAGE === 'production' ? true : false,
       type: 'postgres',
       host: process.env.DB_HOST,
       port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
@@ -39,35 +38,35 @@ import { SeedModule } from './modules/seed/seed.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      //synchronize: true,
-      //logging:true,
+      synchronize: true,
+      // ✅ Configuración SSL corregida
+      ssl: process.env.STAGE === 'production' ? { rejectUnauthorized: false } : false,
       extra: {
         timezone: 'America/Argentina/Buenos_Aires',
+        // ✅ Configuración adicional para SSL
+        ssl: process.env.STAGE === 'production' ? { rejectUnauthorized: false } : undefined,
       },
+      logging: false,
     }),
     AuthModule,
     ParkingLotsModule,
     UsersModule,
     ClientProfilesModule,
-    UsersModule,
     ParkingOwnersModule,
-    ParkingLotsModule,
     SpacesModule,
     RatesModule,
     ReservationsModule,
     OccupancyModule,
-    ClientProfilesModule,
     CommonModule,
     ParkingEmployeesModule,
     NotificationsModule,
     WebsocketModule,
-    SeedModule, 
-
+    SeedModule,
   ],
   controllers: [],
   providers: [
     {
-      provide: APP_GUARD,      // ← NUEVO: Registramos guards GLOBALES
+      provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
     {
