@@ -1,91 +1,225 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-
-import { login } from '../services/auth.service'
+// frontend/src/features/auth/components/LoginForm.tsx
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react'; 
+import { UserRole, type LoginDto } from '../../../types/auth.types';
+import { useAuthStore } from '../../../stores';
 
 function LoginForm() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  
+  // Estados locales
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState('');
+  const [showResendButton, setShowResendButton] = useState(false);
+  
+  // Estados del store
+  const { user, token, login, isLoading, clearError } = useAuthStore();
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  // ✅ Redirigir si ya está autenticado
+  useEffect(() => {
+    if (token && user) {
+      switch (user.role) {
+        case UserRole.ADMIN:
+          navigate('/admin');
+          break;
+        case UserRole.PARKING_OWNER:
+          navigate('/owner');
+          break;
+        case UserRole.PARKING_EMPLOYEE:
+          navigate('/employee');
+          break;
+        case UserRole.CLIENT:
+          navigate('/client');
+          break;
+        default:
+          navigate('/');
+          break;
+      }
+    }
+  }, [token, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setLocalError('');
+    setShowResendButton(false);
+    clearError();
+
+    if (!email.trim() || !password.trim()) {
+      setLocalError('Por favor, completá todos los campos para ingresar.');
+      return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      setLocalError('El formato del correo electrónico no es válido.');
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
 
     try {
-      setLoading(true)
-      setError('')
-
-      const data = await login({
-        email,
-        password,
-      })
-
-      localStorage.setItem('token', data.access_token)
-
-      localStorage.setItem('user', JSON.stringify(data.user))
-
-      navigate('/client')
+      const loginData: LoginDto = { email, password };
+      await login(loginData);
+      
+      // redirigir
     } catch (err) {
-      setError('Credenciales inválidas')
-    } finally {
-      setLoading(false)
+      const errorMessage = typeof err === 'string' ? err : '';
+      
+      
+      if (errorMessage.includes('verificar') || errorMessage.includes('Debes verificar')) {
+        setLocalError('Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
+        setShowResendButton(true);
+      } else if (errorMessage.includes('aprobación') || errorMessage.includes('pendiente')) {
+        setLocalError('Tu cuenta está pendiente de aprobación por el administrador. Te notificaremos cuando sea aceptada.');
+      } else if (errorMessage.includes('desactivada')) {
+        setLocalError('Tu cuenta ha sido desactivada. Contacta al administrador.');
+      } else {
+        setLocalError(errorMessage || 'Credenciales inválidas o error de conexión.');
+      }
     }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      const { authService } = await import('../../../services/auth.service');
+      await authService.resendVerification(email);
+      setLocalError('Se ha reenviado el email de verificación. Revisa tu bandeja de entrada.');
+      setShowResendButton(false);
+    } catch (err) {
+      setLocalError('No se pudo reenviar el email. Intenta nuevamente.');
+    }
+  };
+
+  // Mostrar loading mientras verifica autenticación
+  if (isLoading && !user) {
+    return (
+      <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si ya está autenticado, mostrar loading (el useEffect redirigirá)
+  if (token && user) {
+    return (
+      <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className='bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6'
-    >
-      <div>
-        <h1 className='text-3xl font-bold'>Bienvenido</h1>
+    <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-md flex flex-col gap-6 relative">
+      
+      {/* 1. BOTÓN SUPERIOR (Requerimiento del Backlog) */}
+      <button 
+        type="button" 
+        onClick={() => navigate(-1)} 
+        className="flex items-center text-gray-500 hover:text-gray-800 transition-colors w-fit -ml-2"
+      >
+        <ChevronLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Volver</span>
+      </button>
 
-        <p className='text-gray-500'>Ingresá para continuar</p>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Bienvenido</h1>
+        <p className="text-gray-500">Ingresá para continuar</p>
       </div>
 
-      <div className='flex flex-col gap-2'>
-        <label className='font-medium'>Email</label>
-
+      <div className="flex flex-col gap-2">
+        <label className="font-medium text-gray-700">Email</label>
         <input
-          type='email'
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder='ejemplo@mail.com'
-          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500'
+          placeholder="ejemplo@mail.com"
+          required
+          disabled={isLoading}
+          className="border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:bg-gray-100"
         />
       </div>
 
-      <div className='flex flex-col gap-2'>
-        <label className='font-medium'>Contraseña</label>
-
+      <div className="flex flex-col gap-2">
+        <label className="font-medium text-gray-700">Contraseña</label>
         <input
-          type='password'
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder='********'
-          className='border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500'
+          placeholder="********"
+          required
+          disabled={isLoading}
+          className="border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:bg-gray-100"
         />
+        
+        <div className="flex justify-end mt-1">
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password')}
+            className="text-sm text-blue-600 font-medium hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
       </div>
 
-      {error && (
-        <div className='bg-red-100 text-red-600 p-3 rounded-xl'>
-          {error}
+      {(localError) && (
+        <div className="bg-red-100 text-red-600 p-3 rounded-xl text-sm font-medium">
+          {localError}
         </div>
       )}
 
+      {showResendButton && (
+        <button
+          type="button"
+          onClick={handleResendVerification}
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+        >
+          ¿No recibiste el email? Reenviar verificación
+        </button>
+      )}
+
       <button
-        type='submit'
-        disabled={loading}
-        className='bg-blue-500 hover:bg-blue-600 transition-all text-white font-semibold py-3 rounded-xl'
+        type="submit"
+        disabled={isLoading}
+        className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 transition-all text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-100"
       >
-        {loading ? 'Ingresando...' : 'Ingresar'}
+        {isLoading ? 'Ingresando...' : 'Ingresar'}
       </button>
+
+      <div className="text-center mt-2">
+        <p className="text-gray-500 text-sm">
+          ¿No tenés cuenta?{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/register')}
+            className="text-blue-600 font-bold hover:underline"
+          >
+            Registrate acá
+          </button>
+        </p>
+      </div>
+
+      {/* 2. ENLACE AL PIE (Requerimiento del Backlog) */}
+      <div className="text-center pt-2">
+        <button 
+          type="button" 
+          onClick={() => navigate('/')} 
+          className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          Volver al inicio
+        </button>
+      </div>
+      
     </form>
-  )
+  );
 }
 
-export default LoginForm
+export default LoginForm;

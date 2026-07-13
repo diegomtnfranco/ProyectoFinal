@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+postgres/
+postman/
+.env
 # Logs
 logs
 *.log

@@ -2,97 +2,83 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# ParkingAPI
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+1. Clonar proyecto
 
-## Description
+2. ```npm install ```
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+3. Creas ```.env``` tomando de referencia el  
+```
+.env.template
 ```
 
-## Compile and run the project
+4. Descargar Docker Desktop ```https://www.docker.com/get-started/```
+
+5. Descargar imagen de postgres ```docker pull postgres:14.3```
+
+6. Levantar la BD
+```
+docker-compose up -d
+```
+7. npm run start:dev
+
+# Instalaciones útiles
+
+1. Postman ```https://www.postman.com/downloads/```
+2. TablePlus para gestar la DB ```https://tableplus.com/``` 
+
+# Testing automatizado
+
+## Comandos recomendados
+
+Ejecutar toda la suite unitaria y de integración:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm test -- --runInBand --coverage
 ```
 
-## Run tests
+Ejecutar solo los tests E2E:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test:e2e
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Ejecutar una selección rápida durante el desarrollo:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm test -- --runInBand
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Estado actual de los tests
 
-## Resources
+Se han implementado tests automatizados para los módulos principales del backend, con enfoque en reglas de negocio, permisos y flujos críticos.
 
-Check out a few resources that may come in handy when working with NestJS:
+### Módulos cubiertos
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Auth: login, registro, verificación de email y obtención de perfil.
+- Occupancy: check-in, check-out, ocupaciones activas, historial y flujos anónimos.
+- Reservations: creación, confirmación, cancelación y cambio de espacio.
+- Parking-lots: creación, consulta, disponibilidad, actualización y control por propietario/empleado.
+- Spaces: creación, actualización de estado, reactivación y consulta.
+- Parking-owners: creación, aprobación y gestión.
+- Rates: creación, consulta, tarifa aplicable y actualización.
+- Websocket: emisión de eventos de ocupación y disponibilidad.
 
-## Support
+### Qué se valida
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Delegación correcta de los controladores a los servicios.
+- Reglas de negocio y validaciones de acceso.
+- Casos exitosos y de error para los flujos más críticos.
+- Integración básica de auth y occupancy sin depender de una base de datos real.
 
-## Stay in touch
+### Cobertura actual
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+La última ejecución reportó:
 
-## License
+- Statements: 25.51%
+- Branches: 25.71%
+- Functions: 11.52%
+- Lines: 25.49%
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Este porcentaje irá creciendo a medida que se agreguen más tests de servicios y controladores para los módulos restantes.
