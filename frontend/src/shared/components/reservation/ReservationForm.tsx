@@ -1,10 +1,15 @@
 import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { reservationSchema } from '../../utils/validators';
 import { z } from 'zod';
-import { calculatePrice, getRateForVehicle } from '../../utils/priceCalculator';
-import { Rate } from '../../types/parking.types';
+import type { Rate } from '../../../types/parking.types';
+
+const reservationSchema = z.object({
+      vehicleType: z.string(),
+      plateNumber: z.string().max(10).min(6),
+      startDate: z.string().datetime(),
+      endDate: z.string().datetime()
+    })
 
 const formSchema = reservationSchema;
 export type ReservationFormValues = z.infer<typeof formSchema>;
@@ -29,11 +34,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ rates, onSubmit }) =>
   const startDate = watch('startDate');
   const endDate = watch('endDate');
 
+ // Replicamos la lógica exacta de ParkingDetailsPage sin dependencias externas
   const price = useMemo(() => {
-    const rate = getRateForVehicle(rates, vehicleType);
-    if (!rate || !startDate || !endDate) return 0;
+    if (!rates || rates.length === 0 || !startDate || !endDate) return 0;
+    
+    // 1. Encontrar tarifa usando la misma propiedad (pricePerHour o price)
+    const rate = rates.find(r => r.vehicleType === vehicleType);
+    const pricePerHour = rate?.pricePerHour || (rate as any)?.price || 0;
+
+    // 2. Calcular horas (utilizando Math.ceil tal como venías manejándolo)
+    if (new Date(endDate) <= new Date(startDate)) return 0;
     const diff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 3600);
-    return calculatePrice(rate, Math.max(1, Math.ceil(diff)));
+    const totalHours = Math.ceil(diff);
+
+    // 3. Retornar precio total
+    return totalHours * pricePerHour;
   }, [rates, vehicleType, startDate, endDate]);
 
   return (

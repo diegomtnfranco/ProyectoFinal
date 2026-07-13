@@ -1,5 +1,5 @@
 // frontend/src/features/parking-lots/pages/MyReservationsPage.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback , type JSX} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -17,16 +17,25 @@ import {
   Search,
   RefreshCw,
   Trash2,
-  Eye
+  Eye,
+  Truck,
+  Motorbike
 } from 'lucide-react';
 import { useReservationsStore } from '../../../stores/reservationStore';
 import { useWebsocketStore } from '../../../stores/websocketStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
-import { ReservationStatus, type ReservationStatusType } from '../../../types/auth.types';
+import { ReservationStatus, VehicleType, type ReservationStatusType, type UserVehicleType } from '../../../types/auth.types';
 import type { Reservation } from '../../../types/parking.types';
 
 type FilterPeriod = 'all' | 'upcoming' | 'past' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
+
+const vehicleConfig: Record<UserVehicleType, { name: string; icon: JSX.Element }> = {
+  [VehicleType.CAR]: { name: "Auto", icon: <Car className="w-5 h-5" /> },
+  [VehicleType.TRUCK]: { name: "Camioneta", icon: <Truck className="w-5 h-5" /> },
+  [VehicleType.MOTORCYCLE]: { name: "Moto", icon: <Motorbike className="w-5 h-5" /> },
+  [VehicleType.VAN]: { name: "Furgón", icon: <Truck className="w-5 h-5" /> },
+};
 
 function MyReservationsPage() {
   const navigate = useNavigate();
@@ -436,7 +445,7 @@ const formatCurrency = (amount: number | string) => {
                         </div>
                         <div className='flex items-center gap-2'>
                           <Car size={16} className='text-gray-400' />
-                          <span>Vehículo: {reservation.vehiclePlate} ({reservation.vehicleType})</span>
+                          <span>Vehículo: {reservation.vehiclePlate} ({vehicleConfig[reservation.vehicleType]?.name || reservation.vehicleType})</span>
                         </div>
                         <div className='flex items-center gap-2'>
                           <MapPin size={16} className='text-gray-400' />
