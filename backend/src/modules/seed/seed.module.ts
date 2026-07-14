@@ -14,6 +14,8 @@ import { ParkingEmployee } from '../parking-employees/entities/parking-employee.
 import { QRService } from '../common/qr/qr.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CommonModule } from '../common/common.module';
+import { Occupancy } from '../occupancy/entities/occupancy.entity';
+import { Reservation } from '../reservations/entities/reservation.entity';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { CommonModule } from '../common/common.module';
       Space,
       Rate,
       ParkingEmployee,
+      Occupancy,
+      Reservation,
     ]),
   ],
   controllers: [SeedController],
