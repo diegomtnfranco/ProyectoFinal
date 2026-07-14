@@ -12,6 +12,8 @@ import { Rate } from '../rates/entities/rate.entity';
 import { ParkingEmployee } from '../parking-employees/entities/parking-employee.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { QRService } from '../common/qr/qr.service';
+import { Occupancy } from '../occupancy/entities/occupancy.entity';
+import { Reservation } from '../reservations/entities/reservation.entity';
 
 // ============ INTERFACES ============
 interface Location {
@@ -79,6 +81,10 @@ export class SeedService implements OnModuleInit {
     private rateRepository: Repository<Rate>,
     @InjectRepository(ParkingEmployee)
     private parkingEmployeeRepository: Repository<ParkingEmployee>,
+    @InjectRepository(Occupancy)
+    private occupancyRepository: Repository<Occupancy>,
+    @InjectRepository(Reservation)
+    private reservationRepository: Repository<Reservation>,
     private dataSource: DataSource,
     private qrService: QRService,
   ) {}
@@ -468,13 +474,15 @@ export class SeedService implements OnModuleInit {
     this.logger.warn('🗑️ Limpiando base de datos...');
     
     // Orden inverso para respetar restricciones de clave foránea
-    await this.spaceRepository.delete({});
-    await this.rateRepository.delete({});
-    await this.parkingLotRepository.delete({});
-    await this.parkingEmployeeRepository.delete({});
-    await this.parkingOwnerRepository.delete({});
-    await this.clientRepository.delete({});
-    await this.userRepository.delete({});
+    await this.occupancyRepository.deleteAll();
+    await this.reservationRepository.deleteAll();
+    await this.spaceRepository.deleteAll();
+    await this.rateRepository.deleteAll();
+    await this.parkingLotRepository.deleteAll();
+    await this.parkingEmployeeRepository.deleteAll();
+    await this.parkingOwnerRepository.deleteAll();
+    await this.clientRepository.deleteAll();
+    await this.userRepository.deleteAll();
 
     this.logger.log('✅ Base de datos limpiada exitosamente');
     // this.logger.warn('🗑️ Limpiando base de datos...');
