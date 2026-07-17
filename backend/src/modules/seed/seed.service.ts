@@ -478,8 +478,8 @@ export class SeedService implements OnModuleInit {
     await this.reservationRepository.deleteAll();
     await this.spaceRepository.deleteAll();
     await this.rateRepository.deleteAll();
-    await this.parkingLotRepository.deleteAll();
     await this.parkingEmployeeRepository.deleteAll();
+    await this.parkingLotRepository.deleteAll();
     await this.parkingOwnerRepository.deleteAll();
     await this.clientRepository.deleteAll();
     await this.userRepository.deleteAll();
