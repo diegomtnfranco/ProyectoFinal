@@ -12,10 +12,10 @@ import { employeeMenu } from '../components/EmployeeMenu'
 
 import { useAuthStore } from '../../stores/authStore'
 import { clientMenu } from '../components/ClientMenu'
-import { employeeMenu } from './EmployeeMenu'
+// import { employeeMenu } from './EmployeeMenu'
 
 // importo los roles de usuario
-import { UserRole } from "../../types/auth.types";
+//import { UserRole } from "../../types/auth.types";
 
 
 function Navbar() {
