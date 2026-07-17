@@ -114,15 +114,22 @@ const handleDownloadTicket = () => {
 
    // Calcular duración
   const checkIn = new Date(ticketData.occupancy.checkInTime);
-  const checkOut = new Date(ticketData.occupancy.checkOutTime);
+const checkOut = new Date(ticketData.occupancy.checkOutTime);
 
+let duration = "0 minutos";
+
+if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
   const diffMs = checkOut.getTime() - checkIn.getTime();
-  const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+  const diffMinutes = Math.max(
+    0,
+    Math.ceil(diffMs / (1000 * 60))
+  );
 
-  const duration =
+  duration =
     diffMinutes >= 60
       ? `${(diffMinutes / 60).toFixed(1)} horas`
       : `${diffMinutes} minutos`;
+}
 
 
   generateTicketPDF({
