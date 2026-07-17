@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { TicketData } from "../../types/ticket.types";
-import logo from "../../assets/logos/logo-eapp4.png";
+import logo from "../../assets/logos/logo-eapp4.webp";
 
 export const generateTicketPDF = (ticket: TicketData) => {
 
@@ -37,7 +37,7 @@ export const generateTicketPDF = (ticket: TicketData) => {
   // Logo
   doc.addImage(
     logo,      // <-- tu logo en Base64
-    "PNG",
+    "WEBP",
     startX,
     y,
     logoSize,
