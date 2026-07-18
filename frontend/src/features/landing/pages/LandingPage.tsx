@@ -49,7 +49,7 @@ const userRole = user?.role;
 
             <span className="text-blue-600 font-bold px-4">{'¡Hola, '+ userName.trim()+'!'} 
              
-         </span> <span className=" text-red-500 px-5 py-4 flex gap-2 items-center cursor-pointer"><LogOut onClick={handleLogout} className="w-6 h-6 text-red-500"  />Cerrar sesión</span>
+         </span> <span onClick={handleLogout}  className=" text-red-500 px-5 py-4 flex gap-2 items-center cursor-pointer"><LogOut onClick={handleLogout} className="w-6 h-6 text-red-500"  />Cerrar sesión</span>
           </div>
              
           ) : (
@@ -127,9 +127,25 @@ const userRole = user?.role;
         </div>
       </section>
 
-      <footer id="contacto" className="bg-gray-900 text-white mt-auto py-12 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-            <p>© 2026 Estacionapp. Todos los derechos reservados.</p>
+      <footer
+        id="contacto"
+        className="bg-gray-900 text-white mt-auto py-8 px-4 md:px-8"
+      >
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+
+          <p className="text-sm text-gray-400">
+            © 2026 EstacionApp. Todos los derechos reservados.
+          </p>
+
+          <nav className="flex items-center gap-6">
+            <Link
+              to="/about-us"
+              className="text-gray-300 hover:text-blue-400 transition-colors duration-200 font-medium"
+            >
+              Sobre nosotros
+            </Link>
+          </nav>
+
         </div>
       </footer>
     </div>
