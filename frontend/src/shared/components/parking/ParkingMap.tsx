@@ -44,7 +44,8 @@
 
 // export default ParkingMap;
 
-import { useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import SpaceCard from './SpaceCard';
 import type { Space } from '../../../types/parking.types';
 import { useSpacesStore } from '../../../stores/spacesStore';
@@ -54,25 +55,32 @@ interface ParkingMapProps {
   parkingLotId?: string;
   onRefresh?: () => void;
   className?: string;
+  onManualCheckout?: (result: any) => void;
 }
 
-const ParkingMap = ({ spacesList, parkingLotId, onRefresh, className = '' }: ParkingMapProps) => {
+
+const ParkingMap = ({ spacesList, parkingLotId, onRefresh, className = '', onManualCheckout, }: ParkingMapProps) => {
+
+
+  useEffect(() => { return () => {  }; }, []);
+
   const { fetchSpaces } = useSpacesStore();
 
-  const handleSpaceUpdate = () => {
-    if (parkingLotId) {
-      fetchSpaces(parkingLotId);
-    }
-    onRefresh?.();
-  };
+const handleSpaceUpdate = (result?: any) => {
 
-  if (spacesList.length === 0) {
-    return (
-      <div className={`rounded-md border-2 bg-white p-6 shadow-sm min-h-[350px] flex items-center justify-center ${className}`}>
-        <p className="text-slate-500">No hay espacios disponibles.</p>
-      </div>
-    );
-  }
+    if (parkingLotId) {
+        fetchSpaces(parkingLotId);
+    }
+
+    onRefresh?.();
+
+    if (result) {
+        onManualCheckout?.(result);
+    }
+};
+
+
+
 
   return (
     <div className={`rounded-md border-2 bg-white p-6 shadow-sm min-h-[350px] ${className}`}>
@@ -81,7 +89,11 @@ const ParkingMap = ({ spacesList, parkingLotId, onRefresh, className = '' }: Par
           <SpaceCard key={space.id} space={space} onSpaceUpdate={handleSpaceUpdate} />
         ))}
       </div>
+
+      
     </div>
+
+    
   );
 };
 

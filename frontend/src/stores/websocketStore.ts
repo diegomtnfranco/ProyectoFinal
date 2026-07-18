@@ -26,7 +26,7 @@ export const useWebsocketStore = create<WebsocketState>((set, get) => ({
     });
 
     socket.on('connect', () => {
-      console.log('🔌 WebSocket conectado');
+    
       set({ isConnected: true });
     });
 

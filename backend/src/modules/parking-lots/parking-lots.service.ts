@@ -351,6 +351,7 @@ async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRol
       },
       spaces: spacesDto,
       rates,
+      imageUrl: parkingLot.imageUrl || '',
     };
   }
 
@@ -420,6 +421,7 @@ async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRol
       },
       spaces: spacesDto,
       rates,
+      imageUrl: parkingLot.imageUrl || '',
     };
   }
 

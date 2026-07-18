@@ -28,7 +28,6 @@ function EmployeesPage() {
     
     if (!parkingLoading) {
       fetchAttempted.current = true;
-      console.log('📡 EmployeesPage: Cargando estacionamiento...');
       fetchMyParkingLot();
     }
   }, [parkingLoading, currentParkingLot, hasFetchedOnce, fetchMyParkingLot]);
@@ -36,7 +35,6 @@ function EmployeesPage() {
   // ✅ Cargar empleados solo si hay parking
   useEffect(() => {
     if (currentParkingLot?.id) {
-      console.log('📡 EmployeesPage: Cargando empleados...');
       fetchEmployees(currentParkingLot.id);
     }
   }, [currentParkingLot, fetchEmployees]);

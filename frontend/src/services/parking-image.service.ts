@@ -1,7 +1,7 @@
 import { api } from './api';
 
 export const parkingImageService = {
-  async updateParkingImage(parkingLotId: string, imageFile: File): Promise<{ imageUrl: string }> {
+  async updateParkingImage(parkingLotId: string, imageFile: File): Promise<{ url: string ,message: string }> {
     
     const formData = new FormData();
     formData.append('file', imageFile);

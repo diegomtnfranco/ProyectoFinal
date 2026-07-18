@@ -52,7 +52,7 @@ export const useOccupancyStore = create<OccupancyState>((set, get) => ({
         vehiclePlate: newOccupancy.vehiclePlate,
         vehicleType: newOccupancy.vehicleType,
         checkInTime: newOccupancy.checkInTime,
-        checkedInBy: newOccupancy.checkedInBy,
+        checkedInBy: newOccupancy.checkedInBy||'',
         totalAmount: newOccupancy.totalAmount,
         hasReservation: !!(newOccupancy as any).reservationId,  // ← Verificar si tiene reserva
         reservationId: (newOccupancy as any).reservationId,

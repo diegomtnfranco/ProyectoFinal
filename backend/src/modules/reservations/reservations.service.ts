@@ -42,7 +42,6 @@ export class ReservationsService {
   // CREATE
   // ============================
   async create(createDto: CreateReservationDto, userId: string): Promise<ReservationResponseDto> {
-    console.log(`[CREATE] Iniciando creación de reserva para usuario ${userId}`);
     const client = await this.clientRepository.findOne({ where: { userId } });
     if (!client) throw new NotFoundException('Perfil de cliente no encontrado');
 
@@ -106,7 +105,6 @@ export class ReservationsService {
       const numB = parseInt(b.spaceNumber.match(/\d+/)?.[0] || '0');
       return numA - numB;
     })[0];
-    console.log(`[CREATE] Espacio asignado: ${selectedSpace.spaceNumber} (${selectedSpace.id})`);
 
     const rate = await this.ratesService.findApplicableRate(parkingLot.id, createDto.vehicleType, startTime);
     if (!rate) throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
@@ -133,14 +131,12 @@ export class ReservationsService {
     reservation.createdAt = new Date();
 
     await this.reservationRepository.save(reservation);
-    console.log(`[CREATE] Reserva creada con ID ${reservation.id}`);
 
     if (blockSpaceAt <= now && selectedSpace.status === SpaceStatus.AVAILABLE) {
       selectedSpace.status = SpaceStatus.RESERVED;
       selectedSpace.isReserved = true;
       selectedSpace.reservedUntil = startTime;
       await this.spaceRepository.save(selectedSpace);
-      console.log(`[CREATE] Bloqueo inmediato del espacio ${selectedSpace.spaceNumber}`);
       this.websocketGateway.emitSpaceUpdate(parkingLot.id, selectedSpace.id, SpaceStatus.RESERVED);
       this.websocketGateway.emitParkingAvailability(parkingLot.id);
     }
@@ -173,7 +169,6 @@ export class ReservationsService {
   // CONFIRMAR RESERVA (con reasignación)
   // ============================
   async confirmReservation(id: string, userId: string, userRole: UserRole): Promise<ReservationResponseDto> {
-    console.log(`[CONFIRM] Confirmando reserva ${id} por usuario ${userId}`);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -195,10 +190,8 @@ export class ReservationsService {
       let oldSpaceNumber = reservation.space.spaceNumber;
 
       if (reservation.space.status === SpaceStatus.OCCUPIED) {
-        console.log(`[CONFIRM] Espacio ${reservation.space.spaceNumber} ocupado. Buscando alternativa...`);
         const alternative = await this.findAlternativeSpaceWithinTransaction(reservation, queryRunner.manager);
         if (alternative) {
-          console.log(`[CONFIRM] Alternativa encontrada: espacio ${alternative.spaceNumber}. Reasignando...`);
           await this.reassignReservationWithinTransaction(reservation, alternative, queryRunner.manager);
           wasReassigned = true;
           oldSpaceNumber = reservation.space.spaceNumber;
@@ -209,7 +202,6 @@ export class ReservationsService {
           });
           if (reloaded) reservation.space = reloaded.space;
         } else {
-          console.log(`[CONFIRM] No hay alternativa. Dejando reserva pendiente.`);
           await this.handleBlockingConflict(reservation, reservation.space);
           await queryRunner.commitTransaction();
           return this.mapToResponseDto(reservation);
@@ -219,7 +211,6 @@ export class ReservationsService {
       reservation.status = ReservationStatus.CONFIRMED;
       reservation.updatedAt = new Date();
       await queryRunner.manager.save(reservation);
-      console.log(`[CONFIRM] Reserva ${reservation.id} confirmada. Espacio actual: ${reservation.space?.spaceNumber}`);
 
       const now = new Date();
       if (reservation.blockSpaceAt && reservation.blockSpaceAt <= now && reservation.space.status === SpaceStatus.AVAILABLE) {
@@ -227,7 +218,6 @@ export class ReservationsService {
         reservation.space.isReserved = true;
         reservation.space.reservedUntil = reservation.startTime;
         await queryRunner.manager.save(reservation.space);
-        console.log(`[CONFIRM] Bloqueo inmediato del espacio ${reservation.space.spaceNumber}`);
         this.websocketGateway.emitSpaceUpdate(reservation.space.parkingLotId, reservation.space.id, SpaceStatus.RESERVED);
         this.websocketGateway.emitParkingAvailability(reservation.space.parkingLotId);
 
@@ -306,7 +296,6 @@ export class ReservationsService {
     manager: EntityManager,
   ): Promise<void> {
     const oldSpace = reservation.space;
-    console.log(`[REASSIGN] Reasignando reserva ${reservation.id} del espacio ${oldSpace.spaceNumber} al ${newSpace.spaceNumber}`);
 
     const parkingLot = await manager.findOne(ParkingLot, { where: { id: newSpace.parkingLotId } });
     const blockHours = parkingLot?.settings?.blockSpaceHoursBefore ?? 2;
@@ -317,7 +306,6 @@ export class ReservationsService {
       spaceId: newSpace.id,
       blockSpaceAt: newBlockAt,
     });
-    console.log(`[REASSIGN] Reserva actualizada en BD. Affected: ${updateResult.affected}`);
 
     // Actualizar objeto en memoria
     reservation.spaceId = newSpace.id;
@@ -327,14 +315,12 @@ export class ReservationsService {
     newSpace.isReserved = true;
     newSpace.reservedUntil = reservation.startTime;
     await manager.save(newSpace);
-    console.log(`[REASSIGN] Nuevo espacio ${newSpace.spaceNumber} bloqueado`);
 
     if (oldSpace.status === SpaceStatus.RESERVED) {
       oldSpace.status = SpaceStatus.AVAILABLE;
       oldSpace.isReserved = false;
       oldSpace.reservedUntil = null;
       await manager.save(oldSpace);
-      console.log(`[REASSIGN] Espacio antiguo ${oldSpace.spaceNumber} liberado (estaba reservado)`);
     }
     this.websocketGateway.emitSpaceUpdate(oldSpace.parkingLotId, oldSpace.id, SpaceStatus.AVAILABLE);
     this.websocketGateway.emitSpaceUpdate(newSpace.parkingLotId, newSpace.id, SpaceStatus.RESERVED);
@@ -345,7 +331,6 @@ export class ReservationsService {
   // CANCELACIONES, CRON, MÉTODOS AUXILIARES
   // ============================
   async cancelByClient(id: string, userId: string): Promise<ReservationResponseDto> {
-    console.log(`[CANCEL-CLIENT] Cancelando reserva ${id} por usuario ${userId}`);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -406,7 +391,6 @@ export class ReservationsService {
   }
 
   async cancelByParking(id: string, userId: string, userRole: UserRole, reason?: string): Promise<ReservationResponseDto> {
-    console.log(`[CANCEL-PARKING] Cancelando reserva ${id} por usuario ${userId}`);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -526,7 +510,6 @@ export class ReservationsService {
   }
 
   async changeSpace(reservationId: string, newSpaceId: string, userId: string, userRole: UserRole): Promise<ReservationResponseDto> {
-    console.log(`[CHANGE-SPACE] Cambiando espacio de reserva ${reservationId} a ${newSpaceId}`);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -584,16 +567,13 @@ export class ReservationsService {
   // ============================
   @Cron(CronExpression.EVERY_5_MINUTES)
   async expirePendingReservations() {
-    console.log(`[CRON-expirePending] Ejecutando a las ${new Date().toISOString()}`);
     const expired = await this.reservationRepository.find({
       where: { status: ReservationStatus.PENDING_CONFIRMATION, expiresAt: LessThan(new Date()) },
       relations: ['client', 'client.user', 'space'],
     });
-    console.log(`[CRON-expirePending] Encontradas ${expired.length} reservas pendientes expiradas`);
     for (const r of expired) {
       r.status = ReservationStatus.EXPIRED;
       await this.reservationRepository.save(r);
-      console.log(`[CRON-expirePending] Reserva ${r.id} expirada (falta de confirmación)`);
       if (r.client?.user?.email) {
         await this.notificationsService.sendReservationExpiredNotification(
           r.client.user.email,
@@ -606,7 +586,6 @@ export class ReservationsService {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async blockSpacesForUpcomingReservations() {
     const now = new Date();
-    console.log(`[CRON-block] Ejecutando a las ${now.toISOString()}`);
     const reservationsToBlock = await this.reservationRepository.find({
       where: {
         status: ReservationStatus.CONFIRMED,
@@ -615,7 +594,6 @@ export class ReservationsService {
       },
       relations: ['space', 'space.parkingLot', 'client', 'client.user'],
     });
-    console.log(`[CRON-block] Encontradas ${reservationsToBlock.length} reservas para procesar`);
 
     for (const reservation of reservationsToBlock) {
       const queryRunner = this.dataSource.createQueryRunner();
@@ -633,7 +611,6 @@ export class ReservationsService {
         if (!space) continue;
 
         if (space.status === SpaceStatus.AVAILABLE) {
-          console.log(`[CRON-block] Espacio ${space.spaceNumber} disponible, bloqueando...`);
           space.status = SpaceStatus.RESERVED;
           space.isReserved = true;
           space.reservedUntil = reloaded.startTime;
@@ -642,17 +619,14 @@ export class ReservationsService {
           this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.RESERVED);
         }
         else if (space.status === SpaceStatus.OCCUPIED) {
-          console.log(`[CRON-block] Espacio ${space.spaceNumber} OCUPADO. Buscando alternativa...`);
           const alternative = await this.findAlternativeSpaceWithinTransaction(reloaded, queryRunner.manager);
           if (alternative) {
-            console.log(`[CRON-block] Alternativa encontrada: espacio ${alternative.spaceNumber}. Reasignando...`);
             await this.reassignReservationWithinTransaction(reloaded, alternative, queryRunner.manager);
             const updatedRes = await queryRunner.manager.findOne(Reservation, {
               where: { id: reloaded.id },
               relations: ['space'],
             });
             await queryRunner.commitTransaction();
-            console.log(`[CRON-block] Reserva ${reloaded.id} reasignada a ${updatedRes?.space?.spaceNumber}`);
             if (updatedRes?.client?.user?.email) {
               await this.notificationsService.sendSpaceChangedNotification(
                 updatedRes.client.user.email,
@@ -668,7 +642,6 @@ export class ReservationsService {
             this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.AVAILABLE);
             this.websocketGateway.emitSpaceUpdate(alternative.parkingLotId, alternative.id, SpaceStatus.RESERVED);
           } else {
-            console.log(`[CRON-block] No hay alternativa disponible. Notificando conflicto.`);
             await this.handleBlockingConflict(reloaded, space);
             await queryRunner.commitTransaction();
           }
@@ -677,7 +650,6 @@ export class ReservationsService {
         }
       } catch (error) {
         await queryRunner.rollbackTransaction();
-        console.error(`[CRON-block] Error con reserva ${reservation.id}:`, error);
       } finally {
         await queryRunner.release();
       }
@@ -688,7 +660,6 @@ export class ReservationsService {
   async expireConfirmedReservations() {
     const now = new Date();
     const gracePeriod = 10 * 60 * 1000; // 10 minutos
-    console.log(`[CRON-expireConfirmed] Ejecutando a las ${now.toISOString()}`);
     const expired = await this.reservationRepository.find({
       where: {
         status: ReservationStatus.CONFIRMED,
@@ -696,9 +667,7 @@ export class ReservationsService {
       },
       relations: ['space'],
     });
-    console.log(`[CRON-expireConfirmed] Encontradas ${expired.length} reservas confirmadas para expirar`);
     for (const r of expired) {
-      console.log(`[CRON-expireConfirmed] Expirando reserva ${r.id} (startTime ${r.startTime})`);
       r.status = ReservationStatus.EXPIRED;
       await this.reservationRepository.save(r);
       if (r.space && r.space.status === SpaceStatus.RESERVED) {
@@ -706,7 +675,6 @@ export class ReservationsService {
         r.space.isReserved = false;
         r.space.reservedUntil = null;
         await this.spaceRepository.save(r.space);
-        console.log(`[CRON-expireConfirmed] Espacio ${r.space.spaceNumber} liberado`);
         this.websocketGateway.emitSpaceUpdate(r.space.parkingLotId, r.space.id, SpaceStatus.AVAILABLE);
       }
       if (r.client?.user?.email) {
@@ -747,12 +715,10 @@ export class ReservationsService {
     });
     const conflictingIds = new Set(conflicting.map(r => r.spaceId));
     const free = compatible.filter(space => !conflictingIds.has(space.id));
-    console.log(`[findAlternative] Para reserva ${reservation.id} se encontraron ${free.length} espacios libres`);
     return free.length > 0 ? free[0] : null;
   }
 
   private async handleBlockingConflict(reservation: Reservation, blockedSpace: Space): Promise<void> {
-    console.log(`[CONFLICT] Sin solución para reserva ${reservation.id} (espacio ${blockedSpace.spaceNumber} ocupado)`);
     if (reservation.space?.parkingLot?.owner?.user?.email) {
       await this.notificationsService.sendSpaceConflictNotification(
         reservation.space.parkingLot.owner.user.email,

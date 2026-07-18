@@ -41,7 +41,6 @@ function ParkingListPage() {
   // Conectar WebSocket cuando haya token
   useEffect(() => {
     if (token && !hasConnectedRef.current && !isConnected) {
-      console.log('🔌 Conectando WebSocket...');
       hasConnectedRef.current = true;
       connect(token);
     }
@@ -154,7 +153,6 @@ function ParkingListPage() {
     nearbyParkings.forEach(parking => {
       if (!subscribedParkingsRef.current.has(parking.id)) {
         const roomName = parking.id;
-        console.log(`🔗 Uniéndose a sala: parking:clients:${roomName}`);
         joinRoom(roomName);
         subscribedParkingsRef.current.add(parking.id);
       }
@@ -163,7 +161,6 @@ function ParkingListPage() {
     return () => {
       if (subscribedParkingsRef.current.size > 0) {
         subscribedParkingsRef.current.forEach(parkingId => {
-          console.log(`🚪 Saliendo de sala: parking:clients:${parkingId}`);
           leaveRoom(parkingId);
         });
         subscribedParkingsRef.current.clear();
@@ -189,14 +186,11 @@ function ParkingListPage() {
   // WebSockets - Handlers para eventos
   useEffect(() => {
     if (!isConnected) {
-      console.log('⏳ WebSocket no conectado aún...');
       return;
     }
 
-    console.log('✅ WebSocket conectado, configurando handlers...');
 
     const handleParkingAvailability = (data: any) => {
-      console.log('📊 parking:availability recibido:', data);
       if (data?.parkingLotId && data?.availableSpaces !== undefined) {
         updateParkingAvailability(data.parkingLotId, {
           total: data.totalSpaces,
@@ -208,11 +202,9 @@ function ParkingListPage() {
     };
 
     const handleSpaceUpdate = (data: any) => {
-      console.log('🔄 space:update recibido:', data);
     };
 
     const handleOccupancyUpdate = (data: any) => {
-      console.log('👤 occupancy:update recibido:', data);
 
       if (data?.parkingLotId && data?.action) {
         const parking = nearbyParkings.find(p => p.id === data.parkingLotId);
@@ -239,12 +231,10 @@ function ParkingListPage() {
     };
 
     Object.entries(wsHandlersRef.current).forEach(([event, handler]) => {
-      console.log(`📡 Suscribiendo a evento: ${event}`);
       subscribe(event, handler);
     });
 
     return () => {
-      console.log('🧹 Limpiando suscripciones WebSocket...');
       Object.entries(wsHandlersRef.current).forEach(([event, handler]) => {
         unsubscribe(event, handler);
       });

@@ -67,7 +67,6 @@ function LoginForm() {
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : '';
       
-      console.log('Error capturado:', errorMessage);
       
       if (errorMessage.includes('verificar') || errorMessage.includes('Debes verificar')) {
         setLocalError('Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');

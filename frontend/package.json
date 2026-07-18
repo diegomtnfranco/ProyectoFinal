@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
+    "@hookform/resolvers": "^5.4.0",
     "axios": "^1.16.1",
     "date-fns": "^4.4.0",
+    "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
     "react": "^19.2.5",

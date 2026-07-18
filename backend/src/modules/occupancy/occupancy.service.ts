@@ -1,7 +1,7 @@
-import { 
-  Injectable, 
-  NotFoundException, 
-  ConflictException, 
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
   BadRequestException,
   ForbiddenException
 } from '@nestjs/common';
@@ -21,6 +21,7 @@ import { ParkingLotsService } from '../parking-lots/parking-lots.service';
 import { AnonymousCheckInDto } from './dto/anonymous-check-in.dto';
 import { AnonymousCheckInResponseDto, AnonymousCheckOutResponseDto } from './dto/anonymous-response.dto';
 import { AnonymousCheckOutDto } from './dto/anonymous-check-out.dto';
+import { CheckOutResponseDto } from './dto/check-out-response.dto';
 
 @Injectable()
 export class OccupancyService {
@@ -34,9 +35,9 @@ export class OccupancyService {
     private ratesService: RatesService,
     private dataSource: DataSource,
     private websocketGateway: WebsocketGateway,
-      private parkingLotsService: ParkingLotsService, 
+    private parkingLotsService: ParkingLotsService,
 
-  ) {}
+  ) { }
 
   async checkIn(checkInDto: CheckInDto, userId: string, userRole: string): Promise<Occupancy> {
     // Solo empleados o dueños pueden hacer check-in
@@ -121,18 +122,18 @@ export class OccupancyService {
       await queryRunner.commitTransaction();
 
 
-         this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
-      spaceId: space.id,
-      spaceNumber: space.spaceNumber,
-      action: 'check-in',
-      vehiclePlate: checkInDto.vehiclePlate,
-      clientId: reservation?.client?.user?.id,
-    });
+      this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
+        spaceId: space.id,
+        spaceNumber: space.spaceNumber,
+        action: 'check-in',
+        vehiclePlate: checkInDto.vehiclePlate,
+        clientId: reservation?.client?.user?.id,
+      });
 
-    // ✅ Emitir actualización de espacio
-    this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.OCCUPIED);
+      // ✅ Emitir actualización de espacio
+      this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.OCCUPIED);
 
-     this.websocketGateway.emitParkingAvailability(space.parkingLotId);
+      this.websocketGateway.emitParkingAvailability(space.parkingLotId);
 
       return occupancy;
     } catch (error) {
@@ -143,7 +144,7 @@ export class OccupancyService {
     }
   }
 
-  async checkOut(checkOutDto: CheckOutDto, userId: string, userRole: string): Promise<Occupancy> {
+  async checkOut(checkOutDto: CheckOutDto, userId: string, userRole: string): Promise<CheckOutResponseDto> {
     // Solo empleados o dueños pueden hacer check-out
     if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('No tienes permiso para realizar check-out');
@@ -157,7 +158,7 @@ export class OccupancyService {
       // 1. Obtener la ocupación activa del espacio
       const occupancy = await queryRunner.manager.findOne(Occupancy, {
         where: { spaceId: checkOutDto.spaceId, isCompleted: false },
-        relations: ['space','space.parkingLot'],
+        relations: ['space', 'space.parkingLot'],
       });
 
       if (!occupancy) {
@@ -221,7 +222,67 @@ export class OccupancyService {
       //const availability = await this.calculateAvailability(space.parkingLotId);
       this.websocketGateway.emitParkingAvailability(space.parkingLotId);
 
-      return occupancy;
+      const response: CheckOutResponseDto = {
+        occupancy: {
+          id: occupancy.id,
+          spaceId: occupancy.spaceId,
+          reservationId: occupancy.reservationId || '',
+          vehiclePlate: occupancy.vehiclePlate || '',
+          vehicleType: occupancy.vehicleType,
+          checkInTime: occupancy.checkInTime.toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+            year: 'numeric',     // Año completo (aaaa)
+            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+            hour12: false        // Formato de 24 horas
+          }),
+          checkOutTime: occupancy.checkOutTime.toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+            year: 'numeric',     // Año completo (aaaa)
+            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+            hour12: false        // Formato de 24 horas
+          }),
+          checkedInBy: occupancy.checkedInBy,
+          checkedOutBy: occupancy.checkedOutBy,
+          totalAmount: occupancy.totalAmount,
+          isCompleted: occupancy.isCompleted,
+          isAnonymous: occupancy.isAnonymous,
+          checkedInViaQr: occupancy.checkedInViaQr,
+          checkedOutViaQr: occupancy.checkedOutViaQr,
+          createdAt: occupancy.createdAt.toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+            year: 'numeric',     // Año completo (aaaa)
+            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+            hour12: false        // Formato de 24 horas
+          }),
+          updatedAt: occupancy.updatedAt.toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+            year: 'numeric',     // Año completo (aaaa)
+            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+            hour12: false        // Formato de 24 horas
+          }),
+          space: occupancy.space,
+          reservation: occupancy.reservation || undefined,
+        },
+        rate: {
+          id: rate.id,
+          VehicleType: rate.vehicleType,
+          pricePerHour: rate.pricePerHour,
+        }
+      };
+
+      return response;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -241,36 +302,36 @@ export class OccupancyService {
   }
 
   async getActiveOccupancies(parkingLotId: string, userId: string, userRole: string): Promise<ActiveOccupancyResponseDto[]> {
-  // Verificar permisos
-  if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
-    throw new ForbiddenException('No tienes permiso para ver ocupaciones activas');
+    // Verificar permisos
+    if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('No tienes permiso para ver ocupaciones activas');
+    }
+
+    const occupancies = await this.occupancyRepository.find({
+      where: { isCompleted: false, space: { parkingLotId } },
+      relations: ['space', 'reservation'],
+      order: { checkInTime: 'DESC' },
+    });
+
+    return occupancies.map(occ => ({
+      id: occ.id,
+      spaceId: occ.spaceId,
+      space: {
+        id: occ.space.id,
+        spaceNumber: occ.space.spaceNumber,
+        status: occ.space.status,
+      },
+      vehiclePlate: occ.vehiclePlate || occ.reservation?.vehiclePlate || 'Desconocida',
+      vehicleType: occ.vehicleType,
+      checkInTime: occ.checkInTime,
+      checkedInBy: occ.checkedInBy,
+      totalAmount: occ.totalAmount,
+      isCompleted: occ.isCompleted,  // ← AGREGAR
+      hasReservation: !!occ.reservationId,  // ← AGREGAR
+      reservationId: occ.reservationId,
+      clientName: occ.reservation?.client?.name,
+    }));
   }
-
-  const occupancies = await this.occupancyRepository.find({
-    where: { isCompleted: false, space: { parkingLotId } },
-    relations: ['space', 'reservation'],
-    order: { checkInTime: 'DESC' },
-  });
-
-  return occupancies.map(occ => ({
-    id: occ.id,
-    spaceId: occ.spaceId,
-    space: {
-      id: occ.space.id,
-      spaceNumber: occ.space.spaceNumber,
-      status: occ.space.status,
-    },
-    vehiclePlate: occ.vehiclePlate || occ.reservation?.vehiclePlate || 'Desconocida',
-    vehicleType: occ.vehicleType,
-    checkInTime: occ.checkInTime,
-    checkedInBy: occ.checkedInBy,
-    totalAmount: occ.totalAmount,
-    isCompleted: occ.isCompleted,  // ← AGREGAR
-    hasReservation: !!occ.reservationId,  // ← AGREGAR
-    reservationId: occ.reservationId,  
-    clientName: occ.reservation?.client?.name,  
-  }));
-}
 
 
   async getSpaceHistory(spaceId: string): Promise<Occupancy[]> {
@@ -289,239 +350,266 @@ export class OccupancyService {
   }
 
   private async findAvailableSpace(
-  parkingLotId: string,
-  vehicleType: VehicleType,
-  manager?: EntityManager,
-): Promise<Space | null> {
-  const em = manager || this.dataSource.manager;
+    parkingLotId: string,
+    vehicleType: VehicleType,
+    manager?: EntityManager,
+  ): Promise<Space | null> {
+    const em = manager || this.dataSource.manager;
 
-  // 1. Buscar todos los espacios activos y disponibles
-  const allAvailableSpaces = await em.find(Space, {
-    where: {
-      parkingLotId,
-      status: SpaceStatus.AVAILABLE,
-      allowsReservations: true,
-      isActive: true,
-    },
-  });
+    // 1. Buscar todos los espacios activos y disponibles
+    const allAvailableSpaces = await em.find(Space, {
+      where: {
+        parkingLotId,
+        status: SpaceStatus.AVAILABLE,
+        allowsReservations: true,
+        isActive: true,
+      },
+    });
 
-  if (allAvailableSpaces.length === 0) {
-    return null;
-  }
-
-  // 2. Filtrar por tipo de vehículo permitido
-  const compatibleSpaces = allAvailableSpaces.filter(space =>
-    space.allowedVehicleTypes.includes(vehicleType),
-  );
-
-  if (compatibleSpaces.length === 0) {
-    return null;
-  }
-
-  // 3. Verificar conflictos con reservas confirmadas/pendientes
-  const spaceIds = compatibleSpaces.map(s => s.id);
-  const conflictingReservations = await em.find(Reservation, {
-    where: {
-      spaceId: In(spaceIds),
-      status: In([ReservationStatus.PENDING_CONFIRMATION, ReservationStatus.CONFIRMED]),
-      startTime: LessThan(new Date()),
-      endTime: MoreThan(new Date()),
-    },
-  });
-
-  const conflictingSpaceIds = new Set(conflictingReservations.map(r => r.spaceId));
-  const freeSpaces = compatibleSpaces.filter(space => !conflictingSpaceIds.has(space.id));
-
-  if (freeSpaces.length === 0) {
-    return null;
-  }
-
-  // 4. Ordenar por número de espacio y devolver el primero
-  return freeSpaces.sort((a, b) => {
-    const numA = parseInt(a.spaceNumber.match(/\d+/)?.[0] || '0');
-    const numB = parseInt(b.spaceNumber.match(/\d+/)?.[0] || '0');
-    return numA - numB;
-  })[0];
-}
-
-/**
- * Check-in anónimo usando QR (sin autenticación)
- */
-async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInResponseDto> {
-  const queryRunner = this.dataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
-
-  try {
-    // 1. Validar QR y obtener estacionamiento
-    const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-in');
-
-    // 2. Buscar espacio disponible
-    const availableSpace = await this.findAvailableSpace(parkingLot.id, dto.vehicleType, queryRunner.manager);
-
-    if (!availableSpace) {
-      throw new BadRequestException('No hay espacios disponibles en este momento');
+    if (allAvailableSpaces.length === 0) {
+      return null;
     }
 
-    // 3. Obtener tarifa aplicable (para validar)
-    const rate = await this.ratesService.findApplicableRate(
-      parkingLot.id,
-      dto.vehicleType,
-      new Date(),
+    // 2. Filtrar por tipo de vehículo permitido
+    const compatibleSpaces = allAvailableSpaces.filter(space =>
+      space.allowedVehicleTypes.includes(vehicleType),
     );
 
-    if (!rate) {
-      throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
+    if (compatibleSpaces.length === 0) {
+      return null;
     }
 
-    // 4. Crear ocupación anónima (checkedInBy es undefined para anónimos)
-    const occupancy = this.occupancyRepository.create({
-      spaceId: availableSpace.id,
-      vehicleType: dto.vehicleType,
-      vehiclePlate:dto.vehiclePlate.trim().toUpperCase(),
-      checkInTime: new Date(),
-      isCompleted: false,
-      isAnonymous: true,
-      checkedInViaQr: true,
-      // checkedInBy se queda undefined para anónimos
-    });
-    await queryRunner.manager.save(occupancy);
-
-    // 5. Actualizar espacio
-    availableSpace.status = SpaceStatus.OCCUPIED;
-    availableSpace.occupiedSince = new Date();
-    availableSpace.occupiedByVehicleType = dto.vehicleType;
-    availableSpace.occupiedByVehiclePlate=dto.vehiclePlate.trim().toUpperCase()
-    await queryRunner.manager.save(availableSpace);
-
-    await queryRunner.commitTransaction();
-
-    // 6. Emitir eventos WebSocket
-    this.websocketGateway.emitSpaceUpdate(parkingLot.id, availableSpace.id, SpaceStatus.OCCUPIED);
-    this.websocketGateway.emitParkingAvailability(parkingLot.id);
-    this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
-      spaceId: availableSpace.id,
-      spaceNumber: availableSpace.spaceNumber,
-      vehiclePlate:availableSpace.occupiedByVehiclePlate,
-      action: 'check-in',
-      vehicleType: dto.vehicleType,
-      isAnonymous: true,
-    });
-
-    return {
-      success: true,
-      message: 'Check-in registrado exitosamente',
-      spaceNumber: availableSpace.spaceNumber,
-      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
-      checkInTime: occupancy.checkInTime,
-    };
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    throw error;
-  } finally {
-    await queryRunner.release();
-  }
-}
-
-/**
- * Check-out anónimo usando QR (sin autenticación)
- */
-/**
- * Check-out anónimo usando QR (sin autenticación)
- */
-async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutResponseDto> {
-  const queryRunner = this.dataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
-
-  try {
-    // 1. Validar QR y obtener estacionamiento
-    const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-out');
-
-    // 2. Buscar ocupación activa más reciente de este estacionamiento
-    const occupancy = await queryRunner.manager.findOne(Occupancy, {
+    // 3. Verificar conflictos con reservas confirmadas/pendientes
+    const spaceIds = compatibleSpaces.map(s => s.id);
+    const conflictingReservations = await em.find(Reservation, {
       where: {
-        space: { parkingLotId: parkingLot.id },
+        spaceId: In(spaceIds),
+        status: In([ReservationStatus.PENDING_CONFIRMATION, ReservationStatus.CONFIRMED]),
+        startTime: LessThan(new Date()),
+        endTime: MoreThan(new Date()),
+      },
+    });
+
+    const conflictingSpaceIds = new Set(conflictingReservations.map(r => r.spaceId));
+    const freeSpaces = compatibleSpaces.filter(space => !conflictingSpaceIds.has(space.id));
+
+    if (freeSpaces.length === 0) {
+      return null;
+    }
+
+    // 4. Ordenar por número de espacio y devolver el primero
+    return freeSpaces.sort((a, b) => {
+      const numA = parseInt(a.spaceNumber.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.spaceNumber.match(/\d+/)?.[0] || '0');
+      return numA - numB;
+    })[0];
+  }
+
+  /**
+   * Check-in anónimo usando QR (sin autenticación)
+   */
+  async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInResponseDto> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Validar QR y obtener estacionamiento
+      const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-in');
+
+      // 2. Buscar espacio disponible
+      const availableSpace = await this.findAvailableSpace(parkingLot.id, dto.vehicleType, queryRunner.manager);
+
+      if (!availableSpace) {
+        throw new BadRequestException('No hay espacios disponibles en este momento');
+      }
+
+      // 3. Obtener tarifa aplicable (para validar)
+      const rate = await this.ratesService.findApplicableRate(
+        parkingLot.id,
+        dto.vehicleType,
+        new Date(),
+      );
+
+      if (!rate) {
+        throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
+      }
+
+      // 4. Crear ocupación anónima (checkedInBy es undefined para anónimos)
+      const occupancy = this.occupancyRepository.create({
+        spaceId: availableSpace.id,
+        vehicleType: dto.vehicleType,
+        vehiclePlate: dto.vehiclePlate.trim().toUpperCase(),
+        checkInTime: new Date(),
         isCompleted: false,
         isAnonymous: true,
-        vehiclePlate:dto.vehiclePlate.trim().toUpperCase()
-      },
-      relations: ['space','space.parkingLot'],
-      order: { checkInTime: 'DESC' },
-    });
+        checkedInViaQr: true,
+        // checkedInBy se queda undefined para anónimos
+      });
+      await queryRunner.manager.save(occupancy);
 
-    if (!occupancy) {
-      throw new NotFoundException('No hay una ocupación activa para este QR');
+      // 5. Actualizar espacio
+      availableSpace.status = SpaceStatus.OCCUPIED;
+      availableSpace.occupiedSince = new Date();
+      availableSpace.occupiedByVehicleType = dto.vehicleType;
+      availableSpace.occupiedByVehiclePlate = dto.vehiclePlate.trim().toUpperCase()
+      await queryRunner.manager.save(availableSpace);
+
+      await queryRunner.commitTransaction();
+
+      // 6. Emitir eventos WebSocket
+      this.websocketGateway.emitSpaceUpdate(parkingLot.id, availableSpace.id, SpaceStatus.OCCUPIED);
+      this.websocketGateway.emitParkingAvailability(parkingLot.id);
+      this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
+        spaceId: availableSpace.id,
+        spaceNumber: availableSpace.spaceNumber,
+        vehiclePlate: availableSpace.occupiedByVehiclePlate,
+        action: 'check-in',
+        vehicleType: dto.vehicleType,
+        isAnonymous: true,
+      });
+
+      return {
+        success: true,
+        message: 'Check-in registrado exitosamente',
+        spaceNumber: availableSpace.spaceNumber,
+        vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
+        checkInTime: occupancy.checkInTime,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const space = occupancy.space;
-    if (!space) {
-      throw new NotFoundException('Espacio no encontrado');
-    }
-
-    // 3. Calcular horas y monto
-    const checkOutTime = new Date();
-    const hours = Math.ceil(
-      (checkOutTime.getTime() - occupancy.checkInTime.getTime()) / (1000 * 60 * 60)
-    );
-    const hoursToCharge = Math.max(1, hours);
-
-    // 4. Obtener tarifa
-    const rate = await this.ratesService.findApplicableRate(
-      parkingLot.id,
-      occupancy.vehicleType,
-      checkOutTime,
-    );
-
-    if (!rate) {
-      throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-    }
-
-    const totalAmount = rate.pricePerHour * hoursToCharge;
-
-    // 5. Actualizar ocupación
-    occupancy.checkOutTime = checkOutTime;
-    occupancy.totalAmount = totalAmount;
-    occupancy.isCompleted = true;
-    occupancy.checkedOutViaQr = true;
-    await queryRunner.manager.save(occupancy);
-
-    // 6. Liberar espacio
-    space.status = SpaceStatus.AVAILABLE;
-    space.occupiedSince = null;
-    space.occupiedByVehiclePlate = null;
-    space.occupiedByVehicleType = null;
-    await queryRunner.manager.save(space);
-
-    await queryRunner.commitTransaction();
-
-    // 7. Emitir eventos WebSocket
-    this.websocketGateway.emitSpaceUpdate(parkingLot.id, space.id, SpaceStatus.AVAILABLE);
-    this.websocketGateway.emitParkingAvailability(parkingLot.id);
-    this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
-      spaceId: space.id,
-      spaceNumber: space.spaceNumber,
-      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
-      action: 'check-out',
-      totalAmount,
-      isAnonymous: true,
-    });
-
-    return {
-      success: true,
-      message: 'Check-out registrado exitosamente',
-      spaceNumber: space.spaceNumber,
-      vehiclePlate:occupancy.vehiclePlate?.toUpperCase()!,
-      totalAmount,
-      hours: hoursToCharge,
-      checkInTime: occupancy.checkInTime,
-      checkOutTime,
-    };
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    throw error;
-  } finally {
-    await queryRunner.release();
   }
-}
+
+  /**
+   * Check-out anónimo usando QR (sin autenticación)
+   */
+  /**
+   * Check-out anónimo usando QR (sin autenticación)
+   */
+  async anonymousCheckOut(dto: AnonymousCheckOutDto): Promise<AnonymousCheckOutResponseDto> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Validar QR y obtener estacionamiento
+      const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-out');
+
+      // 2. Buscar ocupación activa más reciente de este estacionamiento
+      const occupancy = await queryRunner.manager.findOne(Occupancy, {
+        where: {
+          space: { parkingLotId: parkingLot.id },
+          isCompleted: false,
+          isAnonymous: true,
+          vehiclePlate: dto.vehiclePlate.trim().toUpperCase()
+        },
+        relations: ['space', 'space.parkingLot'],
+        order: { checkInTime: 'DESC' },
+      });
+
+      if (!occupancy) {
+        throw new NotFoundException('No hay una ocupación activa para este QR');
+      }
+
+      const space = occupancy.space;
+      if (!space) {
+        throw new NotFoundException('Espacio no encontrado');
+      }
+
+      // 3. Calcular horas y monto
+      const checkOutTime = new Date();
+      const hours = Math.ceil(
+        (checkOutTime.getTime() - occupancy.checkInTime.getTime()) / (1000 * 60 * 60)
+      );
+      const hoursToCharge = Math.max(1, hours);
+
+      // 4. Obtener tarifa
+      const rate = await this.ratesService.findApplicableRate(
+        parkingLot.id,
+        occupancy.vehicleType,
+        checkOutTime,
+      );
+
+      if (!rate) {
+        throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
+      }
+
+      const totalAmount = rate.pricePerHour * hoursToCharge;
+
+      // 5. Actualizar ocupación
+      occupancy.checkOutTime = checkOutTime;
+      occupancy.totalAmount = totalAmount;
+      occupancy.isCompleted = true;
+      occupancy.checkedOutViaQr = true;
+      await queryRunner.manager.save(occupancy);
+
+      // 6. Liberar espacio
+      space.status = SpaceStatus.AVAILABLE;
+      space.occupiedSince = null;
+      space.occupiedByVehiclePlate = null;
+      space.occupiedByVehicleType = null;
+      await queryRunner.manager.save(space);
+
+      await queryRunner.commitTransaction();
+
+      // 7. Emitir eventos WebSocket
+      this.websocketGateway.emitSpaceUpdate(parkingLot.id, space.id, SpaceStatus.AVAILABLE);
+      this.websocketGateway.emitParkingAvailability(parkingLot.id);
+      this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
+        spaceId: space.id,
+        spaceNumber: space.spaceNumber,
+        vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
+        action: 'check-out',
+        totalAmount,
+        isAnonymous: true,
+      });
+
+      return {
+        success: true,
+        message: 'Check-out registrado exitosamente',
+        spaceNumber: space.spaceNumber,
+        vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
+        totalAmount,
+        hours: hoursToCharge,
+        checkInTime: occupancy.checkInTime.toLocaleString('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+          month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+          year: 'numeric',     // Año completo (aaaa)
+          hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+          minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+          hour12: false        // Formato de 24 horas
+        }),
+        checkOutTime: checkOutTime.toLocaleString('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
+          month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
+          year: 'numeric',     // Año completo (aaaa)
+          hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
+          minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
+          hour12: false        // Formato de 24 horas
+        }),
+        parkingLot: {
+          id: parkingLot.id,
+          name: parkingLot.name,
+          address: parkingLot.address,
+          phone: parkingLot.phone,
+        },
+        rate: {
+          id: rate.id,
+          VehicleType: rate.vehicleType,
+          pricePerHour: rate.pricePerHour,
+        }
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

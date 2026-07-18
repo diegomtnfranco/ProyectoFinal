@@ -258,6 +258,8 @@ export class ParkingLotResponseDto {
     description: 'Fecha de última actualización',
   })
   updatedAt!: Date;
+  @ApiProperty({ example: 'https://example.com/images/garaje-centro.jpg', nullable: true })
+  imageUrl?: string;
 }
 
 export class ParkingLotAvailabilityResponseDto {

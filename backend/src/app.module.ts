@@ -1,3 +1,4 @@
+// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -20,7 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
-
+import { SeedModule } from './modules/seed/seed.module';
 
 @Module({
   imports: [
@@ -38,33 +39,34 @@ import { CloudinaryService } from './modules/common/cloudinary/cloudinary.servic
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: true,
-      //logging:true,
+      // ✅ Configuración SSL corregida
+      ssl: process.env.STAGE === 'production' ? { rejectUnauthorized: false } : false,
       extra: {
         timezone: 'America/Argentina/Buenos_Aires',
+        // ✅ Configuración adicional para SSL
+        ssl: process.env.STAGE === 'production' ? { rejectUnauthorized: false } : undefined,
       },
+      logging: false,
     }),
     AuthModule,
     ParkingLotsModule,
     UsersModule,
     ClientProfilesModule,
-    UsersModule,
     ParkingOwnersModule,
-    ParkingLotsModule,
     SpacesModule,
     RatesModule,
     ReservationsModule,
     OccupancyModule,
-    ClientProfilesModule,
     CommonModule,
     ParkingEmployeesModule,
     NotificationsModule,
-    WebsocketModule, 
-
+    WebsocketModule,
+    SeedModule,
   ],
   controllers: [],
   providers: [
     {
-      provide: APP_GUARD,      // ← NUEVO: Registramos guards GLOBALES
+      provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
     {
