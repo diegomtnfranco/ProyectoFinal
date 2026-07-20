@@ -3,7 +3,7 @@ import {
   Link,
   useLocation
 } from 'react-router-dom'
-import ParkingLogo from '../../assets/logos/logo-eapp5.png'
+import ParkingLogo from '../../assets/logos/logo-eapp5.webp'
 import { ownerMenu } from '../components/OwnerMenu'
 import { adminMenu } from '../components/AdminMenu'
 import { employeeMenu } from '../components/EmployeeMenu'

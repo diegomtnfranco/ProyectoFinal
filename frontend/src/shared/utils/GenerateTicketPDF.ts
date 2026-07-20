@@ -1,117 +1,183 @@
 import { jsPDF } from "jspdf";
 import type { TicketData } from "../../types/ticket.types";
+import logo from "../../assets/logos/logo-eapp4.png";
 
 export const generateTicketPDF = (ticket: TicketData) => {
 
-  const doc = new jsPDF();
-
-  doc.setFontSize(22);
-
-  doc.text("ESTACIONAPP", 105, 20, {
-    align: "center",
+  // Papel térmico de 80 mm
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 180],
   });
 
-  doc.setFontSize(18);
+  let y = 10;
 
-  doc.text("TICKET DE SALIDA", 105, 40, {
-    align: "center",
-  });
+  //----------------------------------------
+  // ENCABEZADO
+  //----------------------------------------
 
+  const pageWidth = 80;
+
+  const logoSize = 12;
+  const text = "ESTACIONAPP";
+
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
 
+  // ancho del texto
+  const textWidth = doc.getTextWidth(text);
+
+  // ancho total del bloque logo + separación + texto
+  const totalWidth = logoSize + 3 + textWidth;
+
+  // posición inicial para centrar el conjunto
+  const startX = (pageWidth - totalWidth) / 2;
+
+  // Logo
+  doc.addImage(
+    logo,      // <-- tu logo en Base64
+    "PNG",
+    startX,
+    y,
+    logoSize,
+    logoSize
+  );
+
+  // Texto
   doc.text(
-    `N° ${ticket.ticketNumber}`,
-    105,
-    50,
+    text,
+    startX + logoSize + 3,
+    y + 8
+  );
+
+  y += 18;
+
+  //----------------------------------------
+  // Línea
+  //----------------------------------------
+
+  doc.line(8, y, 72, y);
+
+  y += 8;
+
+  //----------------------------------------
+  // Ticket
+  //----------------------------------------
+
+  doc.setFontSize(13);
+
+  doc.text(
+    `TICKET N° ${ticket.ticketNumber}`,
+    40,
+    y,
     {
       align: "center",
     }
   );
 
-  let y = 70;
+  y += 8;
+
+  doc.setFontSize(9);
 
   doc.text(
-    `Estacionamiento: ${ticket.parkingLot.name}`,
-    20,
-    y
+    ticket.parkingLot.name,
+    40,
+    y,
+    {
+      align: "center",
+    }
+  );
+
+  y += 5;
+
+  doc.text(
+    ticket.parkingLot.address,
+    40,
+    y,
+    {
+      align: "center",
+    }
+  );
+
+  y += 8;
+
+  doc.line(8, y, 72, y);
+
+  y += 8;
+
+  //----------------------------------------
+  // Datos
+  //----------------------------------------
+
+  doc.setFontSize(10);
+
+  doc.text(`Matrícula: ${ticket.vehiclePlate}`, 10, y);
+  y += 8;
+
+  doc.text(`Entrada: ${ticket.checkInTime}`, 10, y);
+  y += 8;
+
+  doc.text(`Salida: ${ticket.checkOutTime}`, 10, y);
+  y += 8;
+
+  doc.text(`Duración: ${ticket.duration}`, 10, y);
+  y += 8;
+
+  doc.text(`Tarifa: $${ticket.pricePerHour}/hora`, 10, y);
+
+  y += 10;
+
+  //----------------------------------------
+  // Línea
+  //----------------------------------------
+
+  doc.line(8, y, 72, y);
+
+  y += 12;
+
+  //----------------------------------------
+  // Total
+  //----------------------------------------
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+
+  doc.text("TOTAL", 10, y);
+
+  doc.text(
+    `$${ticket.totalAmount}`,
+    70,
+    y,
+    {
+      align: "right",
+    }
   );
 
   y += 10;
 
-  doc.text(
-    `Dirección: ${ticket.parkingLot.address}`,
-    20,
-    y
-  );
+  //----------------------------------------
+  // Línea
+  //----------------------------------------
 
-  y += 15;
+  doc.line(8, y, 72, y);
 
-  doc.text(
-    `Patente: ${ticket.vehiclePlate}`,
-    20,
-    y
-  );
+  y += 12;
 
-  y += 10;
+  //----------------------------------------
+  // Gracias
+  //----------------------------------------
+
+  doc.setFontSize(12);
 
   doc.text(
-    `Entrada: ${ticket.checkInTime}`,
-    20,
-    y
+    "¡GRACIAS!",
+    40,
+    y,
+    {
+      align: "center",
+    }
   );
 
-  y += 10;
-
-  doc.text(
-    `Salida: ${ticket.checkOutTime}`,
-    20,
-    y
-  );
-
-  y += 10;
-
-  doc.text(
-    `Duración: ${ticket.duration}`,
-    20,
-    y
-  );
-
-  y += 10;
-
-  if (ticket.pricePerHour) {
-
-    doc.text(
-      `Tarifa: $${ticket.pricePerHour}/hora`,
-      20,
-      y
-    );
-
-    y += 15;
-  }
-
-  doc.setFontSize(18);
-
-  doc.text(
-    `TOTAL: $${ticket.totalAmount}`,
-    20,
-    y
-  );
-
-  if (ticket.isAnonymous) {
-
-    y += 20;
-
-    doc.setFontSize(10);
-
-    doc.text(
-      "Salida realizada mediante QR",
-      20,
-      y
-    );
-  }
-
-  doc.save(
-    `ticket-${ticket.vehiclePlate}.pdf`
-  );
-
+  doc.save(`ticket-${ticket.vehiclePlate}.pdf`);
 };
