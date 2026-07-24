@@ -1,11 +1,9 @@
 const Footer = () => {
   return (
-    <footer className="w-full border-t border-slate-200 bg-white py-4 text-sm text-slate-600 shadow-inner">
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-center sm:flex-row sm:items-center sm:justify-between">
-        <span>© {new Date().getFullYear()} Estacionapp. Todos los derechos reservados.</span>
-      </div>
+    <footer className="w-full border-t border-slate-200 bg-white py-2 text-center text-xs text-slate-400 mt-auto">
+      <p>© {new Date().getFullYear()} EstacionApp</p>
     </footer>
-  )
-}
+  );
+};
 
-export default Footer
+export default Footer;
