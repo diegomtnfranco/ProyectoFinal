@@ -1,3 +1,4 @@
+// frontend/src/features/parking-lots/pages/ParkingListPage.tsx
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParkingLotsStore } from '../../../stores/parkingStore';
@@ -10,7 +11,6 @@ import {
   Search,
   Map as MapIcon,
   AlertCircle,
-  X,
   Loader2,
 } from 'lucide-react';
 import ParkingMapView from '../components/ParkingMapView';
@@ -21,14 +21,15 @@ function ParkingListPage() {
   const { isConnected, connect, subscribe, unsubscribe, joinRoom, leaveRoom } = useWebsocketStore();
   const { user, token } = useAuthStore();
 
+  // ✅ Separar estados de búsqueda y filtro
   const [searchText, setSearchText] = useState('');
+  const [filterText, setFilterText] = useState('');
   const [showMap, setShowMap] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isUsingMyLocation, setIsUsingMyLocation] = useState(true);
 
   const hasLoadedRef = useRef(false);
@@ -64,6 +65,7 @@ function ParkingListPage() {
         setIsUsingMyLocation(true);
         setSearchLocation(null);
         setSearchText('');
+        setFilterText(''); // ✅ Limpiar filtro también
       },
       (error) => {
         let errorMsg = 'Error al obtener tu ubicación';
@@ -118,6 +120,7 @@ function ParkingListPage() {
         setSearchLocation({ lat, lng: lon, address });
         setUserLocation({ lat, lng: lon });
         setIsUsingMyLocation(false);
+        setFilterText(''); // ✅ Limpiar filtro al buscar nueva ubicación
       } else {
         setLocationError('No se encontró la dirección. Intentá con términos más precisos.');
       }
@@ -135,7 +138,6 @@ function ParkingListPage() {
 
     try {
       await fetchNearby(userLocation.lat, userLocation.lng, 5000);
-      setLastUpdate(new Date());
     } catch (err) {
       console.error('Error cargando parkings:', err);
     }
@@ -152,8 +154,7 @@ function ParkingListPage() {
 
     nearbyParkings.forEach(parking => {
       if (!subscribedParkingsRef.current.has(parking.id)) {
-        const roomName = parking.id;
-        joinRoom(roomName);
+        joinRoom(parking.id);
         subscribedParkingsRef.current.add(parking.id);
       }
     });
@@ -185,10 +186,7 @@ function ParkingListPage() {
 
   // WebSockets - Handlers para eventos
   useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-
+    if (!isConnected) return;
 
     const handleParkingAvailability = (data: any) => {
       if (data?.parkingLotId && data?.availableSpaces !== undefined) {
@@ -201,11 +199,7 @@ function ParkingListPage() {
       }
     };
 
-    const handleSpaceUpdate = (data: any) => {
-    };
-
     const handleOccupancyUpdate = (data: any) => {
-
       if (data?.parkingLotId && data?.action) {
         const parking = nearbyParkings.find(p => p.id === data.parkingLotId);
         if (parking) {
@@ -226,7 +220,6 @@ function ParkingListPage() {
 
     wsHandlersRef.current = {
       'parking:availability': handleParkingAvailability,
-      'space:update': handleSpaceUpdate,
       'occupancy:update': handleOccupancyUpdate,
     };
 
@@ -242,6 +235,7 @@ function ParkingListPage() {
     };
   }, [isConnected, subscribe, unsubscribe, updateParkingAvailability, nearbyParkings]);
 
+  // ✅ Manejar búsqueda
   const handleSearch = () => {
     if (searchText.trim()) {
       searchAddress();
@@ -254,11 +248,11 @@ function ParkingListPage() {
     }
   };
 
-  // Filtrar por texto
+  // ✅ Filtrar por texto (usando filterText)
   const filteredParkings = nearbyParkings.filter(
     (parking) =>
-      parking.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      parking.address.toLowerCase().includes(searchText.toLowerCase())
+      parking.name.toLowerCase().includes(filterText.toLowerCase()) ||
+      parking.address.toLowerCase().includes(filterText.toLowerCase())
   );
 
   const totalAvailable = filteredParkings.reduce((sum, p) => sum + p.availability.available, 0);
@@ -366,6 +360,16 @@ function ParkingListPage() {
               </button>
             </div>
           </div>
+          {/* ✅ Filtro visual adicional */}
+          <div className='mt-3'>
+            <input
+              type='text'
+              placeholder='Filtrar por nombre o dirección...'
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className='w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
         </div>
 
         {/* Estado WebSocket */}
@@ -381,7 +385,7 @@ function ParkingListPage() {
           </span>
         </div>
 
-        {/* Mapa con Leaflet y markers */}
+        {/* Mapa */}
         {showMap ? (
           <div className='bg-white rounded-2xl shadow-md overflow-hidden'>
             <div className='bg-blue-600 text-white px-4 py-3 font-semibold flex items-center gap-2'>
@@ -395,102 +399,95 @@ function ParkingListPage() {
               />
             </div>
           </div>
-        ):(
-
-           <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <aside className="hidden lg:flex flex-col gap-4">
-            <div className='bg-white rounded-2xl shadow-sm p-5'>
-              <div className='flex items-start gap-3'>
-                <div className='bg-blue-100 p-3 rounded-full'>🎯</div>
-                <div>
-                  <h3 className='font-semibold'>Estadísticas</h3>
-                  <p className='text-sm text-gray-500 mt-1'>{filteredParkings.length} estacionamientos</p>
-                  <p className='text-sm text-green-600 mt-1'>{totalAvailable} lugares disponibles de {totalSpaces}</p>
+        ) : (
+          <div className="grid lg:grid-cols-4 gap-6">
+            <aside className="hidden lg:flex flex-col gap-4">
+              <div className='bg-white rounded-2xl shadow-sm p-5'>
+                <div className='flex items-start gap-3'>
+                  <div className='bg-blue-100 p-3 rounded-full'>🎯</div>
+                  <div>
+                    <h3 className='font-semibold'>Estadísticas</h3>
+                    <p className='text-sm text-gray-500 mt-1'>{filteredParkings.length} estacionamientos</p>
+                    <p className='text-sm text-green-600 mt-1'>{totalAvailable} lugares disponibles de {totalSpaces}</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className='bg-white rounded-2xl shadow-sm p-5'>
-              <div className='flex items-start gap-3'>
-                <div className='bg-green-100 p-3 rounded-full'>🕒</div>
-                <div>
-                  <h3 className='font-semibold'>En tiempo real</h3>
-                  <p className='text-sm text-gray-500'>Disponibilidad actualizada al instante.</p>
+              <div className='bg-white rounded-2xl shadow-sm p-5'>
+                <div className='flex items-start gap-3'>
+                  <div className='bg-green-100 p-3 rounded-full'>🕒</div>
+                  <div>
+                    <h3 className='font-semibold'>En tiempo real</h3>
+                    <p className='text-sm text-gray-500'>Disponibilidad actualizada al instante.</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className='bg-white rounded-2xl shadow-sm p-5'>
-              <div className='flex items-start gap-3'>
-                <div className='bg-purple-100 p-3 rounded-full'>🔒</div>
-                <div>
-                  <h3 className='font-semibold'>Reserva fácil</h3>
-                  <p className='text-sm text-gray-500'>Asegurá tu lugar en pocos clics.</p>
+              <div className='bg-white rounded-2xl shadow-sm p-5'>
+                <div className='flex items-start gap-3'>
+                  <div className='bg-purple-100 p-3 rounded-full'>🔒</div>
+                  <div>
+                    <h3 className='font-semibold'>Reserva fácil</h3>
+                    <p className='text-sm text-gray-500'>Asegurá tu lugar en pocos clics.</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className='bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl p-5'>
-              <h3 className='font-bold text-lg'>Reservá con anticipación</h3>
-              <p className='text-sm mt-2'>Evitá vueltas y asegurá tu espacio.</p>
-              {!isAuthenticated && (
-                <button
-                  onClick={() => navigate('/register')}
-                  className='mt-4 bg-white text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all w-full'
-                >
-                  Registrate ahora
-                </button>
+              <div className='bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl p-5'>
+                <h3 className='font-bold text-lg'>Reservá con anticipación</h3>
+                <p className='text-sm mt-2'>Evitá vueltas y asegurá tu espacio.</p>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => navigate('/register')}
+                    className='mt-4 bg-white text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all w-full'
+                  >
+                    Registrate ahora
+                  </button>
+                )}
+              </div>
+            </aside>
+
+            <section className="order-1 lg:order-2 lg:col-span-3 flex flex-col gap-6">
+              {filteredParkings.length === 0 && !isLoading ? (
+                <div className='bg-white rounded-2xl shadow-sm p-6 text-center text-gray-500'>
+                  <p>No se encontraron estacionamientos para tu búsqueda</p>
+                  <button
+                    onClick={backToMyLocation}
+                    className='mt-4 text-blue-600 hover:text-blue-700 font-semibold'
+                  >
+                    Ver estacionamientos cerca de mí
+                  </button>
+                </div>
+              ) : (
+                filteredParkings.map((parking, index) => (
+                  <ParkingCard
+                    key={parking.id}
+                    parking={parking}
+                    isClosest={index === 0 && filteredParkings.length > 1}
+                  />
+                ))
               )}
+            </section>
+          </div>
+        )}
+
+        {/* Resumen de funcionalidades (mobile) */}
+        <div className="lg:hidden bg-white rounded-2xl shadow-sm p-4 mt-4">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-3">
+              <span>🎯</span>
+              <span>{filteredParkings.length} estacionamientos disponibles</span>
             </div>
-          </aside>
-
-          {/* Tarjetas */}
-          <section className="order-1 lg:order-2 lg:col-span-3 flex flex-col gap-6">
-            {filteredParkings.length === 0 && !isLoading ? (
-              <div className='bg-white rounded-2xl shadow-sm p-6 text-center text-gray-500'>
-                <p>No se encontraron estacionamientos para tu búsqueda</p>
-                <button
-                  onClick={backToMyLocation}
-                  className='mt-4 text-blue-600 hover:text-blue-700 font-semibold'
-                >
-                  Ver estacionamientos cerca de mí
-                </button>
-              </div>
-            ) : (
-              filteredParkings.map((parking, index) => (
-                <ParkingCard
-                  key={parking.id}
-                  parking={parking}
-                  isClosest={index === 0 && filteredParkings.length > 1}
-                />
-              ))
-            )}
-          </section>
+            <div className="flex items-center gap-3">
+              <span>🕒</span>
+              <span>Actualización en tiempo real</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span>🔒</span>
+              <span>Reserva rápida y segura</span>
+            </div>
+          </div>
         </div>
-        )
-        }
-
-        {/* Resumen de funcionalidades (solo mobile) */}
-<div className="lg:hidden bg-white rounded-2xl shadow-sm p-4 mt-4">
-  <div className="space-y-3 text-sm">
-    <div className="flex items-center gap-3">
-      <span>🎯</span>
-      <span>{filteredParkings.length} estacionamientos disponibles</span>
-    </div>
-
-    <div className="flex items-center gap-3">
-      <span>🕒</span>
-      <span>Actualización en tiempo real</span>
-    </div>
-
-    <div className="flex items-center gap-3">
-      <span>🔒</span>
-      <span>Reserva rápida y segura</span>
-    </div>
-  </div>
-</div>
-       
 
         {/* Footer */}
         <div className='bg-white rounded-2xl shadow-sm p-6 mt-4'>
