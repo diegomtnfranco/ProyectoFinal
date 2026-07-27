@@ -40,7 +40,7 @@ function AppRouter() {
         <Route path='/login' element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/verify" element={<VerifyEmailPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/create-company" element={<CreateCompanyForm />} />
         <Route path="/company-location" element={<CompanyLocationForm />} />
         <Route path="/scan/:type" element={<ScanQRPage />} />
