@@ -113,8 +113,9 @@ useEffect(() => {
       } else if (user.role === 'client') {
         // Si es cliente, no debería estar aquí, redirigir a su dashboard
         navigate('/client');
-      }
-    }
+      }else if (user.role === 'parking_employee') {
+        navigate('/employee');  }
+    } 
   }, [token, user, navigate]);
 
 
@@ -247,7 +248,7 @@ useEffect(() => {
 
       // Redirigir al login después de 5 segundos
       setTimeout(() => {
-        navigate('/');
+        navigate('/login');
       }, 5000);
     } catch (err) {
       console.error('Error en registro:', err);
