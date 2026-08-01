@@ -142,7 +142,6 @@ function RegisterForm() {
 
         <div>
           <h1 className='text-3xl font-bold'>Crear cuenta</h1>
-          <p className='text-gray-500'>Unite a EstacionamientoTUC</p>
         </div>
 
         <div className='flex flex-col gap-2'>
