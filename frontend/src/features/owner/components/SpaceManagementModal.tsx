@@ -241,7 +241,71 @@ const SpaceManagementModal = ({ isOpen, onClose, parkingLotId, onSpaceUpdate }: 
               <X size={20} />
             </button>
           </div>
+
+           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            {!showAddForm && (
+              <button
+                onClick={handleOpenAddForm}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-1 sm:gap-2 transition-colors text-sm flex-shrink-0"
+              >
+                <Plus size={16} />
+                <span className="hidden xs:inline">Agregar espacio</span>
+                <span className="inline xs:hidden">Agregar</span>
+              </button>
+            )}
+            <span className="text-[10px] sm:text-xs text-gray-400 whitespace-nowrap">
+              {stats.total > 0 && `Próximo: ${getNextSpaceNumber()}`}
+            </span>
+          </div>
         </div>
+
+        {/* Formulario para agregar espacio - Responsive */}
+          {showAddForm && (
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <h4 className="font-medium text-blue-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
+                Agregar nuevo espacio
+              </h4>
+              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-[10px] sm:text-xs font-medium text-gray-600 mb-0.5 sm:mb-1">
+                    Número de espacio
+                  </label>
+                  {/* ✅ Campo de solo lectura con fondo gris */}
+                  <input
+                    type="text"
+                    value={newSpaceNumber}
+                    readOnly
+                    disabled
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-xl bg-gray-100 text-gray-700 font-mono text-sm sm:text-base cursor-not-allowed"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5 hidden xs:block">
+                    Número auto-asignado
+                  </p>
+                </div>
+                <div className="flex items-end gap-1.5 sm:gap-2 flex-shrink-0">
+                  <button
+                    onClick={handleAddSpace}
+                    disabled={isSubmitting || !newSpaceNumber.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                    <span className="hidden xs:inline">Agregar</span>
+                    <span className="inline xs:hidden">OK</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setNewSpaceNumber('');
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* Body - Scrollable */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-6">
@@ -334,72 +398,13 @@ const SpaceManagementModal = ({ isOpen, onClose, parkingLotId, onSpaceUpdate }: 
             </div>
           )}
 
-          {/* Formulario para agregar espacio - Responsive */}
-          {showAddForm && (
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <h4 className="font-medium text-blue-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
-                Agregar nuevo espacio
-              </h4>
-              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
-                <div className="flex-1 min-w-0">
-                  <label className="block text-[10px] sm:text-xs font-medium text-gray-600 mb-0.5 sm:mb-1">
-                    Número de espacio
-                  </label>
-                  {/* ✅ Campo de solo lectura con fondo gris */}
-                  <input
-                    type="text"
-                    value={newSpaceNumber}
-                    readOnly
-                    disabled
-                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-xl bg-gray-100 text-gray-700 font-mono text-sm sm:text-base cursor-not-allowed"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-0.5 hidden xs:block">
-                    Número auto-asignado
-                  </p>
-                </div>
-                <div className="flex items-end gap-1.5 sm:gap-2 flex-shrink-0">
-                  <button
-                    onClick={handleAddSpace}
-                    disabled={isSubmitting || !newSpaceNumber.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                  >
-                    {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                    <span className="hidden xs:inline">Agregar</span>
-                    <span className="inline xs:hidden">OK</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setNewSpaceNumber('');
-                    }}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-colors text-sm"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          
         </div>
 
         {/* Footer - Responsive */}
+       
         <div className="p-3 sm:p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {!showAddForm && (
-              <button
-                onClick={handleOpenAddForm}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-1 sm:gap-2 transition-colors text-sm flex-shrink-0"
-              >
-                <Plus size={16} />
-                <span className="hidden xs:inline">Agregar espacio</span>
-                <span className="inline xs:hidden">Agregar</span>
-              </button>
-            )}
-            <span className="text-[10px] sm:text-xs text-gray-400 whitespace-nowrap">
-              {stats.total > 0 && `Próximo: ${getNextSpaceNumber()}`}
-            </span>
-          </div>
+          
           
           {/* Stats - Responsive wrap */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-gray-400">

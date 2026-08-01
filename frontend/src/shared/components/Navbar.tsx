@@ -9,8 +9,12 @@ import { adminMenu } from '../components/AdminMenu'
 import { employeeMenu } from '../components/EmployeeMenu'
 import { useAuthStore } from '../../stores/authStore'
 import { clientMenu } from '../components/ClientMenu'
+import {
+  User,
+  LogOut
+} from "lucide-react";
 // importo los roles de usuario
-import { UserRole } from "../../types/auth.types";
+
 
 
 function Navbar() {
@@ -136,19 +140,29 @@ function Navbar() {
           {isMobileMenuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
               <Link
-
                 to={profilePath}
-                className="block px-4 py-3 hover:bg-gray-100">
-
-                Perfil
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-3 hover:bg-gray-100 text-red-500"
+                className="flex items-center gap-3 px-5 py-4 border-b hover:bg-gray-50"
+                onClick={() => setIsProfileOpen(false)}
               >
-                Cerrar sesión
-              </button>
+                  <User
+                    size={20}
+                    className="text-gray-600 flex-shrink-0"
+                  />
+
+                  <span>Perfil</span>
+                </Link>
+
+             <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-5 py-4 text-red-500 hover:bg-red-50"
+              >
+                <LogOut
+                  size={20}
+                  className="flex-shrink-0"
+                />
+
+              <span>Cerrar sesión</span>
+            </button>
             </div>
           )}
         </div>
@@ -169,33 +183,48 @@ function Navbar() {
       {/* Menú Mobile */}
       {isProfileOpen && (
         <div className="absolute top-16 left-0 w-full bg-white shadow-lg z-50 flex flex-col md:hidden">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="px-5 py-4 border-b"
-              onClick={() =>
-                setIsProfileOpen(false)
-              }
-            >
-              {item.name}
-            </Link>
-          ))}
+          {menuItems.map((item) => {
+            const Icon = item.icon;
 
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="flex items-center gap-3 px-5 py-4 border-b hover:bg-gray-50"
+                onClick={() => setIsProfileOpen(false)}
+              >
+                <Icon
+                  size={20}
+                  className="text-gray-600 flex-shrink-0"
+                />
+
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
           <Link
             to={profilePath}
-            className="px-5 py-4 border-b"
-            onClick={() =>
-              setIsProfileOpen(false)
-            }>
-            Perfil
+            className="flex items-center gap-3 px-5 py-4 border-b hover:bg-gray-50"
+            onClick={() => setIsProfileOpen(false)}
+          >
+            <User
+              size={20}
+              className="text-gray-600 flex-shrink-0"
+            />
+
+            <span>Perfil</span>
           </Link>
 
           <button
-            className="text-left text-red-500 px-5 py-4"
             onClick={handleLogout}
+            className="flex items-center gap-3 px-5 py-4 text-red-500 hover:bg-red-50"
           >
-            Cerrar sesión
+            <LogOut
+              size={20}
+              className="flex-shrink-0"
+            />
+
+            <span>Cerrar sesión</span>
           </button>
         </div>
       )}
