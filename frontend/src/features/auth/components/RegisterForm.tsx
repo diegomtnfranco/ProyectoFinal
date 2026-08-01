@@ -115,7 +115,7 @@ function RegisterForm() {
 
   const handleCloseModal = () => {
     setShowSuccessModal(false);
-    navigate('/');
+    navigate('/login');
   };
 
   const passwordErrors = getPasswordStrengthErrors(password);
