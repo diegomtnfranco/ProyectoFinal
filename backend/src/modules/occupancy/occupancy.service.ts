@@ -409,80 +409,161 @@ export class OccupancyService {
    * Check-in anónimo usando QR (sin autenticación)
    */
   async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInResponseDto> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
-    try {
-      // 1. Validar QR y obtener estacionamiento
-      const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-in');
+  try {
+    // 1. Validar QR y obtener estacionamiento
+    const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-in');
 
-      // 2. Buscar espacio disponible
-      const availableSpace = await this.findAvailableSpace(parkingLot.id, dto.vehicleType, queryRunner.manager);
+    // 2. Buscar reserva confirmada existente para esta patente
+    const existingReservation = await this.findReservationByVehiclePlate(
+      dto.vehiclePlate,
+      parkingLot.id,
+      queryRunner.manager
+    );
+
+    // 3. Determinar el espacio a usar
+    let targetSpace: Space;
+    let isFromReservation = false;
+
+    if (existingReservation) {
+      // Si existe reserva, verificar que tenga espacio asignado
+      if (!existingReservation.spaceId) {
+        throw new BadRequestException('La reserva no tiene un espacio asignado. Contacta al estacionamiento.');
+      }
+
+      // Obtener el espacio de la reserva
+      const reservedSpace = await queryRunner.manager.findOne(Space, {
+        where: { id: existingReservation.spaceId },
+      });
+
+      if (!reservedSpace) {
+        throw new NotFoundException('El espacio asignado a la reserva no fue encontrado');
+      }
+
+      // Verificar que el espacio no esté ocupado
+      if (reservedSpace.status === SpaceStatus.OCCUPIED) {
+        throw new ConflictException(
+          'El espacio asignado a tu reserva ya está ocupado. Por favor, contacta al estacionamiento.'
+        );
+      }
+
+      targetSpace = reservedSpace;
+      isFromReservation = true;
+    } else {
+      // Si no hay reserva, buscar un espacio disponible
+      const availableSpace = await this.findAvailableSpace(
+        parkingLot.id,
+        dto.vehicleType,
+        queryRunner.manager
+      );
 
       if (!availableSpace) {
         throw new BadRequestException('No hay espacios disponibles en este momento');
       }
 
-      // 3. Obtener tarifa aplicable (para validar)
-      const rate = await this.ratesService.findApplicableRate(
-        parkingLot.id,
-        dto.vehicleType,
-        new Date(),
-      );
-
-      if (!rate) {
-        throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-      }
-
-      // 4. Crear ocupación anónima (checkedInBy es undefined para anónimos)
-      const occupancy = this.occupancyRepository.create({
-        spaceId: availableSpace.id,
-        vehicleType: dto.vehicleType,
-        vehiclePlate: dto.vehiclePlate.trim().toUpperCase(),
-        checkInTime: new Date(),
-        isCompleted: false,
-        isAnonymous: true,
-        checkedInViaQr: true,
-        // checkedInBy se queda undefined para anónimos
-      });
-      await queryRunner.manager.save(occupancy);
-
-      // 5. Actualizar espacio
-      availableSpace.status = SpaceStatus.OCCUPIED;
-      availableSpace.occupiedSince = new Date();
-      availableSpace.occupiedByVehicleType = dto.vehicleType;
-      availableSpace.occupiedByVehiclePlate = dto.vehiclePlate.trim().toUpperCase()
-      await queryRunner.manager.save(availableSpace);
-
-      await queryRunner.commitTransaction();
-
-      // 6. Emitir eventos WebSocket
-      this.websocketGateway.emitSpaceUpdate(parkingLot.id, availableSpace.id, SpaceStatus.OCCUPIED);
-      this.websocketGateway.emitParkingAvailability(parkingLot.id);
-      this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
-        spaceId: availableSpace.id,
-        spaceNumber: availableSpace.spaceNumber,
-        vehiclePlate: availableSpace.occupiedByVehiclePlate,
-        action: 'check-in',
-        vehicleType: dto.vehicleType,
-        isAnonymous: true,
-      });
-
-      return {
-        success: true,
-        message: 'Check-in registrado exitosamente',
-        spaceNumber: availableSpace.spaceNumber,
-        vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
-        checkInTime: occupancy.checkInTime,
-      };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
+      targetSpace = availableSpace;
     }
+
+    // 4. Validar tarifa aplicable
+    const rate = await this.ratesService.findApplicableRate(
+      parkingLot.id,
+      dto.vehicleType,
+      new Date(),
+    );
+
+    if (!rate) {
+      throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
+    }
+
+    // 5. Crear ocupación
+    const occupancy = this.occupancyRepository.create({
+      spaceId: targetSpace.id,
+      vehicleType: dto.vehicleType,
+      vehiclePlate: dto.vehiclePlate.trim().toUpperCase(),
+      checkInTime: new Date(),
+      isCompleted: false,
+      isAnonymous: true,
+      checkedInViaQr: true,
+      reservationId: existingReservation?.id,
+    });
+    await queryRunner.manager.save(occupancy);
+
+    // 6. Actualizar espacio
+    targetSpace.status = SpaceStatus.OCCUPIED;
+    targetSpace.occupiedSince = new Date();
+    targetSpace.occupiedByVehicleType = dto.vehicleType;
+    targetSpace.occupiedByVehiclePlate = dto.vehiclePlate.trim().toUpperCase();
+    targetSpace.isReserved = false;
+    targetSpace.reservedUntil = null;
+    await queryRunner.manager.save(targetSpace);
+
+    // 7. Si existe reserva, actualizarla a COMPLETED
+    if (existingReservation) {
+      existingReservation.status = ReservationStatus.COMPLETED;
+      await queryRunner.manager.save(existingReservation);
+    }
+
+    // 8. Commit transacción
+    await queryRunner.commitTransaction();
+
+    // 9. Emitir eventos WebSocket
+    const message = existingReservation
+      ? `Check-in registrado. Se utilizó la reserva confirmada para el vehículo ${existingReservation.vehiclePlate.toUpperCase()}.`
+      : 'Check-in registrado exitosamente';
+
+    this.websocketGateway.emitSpaceUpdate(parkingLot.id, targetSpace.id, SpaceStatus.OCCUPIED);
+    this.websocketGateway.emitParkingAvailability(parkingLot.id);
+    this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
+      spaceId: targetSpace.id,
+      spaceNumber: targetSpace.spaceNumber,
+      vehiclePlate: targetSpace.occupiedByVehiclePlate,
+      action: 'check-in',
+      vehicleType: dto.vehicleType,
+      isAnonymous: true,
+      clientId: existingReservation?.client?.user?.id,
+    });
+
+    return {
+      success: true,
+      message,
+      spaceNumber: targetSpace.spaceNumber,
+      vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
+      checkInTime: occupancy.checkInTime,
+    };
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    throw error;
+  } finally {
+    await queryRunner.release();
   }
+}
+/**
+ * Buscar reserva activa por patente en un estacionamiento
+ */
+private async findReservationByVehiclePlate(
+  vehiclePlate: string,
+  parkingLotId: string,
+  manager?: EntityManager
+): Promise<Reservation | null> {
+  const em = manager || this.dataSource.manager;
+
+  const reservation = await em.findOne(Reservation, {
+    where: {
+      vehiclePlate: vehiclePlate.trim().toUpperCase(),
+      status: In([ReservationStatus.CONFIRMED]),
+      space: { parkingLotId },
+      endTime: MoreThan(new Date()),
+    },
+    relations: ['space', 'space.parkingLot', 'client', 'client.user'],
+  });
+
+  return reservation || null;
+}
+
 
   /**
    * Check-out anónimo usando QR (sin autenticación)
@@ -538,7 +619,17 @@ export class OccupancyService {
         throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
       }
 
-      const totalAmount = rate.pricePerHour * hoursToCharge;
+      let totalAmount = rate.pricePerHour * hoursToCharge;
+
+      if (occupancy.reservationId) {
+        const reservation = await queryRunner.manager.findOne(Reservation, {
+          where: { id: occupancy.reservationId },
+        });
+
+        if (reservation && reservation.totalAmount !== undefined && reservation.totalAmount !== null && reservation.status === ReservationStatus.COMPLETED) {
+          totalAmount = reservation.totalAmount;
+        }
+      }
 
       // 5. Actualizar ocupación
       occupancy.checkOutTime = checkOutTime;
@@ -604,6 +695,7 @@ export class OccupancyService {
           VehicleType: rate.vehicleType,
           pricePerHour: rate.pricePerHour,
         }
+        
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
