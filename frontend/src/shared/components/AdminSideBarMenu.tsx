@@ -25,11 +25,11 @@ function AdminSideBarMenu() {
       icon: <Users size={20} />,
       path: '/admin/users'
     },
-    {
-      title: 'Configuración',
-      icon: <Settings size={20} />,
-      path: '/admin/settings'
-    }
+    // {
+    //   title: 'Configuración',
+    //   icon: <Settings size={20} />,
+    //   path: '/admin/settings'
+    // }
   ]
 
   return (

@@ -34,10 +34,10 @@ export const adminService = {
   /**
    * Obtener detalle de un estacionamiento (admin)
    */
-  async getParkingLotDetails(id: string): Promise<AdminParkingLotDetailResponse> {
-    const response = await api.get<AdminParkingLotDetailResponse>(`/parking-lots/${id}`);
-    return response.data;
-  },
+ async getParkingLotDetails(id: string): Promise<AdminParkingLotDetailResponse> {
+  const response = await api.get<AdminParkingLotDetailResponse>(`/parking-lots/${id}`);
+  return response.data;
+},
 
   /**
    * Actualizar un estacionamiento (admin)
