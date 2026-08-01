@@ -123,9 +123,9 @@ function LandingPage() {
       {/* ============ HERO SECTION ============ */}
       <main id="inicio" className="flex flex-col items-center justify-center text-center px-4 py-16 md:py-24 bg-gradient-to-br from-blue-50 via-white to-blue-50">
         <div className="max-w-4xl mx-auto">
-          <div className="inline-block bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+          {/* <div className="inline-block bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
             🚀 La revolución del estacionamiento en Tucumán
-          </div>
+          </div> */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 drop-shadow-sm leading-tight">
             Tu estacionamiento, <br className="hidden md:block"/>
             <span className="text-blue-600">a un click de distancia.</span>
