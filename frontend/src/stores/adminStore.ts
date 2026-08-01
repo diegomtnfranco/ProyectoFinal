@@ -62,16 +62,24 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
 
-  fetchParkingLotDetails: async (id: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const data = await adminService.getParkingLotDetails(id);
-      set({ currentParkingLot: data, isLoading: false });
-    } catch (error) {
-      set({ error: error as string, isLoading: false });
-      throw error;
-    }
-  },
+ fetchParkingLotDetails: async (id: string) => {
+  set({ isLoading: true, error: null });
+  try {
+    const data = await adminService.getParkingLotDetails(id);
+    // ✅ Asegurar que el objeto tenga spaces y settings
+    set({ 
+      currentParkingLot: {
+        ...data,
+        spaces: data.spaces || [],
+        settings: data.settings || { allowOnlineReservations: true }
+      }, 
+      isLoading: false 
+    });
+  } catch (error) {
+    set({ error: error as string, isLoading: false });
+    throw error;
+  }
+},
 
   toggleParkingLotStatus: async (id: string, isActive: boolean) => {
     set({ isLoading: true, error: null });

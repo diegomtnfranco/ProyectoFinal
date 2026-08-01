@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../../../stores/adminStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import {
@@ -30,7 +31,7 @@ function CompaniesPage() {
     setPage
   } = useAdminStore();
   const { showSuccess, showError } = useToast();
-
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -72,13 +73,14 @@ function CompaniesPage() {
     }
   };
 
-  const handleViewDetails = (id: string) => {
-    window.open(`/admin/parking-lots/${id}`, '_blank');
-  };
+ const handleEdit = (id: string) => {
+  navigate(`/admin/companies/${id}/edit`);
+};
 
-  const handleEdit = (id: string) => {
-    window.open(`/admin/parking-lots/${id}/edit`, '_blank');
-  };
+// ✅ Cambiar handleViewDetails para navegar a la nueva página
+const handleViewDetails = (id: string) => {
+  navigate(`/admin/companies/${id}/edit`);
+};
 
   const handleClearFilters = () => {
     setSearchTerm('');
@@ -304,12 +306,12 @@ function CompaniesPage() {
 
               <div className="flex justify-end gap-2 mt-5 border-t pt-4">
 
-                <button
+                {/* <button
                   onClick={() => handleViewDetails(parking.id)}
                   className="p-2 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
                 >
                   <Eye size={18} />
-                </button>
+                </button> */}
 
                 <button
                   onClick={() => handleEdit(parking.id)}

@@ -28,9 +28,9 @@ export const adminMenu: AdminMenuItem[] = [
     path: '/admin/users',
     icon: Users,
   },
-  {
-    name: 'Configuración',
-    path: '/admin/settings',
-    icon: Settings,
-  },
+  // {
+  //   name: 'Configuración',
+  //   path: '/admin/settings',
+  //   icon: Settings,
+  // },
 ]

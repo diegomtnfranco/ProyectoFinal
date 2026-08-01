@@ -122,3 +122,4 @@ export interface AdminPaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
