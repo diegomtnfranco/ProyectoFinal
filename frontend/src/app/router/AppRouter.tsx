@@ -29,6 +29,8 @@ import TotemCheckOut from '../../features/totem/pages/TotemCheckOut';
 import ParkingSettingsPage from '../../features/owner/ParkingSettingsPage';
 import AboutUs from '../../features/landing/pages/AboutUs';
 import AdminParkingDetailPage from '../../features/admin/pages/AdminParkingDetailPage';
+import UsersPage from '../../features/admin/pages/UsersPage';
+import AdminUserEditPage from '../../features/admin/pages/AdminUserEditPage';
 
 // Actualizado al 18/06/2026
 function AppRouter() {
@@ -80,6 +82,8 @@ function AppRouter() {
             <Route index element={<Navigate to="companies" replace />} />
             <Route path="companies" element={<CompaniesPage />} />
             <Route path="companies/:id/edit" element={<AdminParkingDetailPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="users/:id/edit" element={<AdminUserEditPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path='actives' element={<PendingCompaniesPages />} />
           </Route>

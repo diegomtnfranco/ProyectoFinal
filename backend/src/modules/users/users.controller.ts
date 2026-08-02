@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { UserRole } from './entities/user.entity';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
@@ -10,6 +9,7 @@ import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';  // ← CAMBIADO
 import { CloudinaryService } from '../common/cloudinary/cloudinary.service';  // ← CAMBIADO
+import { AdminUpdateProfileDto } from './dto/admin-update-user.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -23,8 +23,18 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+  ) {
+    return this.usersService.findAll({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+      search,
+      role,
+    });
   }
 
   @Get(':id')
@@ -32,9 +42,15 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+    @Get('admin/:id')
+  AdminFindOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.AdminFindOne(id);
+  }
+
+  @Patch('admin/:id')
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: AdminUpdateProfileDto) {
+    console.log(updateUserDto);
+    return this.usersService.adminUpdateUser(id, updateUserDto);
   }
 
   @Patch(':id/activate')
