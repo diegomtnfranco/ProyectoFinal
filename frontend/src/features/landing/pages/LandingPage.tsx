@@ -20,7 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
-import ParkingLogo2 from '../../../assets/logos/logo-app.png';
+import ParkingLogo2 from '../../../assets/logos/logo-app.webp';
 import { useState } from 'react';
 
 function LandingPage() {
