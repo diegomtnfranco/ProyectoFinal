@@ -54,9 +54,7 @@ function Navbar() {
           : '/client/profile'
 
   const handleLogout = () => {
-    logout()
-
-    window.location.href = '/'
+    logout()   
   }
 
   const showDesktopMenuClient =
