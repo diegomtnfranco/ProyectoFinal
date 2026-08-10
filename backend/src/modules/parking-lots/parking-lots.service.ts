@@ -28,7 +28,7 @@ export class ParkingLotsService {
     @InjectRepository(Space)
     private spaceRepository: Repository<Space>,
     @InjectRepository(ParkingEmployee)
-    private parkingEmployeeRepository:Repository<ParkingEmployee>,
+    private parkingEmployeeRepository: Repository<ParkingEmployee>,
     private cloudinaryService: CloudinaryService,
     private qrService: QRService,
   ) { }
@@ -106,6 +106,11 @@ export class ParkingLotsService {
     if (!parkingLot) {
       throw new NotFoundException(`Parking lot with ID ${id} not found`);
     }
+
+    if (parkingLot.rates) {
+      parkingLot.rates = parkingLot.rates.filter(rate => rate.isActive === true);
+    }
+
     return parkingLot;
   }
 
@@ -211,46 +216,46 @@ export class ParkingLotsService {
   }
 
 
-async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
-  const parkingLot = await this.findOne(id);
+  async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRole: string): Promise<ParkingLot> {
+    const parkingLot = await this.findOne(id);
 
-  // Verificar permisos
-  if (userRole === UserRole.PARKING_OWNER) {
-    const owner = await this.parkingOwnerRepository.findOne({
-      where: { userId },
-    });
-    if (!owner || parkingLot.ownerId !== owner.id) {
-      throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+    // Verificar permisos
+    if (userRole === UserRole.PARKING_OWNER) {
+      const owner = await this.parkingOwnerRepository.findOne({
+        where: { userId },
+      });
+      if (!owner || parkingLot.ownerId !== owner.id) {
+        throw new UnauthorizedException('No tienes permiso para modificar este estacionamiento');
+      }
+    } else if (userRole !== UserRole.ADMIN) {
+      throw new UnauthorizedException('No tienes permiso para realizar esta acción');
     }
-  } else if (userRole !== UserRole.ADMIN) {
-    throw new UnauthorizedException('No tienes permiso para realizar esta acción');
+
+    // ✅ Construir objeto de actualización con merge profundo para settings
+    const updateData: any = {};
+
+    // Campos simples
+    if (updateDto.name !== undefined) updateData.name = updateDto.name;
+    if (updateDto.address !== undefined) updateData.address = updateDto.address;
+    if (updateDto.latitude !== undefined) updateData.latitude = updateDto.latitude;
+    if (updateDto.longitude !== undefined) updateData.longitude = updateDto.longitude;
+    if (updateDto.openTime !== undefined) updateData.openTime = updateDto.openTime;
+    if (updateDto.closeTime !== undefined) updateData.closeTime = updateDto.closeTime;
+    if (updateDto.isActive !== undefined) updateData.isActive = updateDto.isActive;
+    if (updateDto.imageUrl !== undefined) updateData.imageUrl = updateDto.imageUrl;
+
+    // ✅ Merge profundo para settings
+    if (updateDto.settings) {
+      updateData.settings = {
+        ...parkingLot.settings,      // Mantener valores existentes
+        ...updateDto.settings,       // Sobrescribir con los nuevos
+      };
+    }
+
+    // Aplicar todos los cambios
+    Object.assign(parkingLot, updateData);
+    return this.parkingLotRepository.save(parkingLot);
   }
-
-  // ✅ Construir objeto de actualización con merge profundo para settings
-  const updateData: any = {};
-
-  // Campos simples
-  if (updateDto.name !== undefined) updateData.name = updateDto.name;
-  if (updateDto.address !== undefined) updateData.address = updateDto.address;
-  if (updateDto.latitude !== undefined) updateData.latitude = updateDto.latitude;
-  if (updateDto.longitude !== undefined) updateData.longitude = updateDto.longitude;
-  if (updateDto.openTime !== undefined) updateData.openTime = updateDto.openTime;
-  if (updateDto.closeTime !== undefined) updateData.closeTime = updateDto.closeTime;
-  if (updateDto.isActive !== undefined) updateData.isActive = updateDto.isActive;
-  if (updateDto.imageUrl !== undefined) updateData.imageUrl = updateDto.imageUrl;
-
-  // ✅ Merge profundo para settings
-  if (updateDto.settings) {
-    updateData.settings = {
-      ...parkingLot.settings,      // Mantener valores existentes
-      ...updateDto.settings,       // Sobrescribir con los nuevos
-    };
-  }
-
-  // Aplicar todos los cambios
-  Object.assign(parkingLot, updateData);
-  return this.parkingLotRepository.save(parkingLot);
-}
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
     const parkingLot = await this.findOne(id);
@@ -367,7 +372,7 @@ async update(id: string, updateDto: UpdateParkingLotDto, userId: string, userRol
 
     // 2. Obtener el parking lot (solo uno para MVP)
     const parkingLot = await this.parkingLotRepository.findOne({
-      where: { id:employee.parkingLotId, isActive: true },
+      where: { id: employee.parkingLotId, isActive: true },
       relations: ['spaces'],
     });
 
