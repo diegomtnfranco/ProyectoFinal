@@ -189,7 +189,7 @@ function ParkingDetailsPage() {
     const vehicleTypeLabels: Record<string, string> = {
       car: 'Auto',
       motorcycle: 'Moto',
-      van: 'Van',
+      //van: 'Van',
       truck: 'Camioneta',
     };
     
