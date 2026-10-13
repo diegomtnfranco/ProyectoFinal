@@ -82,6 +82,9 @@ function LandingPage() {
               <Link to="/login" className="text-blue-600 font-bold hover:bg-blue-50 py-2 px-4 rounded-xl transition-all text-sm">
                 Iniciar Sesión
               </Link>
+              <Link to="/create-company" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-xl transition-all text-sm whitespace-nowrap">
+                Registrar empresa
+              </Link>
               <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl shadow-lg transition-all text-sm">
                 Registrarme
               </Link>
@@ -111,6 +114,9 @@ function LandingPage() {
             <div className="flex flex-col gap-3 pt-2 border-t">
               <Link to="/login" className="text-blue-600 font-bold py-2 text-center hover:bg-blue-50 rounded-xl transition-all" onClick={() => setMobileMenuOpen(false)}>
                 Iniciar Sesión
+              </Link>
+              <Link to="/create-company" className="border-2 border-blue-600 text-blue-600 font-bold py-2 text-center hover:bg-blue-50 rounded-xl transition-all" onClick={() => setMobileMenuOpen(false)}>
+                Registrar empresa
               </Link>
               <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 text-center rounded-xl shadow-lg transition-all" onClick={() => setMobileMenuOpen(false)}>
                 Registrarme
@@ -152,7 +158,7 @@ function LandingPage() {
                   <Search size={20} />
                 </Link>
                 <Link to="/create-company" className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold py-4 px-8 rounded-2xl shadow-md transition-all text-lg w-full sm:w-auto flex items-center justify-center gap-2">
-                  Asociar mi cochera
+                  Registrar empresa
                   <ArrowRight size={20} />
                 </Link>
               </>
@@ -408,7 +414,7 @@ function LandingPage() {
               Buscar estacionamiento
             </Link>
             <Link to="/create-company" className="bg-transparent border-2 border-white hover:bg-white/10 text-white font-bold py-4 px-8 rounded-2xl shadow-xl transition-all text-lg">
-              Registrar mi cochera
+              Registrar empresa
             </Link>
           </div>
         </div>
