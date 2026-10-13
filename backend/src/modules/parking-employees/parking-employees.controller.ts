@@ -20,30 +20,33 @@ export class ParkingEmployeesController {
   }
 
   @Get('parking-lot/:parkingLotId')
-@Roles(UserRole.PARKING_OWNER)
-async findByParkingLot(
-  @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
-  @CurrentUser('id') userId: string,  // ← Recibe userId del token
-) {
-  
-  const employees = await this.employeesService.findByParkingLot(parkingLotId, userId);
-  
-  return employees.map(emp => ({
-    id: emp.id,
-    userId: emp.userId,
-    parkingLotId: emp.parkingLotId,
-    name: emp.name,
-    employeeCode: emp.employeeCode,
-    position: emp.position,
-    isActive: emp.isActive,
-    createdAt: emp.createdAt,
-    user: emp.user ? {
-      id: emp.user.id,
-      email: emp.user.email,
-      isActive: emp.user.isActive,
-    } : null,
-  }));
-}
+  @Roles(UserRole.PARKING_OWNER)
+  async findByParkingLot(
+    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+    @CurrentUser('id') userId: string,  // ← Recibe userId del token
+  ) {
+    
+    const employees = await this.employeesService.findByParkingLot(parkingLotId, userId);
+    
+    return employees.map(emp => ({
+      id: emp.id,
+      userId: emp.userId,
+      parkingLotId: emp.parkingLotId,
+      name: emp.name,
+      employeeCode: emp.employeeCode,
+      position: emp.position,
+      isActive: emp.isActive,
+      createdAt: emp.createdAt,
+      // Acá está la magia: dejamos pasar la fecha para que llegue al frontend
+      lastLoginAt: emp.lastLoginAt || (emp.user ? emp.user.lastLoginAt : null),
+      user: emp.user ? {
+        id: emp.user.id,
+        email: emp.user.email,
+        isActive: emp.user.isActive,
+        lastLoginAt: emp.user.lastLoginAt,
+      } : null,
+    }));
+  }
 
   @Get('me')
   @Roles(UserRole.PARKING_EMPLOYEE)
@@ -51,8 +54,6 @@ async findByParkingLot(
     return this.employeesService.findByUserId(userId);
   }
 
-
-  
   /**
    * Obtener el estacionamiento donde trabaja el empleado
    * GET /employee/my-parking-lot
@@ -71,6 +72,7 @@ async findByParkingLot(
   @Post('clock-in')
   @Roles(UserRole.PARKING_EMPLOYEE)
   clockIn(@CurrentUser('id') userId: string) {
+    // Nota: Asegurate de que en parking-employees.service.ts el método se llame "clockIn" con la I mayúscula
     return this.employeesService.clockIn(userId);
   }
 

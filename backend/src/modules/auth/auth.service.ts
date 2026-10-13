@@ -340,6 +340,8 @@ export class AuthService {
       throw new UnauthorizedException('Tu cuenta de empleado ha sido desactivada');
     }
 
+   // Guardar la fecha del último inicio de sesión (SCRUM-9)
+   await this.userRepository.update(user.id, { lastLoginAt: new Date() });
     const token = this.jwtService.sign({
       sub: user.id,
       email: user.email,
