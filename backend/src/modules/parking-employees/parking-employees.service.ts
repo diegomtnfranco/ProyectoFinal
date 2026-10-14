@@ -1,14 +1,24 @@
-import { Injectable, NotFoundException, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+
 import { ParkingEmployee } from './entities/parking-employee.entity';
 import { CreateEmployeeDto } from './dto/create-parking-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-parking-employee.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { Space, SpaceStatus } from '../spaces/entities/space.entity';
-import { EmployeeParkingLotResponseDto, EmployeeSpaceDto } from './dto/employee-parking-lot-response.dto';
+import {
+  EmployeeParkingLotResponseDto,
+  EmployeeSpaceDto,
+} from './dto/employee-parking-lot-response.dto';
 import { ParkingOwner } from '../parking-owners/entities/parking-owner.entity';
 
 @Injectable()
@@ -24,27 +34,30 @@ export class ParkingEmployeesService {
     private spaceRepository: Repository<Space>,
     @InjectRepository(ParkingOwner)
     private parkingOwnerRepository: Repository<ParkingOwner>,
-  ) { }
+  ) {}
 
-  async create(createDto: CreateEmployeeDto, ownerId: string): Promise<ParkingEmployee> {
-    // Verificar que el estacionamiento pertenezca al dueño (usando ownerId, no owner_id)
+  async create(
+    createDto: CreateEmployeeDto,
+    ownerId: string,
+  ): Promise<any> {
     const parkingLot = await this.parkingLotRepository.findOne({
-      where: { id: createDto.parkingLotId, ownerId: ownerId }, // ← ownerId
+      where: { id: createDto.parkingLotId, ownerId: ownerId },
     });
 
     if (!parkingLot) {
-      throw new UnauthorizedException('No tienes permiso para agregar empleados a este estacionamiento');
+      throw new UnauthorizedException(
+        'No tienes permiso para agregar empleados a este estacionamiento'
+      );
     }
 
-    // Verificar si el email ya existe
     const existingUser = await this.userRepository.findOne({
       where: { email: createDto.email },
     });
+
     if (existingUser) {
       throw new ConflictException('El email ya está registrado');
     }
 
-    // Crear usuario
     const hashedPassword = await bcrypt.hash(createDto.password, 10);
     const user = this.userRepository.create({
       email: createDto.email,
@@ -55,10 +68,10 @@ export class ParkingEmployeesService {
     });
     await this.userRepository.save(user);
 
-    // Generar código de empleado si no viene
-    const employeeCode = createDto.employeeCode || await this.generateEmployeeCode(createDto.parkingLotId);
+    const employeeCode =
+      createDto.employeeCode ||
+      (await this.generateEmployeeCode(createDto.parkingLotId));
 
-    // Crear perfil de empleado
     const employee = this.employeeRepository.create({
       userId: user.id,
       parkingLotId: createDto.parkingLotId,
@@ -68,22 +81,24 @@ export class ParkingEmployeesService {
       isActive: true,
     });
     await this.employeeRepository.save(employee);
-
-    return employee;
+    
+    return {
+      ...employee,
+      lastLoginAt: user.lastLoginAt,
+      email: user.email,
+    };
   }
 
-  /**
-   * Generar código único de empleado
-   */
   private async generateEmployeeCode(parkingLotId: string): Promise<string> {
     const parkingLot = await this.parkingLotRepository.findOne({
       where: { id: parkingLotId },
     });
 
-    const prefix = parkingLot?.name
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 4) || 'EMP';
+    const prefix =
+      parkingLot?.name
+        ?.toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .substring(0, 4) || 'EMP';
 
     const count = await this.employeeRepository.count({
       where: { parkingLotId },
@@ -93,13 +108,9 @@ export class ParkingEmployeesService {
     return `${prefix}-${number}`;
   }
 
-  async findByParkingLot(parkingLotId: string, userId: string): Promise<ParkingEmployee[]> {
-
-
-
-    // Verificar que el estacionamiento pertenezca al dueño
+  async findByParkingLot(parkingLotId: string, userId: string): Promise<any[]> {
     const parkingLot = await this.parkingLotRepository.findOne({
-      where: { id: parkingLotId, owner: { userId: userId } }, // ← ownerId
+      where: { id: parkingLotId, owner: { userId: userId } },
     });
 
     if (!parkingLot) {
@@ -111,10 +122,15 @@ export class ParkingEmployeesService {
       relations: ['user'],
     });
 
-    return employees;
+    // SCRUM-9: Mapeamos la fecha y el email desde el usuario asociado
+    return employees.map((employee) => ({
+      ...employee,
+      lastLoginAt: employee.user?.lastLoginAt,
+      email: employee.user?.email,
+    }));
   }
 
-  async findOne(id: string): Promise<ParkingEmployee> {
+  async findOne(id: string): Promise<any> {
     const employee = await this.employeeRepository.findOne({
       where: { id },
       relations: ['user', 'parkingLot'],
@@ -124,10 +140,14 @@ export class ParkingEmployeesService {
       throw new NotFoundException('Empleado no encontrado');
     }
 
-    return employee;
+    return {
+      ...employee,
+      lastLoginAt: employee.user?.lastLoginAt,
+      email: employee.user?.email,
+    };
   }
 
-  async findByUserId(userId: string): Promise<ParkingEmployee> {
+  async findByUserId(userId: string): Promise<any> {
     const employee = await this.employeeRepository.findOne({
       where: { userId },
       relations: ['user', 'parkingLot'],
@@ -137,18 +157,29 @@ export class ParkingEmployeesService {
       throw new NotFoundException('Perfil de empleado no encontrado');
     }
 
-    return employee;
+    return {
+      ...employee,
+      lastLoginAt: employee.user?.lastLoginAt,
+      email: employee.user?.email,
+    };
   }
 
-  async findByEmployeeCode(employeeCode: string): Promise<ParkingEmployee | null> {
-    return this.employeeRepository.findOne({
+  async findByEmployeeCode(employeeCode: string): Promise<any | null> {
+    const employee = await this.employeeRepository.findOne({
       where: { employeeCode },
       relations: ['user', 'parkingLot'],
     });
+
+    if (!employee) return null;
+
+    return {
+      ...employee,
+      lastLoginAt: employee.user?.lastLoginAt,
+      email: employee.user?.email,
+    };
   }
 
   async getMyParkingLot(userId: string): Promise<EmployeeParkingLotResponseDto> {
-    // 1. Buscar el perfil del empleado
     const employee = await this.employeeRepository.findOne({
       where: { userId, isActive: true },
       relations: ['parkingLot'],
@@ -164,20 +195,25 @@ export class ParkingEmployeesService {
 
     const parkingLot = employee.parkingLot;
 
-    // 2. Obtener todos los espacios de este estacionamiento
     const spaces = await this.spaceRepository.find({
       where: { parkingLotId: parkingLot.id, isActive: true },
     });
 
-    // 3. Calcular estadísticas
     const totalSpaces = spaces.length;
-    const availableSpaces = spaces.filter(s => s.status === SpaceStatus.AVAILABLE).length;
-    const occupiedSpaces = spaces.filter(s => s.status === SpaceStatus.OCCUPIED).length;
-    const reservedSpaces = spaces.filter(s => s.status === SpaceStatus.RESERVED).length;
-    const maintenanceSpaces = spaces.filter(s => s.status === SpaceStatus.MAINTENANCE).length;
+    const availableSpaces = spaces.filter(
+      (s) => s.status === SpaceStatus.AVAILABLE,
+    ).length;
+    const occupiedSpaces = spaces.filter(
+      (s) => s.status === SpaceStatus.OCCUPIED,
+    ).length;
+    const reservedSpaces = spaces.filter(
+      (s) => s.status === SpaceStatus.RESERVED,
+    ).length;
+    const maintenanceSpaces = spaces.filter(
+      (s) => s.status === SpaceStatus.MAINTENANCE,
+    ).length;
 
-    // 4. Mapear espacios (solo lo que el empleado necesita ver)
-    const spacesDto: EmployeeSpaceDto[] = spaces.map(space => ({
+    const spacesDto: EmployeeSpaceDto[] = spaces.map((space) => ({
       id: space.id,
       spaceNumber: space.spaceNumber,
       status: space.status,
@@ -212,14 +248,17 @@ export class ParkingEmployeesService {
         maintenanceSpaces,
       },
       spaces: spacesDto,
-    };
+    } as any;
   }
 
-  async update(id: string, updateDto: UpdateEmployeeDto, userId: string): Promise<ParkingEmployee> {
-    // 1. Cargar el empleado con TODAS las relaciones necesarias
+  async update(
+    id: string,
+    updateDto: UpdateEmployeeDto,
+    userId: string,
+  ): Promise<any> {
     const employee = await this.employeeRepository.findOne({
       where: { id },
-      relations: ['parkingLot', 'user'], // ← Cargar parkingLot y user
+      relations: ['parkingLot', 'user'],
     });
 
     if (!employee) {
@@ -227,10 +266,11 @@ export class ParkingEmployeesService {
     }
 
     if (!employee.parkingLot) {
-      throw new UnauthorizedException('El empleado no está asociado a ningún estacionamiento');
+      throw new UnauthorizedException(
+        'El empleado no está asociado a ningún estacionamiento',
+      );
     }
 
-    // 2. Obtener el perfil del dueño usando el userId
     const owner = await this.parkingOwnerRepository.findOne({
       where: { userId },
     });
@@ -239,12 +279,10 @@ export class ParkingEmployeesService {
       throw new UnauthorizedException('No tienes un perfil de dueño registrado');
     }
 
-    // 3. Verificar que el parking pertenezca al dueño
     if (employee.parkingLot.ownerId !== owner.id) {
       throw new UnauthorizedException('No tienes permiso para modificar este empleado');
     }
 
-    // 4. Actualizar campos
     if (updateDto.name) {
       employee.name = updateDto.name;
     }
@@ -263,17 +301,13 @@ export class ParkingEmployeesService {
     }
 
     await this.employeeRepository.save(employee);
-
-    // Recargar el empleado actualizado
     return this.findOne(id);
   }
 
-
   async remove(id: string, userId: string): Promise<void> {
-    // 1. Cargar el empleado con TODAS las relaciones necesarias
     const employee = await this.employeeRepository.findOne({
       where: { id },
-      relations: ['parkingLot', 'user'], // ← Cargar parkingLot y user
+      relations: ['parkingLot', 'user'],
     });
 
     if (!employee) {
@@ -281,10 +315,11 @@ export class ParkingEmployeesService {
     }
 
     if (!employee.parkingLot) {
-      throw new UnauthorizedException('El empleado no está asociado a ningún estacionamiento');
+      throw new UnauthorizedException(
+        'El empleado no está asociado a ningún estacionamiento',
+      );
     }
 
-    // 2. Obtener el perfil del dueño usando el userId
     const owner = await this.parkingOwnerRepository.findOne({
       where: { userId },
     });
@@ -293,12 +328,10 @@ export class ParkingEmployeesService {
       throw new UnauthorizedException('No tienes un perfil de dueño registrado');
     }
 
-    // 3. Verificar que el parking pertenezca al dueño (usando ownerId directo)
     if (employee.parkingLot.ownerId !== owner.id) {
       throw new UnauthorizedException('No tienes permiso para desactivar este empleado');
     }
 
-    // 4. Desactivar empleado y su usuario
     employee.isActive = false;
     await this.employeeRepository.save(employee);
 
@@ -308,33 +341,25 @@ export class ParkingEmployeesService {
     }
   }
 
-  async clockIn(userId: string): Promise<{ message: string; clockTime: Date }> {
+  async clockIn(
+    userId: string,
+  ): Promise<{ message: string; clockTime: Date }> {
     const employee = await this.findByUserId(userId);
-
     if (!employee.isActive) {
       throw new BadRequestException('El empleado no está activo');
     }
-
     const clockTime = new Date();
-
-    // TODO: Implementar registro en tabla de time_records
-    // await this.timeRecordRepository.create({ employeeId: employee.id, clockIn: clockTime });
-
     return { message: 'Entrada registrada exitosamente', clockTime };
   }
 
-  async clockOut(userId: string): Promise<{ message: string; clockTime: Date }> {
+  async clockOut(
+    userId: string,
+  ): Promise<{ message: string; clockTime: Date }> {
     const employee = await this.findByUserId(userId);
-
     if (!employee.isActive) {
       throw new BadRequestException('El empleado no está activo');
     }
-
     const clockTime = new Date();
-
-    // TODO: Implementar registro en tabla de time_records
-    // await this.timeRecordRepository.update({ employeeId: employee.id, clockOut: clockTime });
-
     return { message: 'Salida registrada exitosamente', clockTime };
   }
 }

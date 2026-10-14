@@ -240,15 +240,6 @@ function RegisterForm() {
           {isLoading ? 'Creando cuenta...' : 'Registrarme'}
         </button>
 
-        <button
-          type='button'
-          onClick={() => navigate('/create-company')}
-          className='border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-semibold py-3 rounded-xl'
-          disabled={isLoading}
-        >
-          Crear empresa
-        </button>
-
         {/* --- NUEVO: ENLACE AL PIE --- */}
         <div className="text-center pt-2 border-t border-gray-100 mt-2">
           <button 

@@ -531,21 +531,13 @@ function CreateCompanyForm() {
           Siguiente
         </button>
 
-        <button
-          type='button'
-          onClick={() => navigate('/register')}
-          className='text-gray-500 hover:text-gray-700'
-        >
-          Volver
-        </button>
-
         <div className="text-center pt-2 border-t border-gray-100 mt-2">
           <button 
             type="button" 
             onClick={() => navigate('/')} 
-            className="text-sm text-gray-400 hover:text-red-500 transition-colors font-medium"
+            className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
           >
-            Cancelar y volver al inicio
+            Volver al inicio
           </button>
         </div>
 
