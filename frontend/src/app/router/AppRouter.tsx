@@ -32,9 +32,6 @@ import AdminParkingDetailPage from '../../features/admin/pages/AdminParkingDetai
 import UsersPage from '../../features/admin/pages/UsersPage';
 import AdminUserEditPage from '../../features/admin/pages/AdminUserEditPage';
 import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
-
-
-// import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
 import ActivityPage from '../../features/owner/ActivityPage';
 
 
