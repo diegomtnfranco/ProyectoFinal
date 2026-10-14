@@ -23,10 +23,15 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await employeesService.getByParkingLot(parkingLotId);
-      // Asegurar que cada empleado tenga un campo email accesible
+      
+      // 👀 ESTO ES CLAVE: Imprimimos lo que llega del backend
+      console.log('📦 Datos de empleados recibidos del backend:', data); 
+      
       const employeesWithEmail = data.map(emp => ({
         ...emp,
         email: emp.user?.email || emp.email || 'Email no disponible',
+        // Forzamos la captura de la fecha por si viene anidada
+        lastLoginAt: emp.lastLoginAt || emp.user?.lastLoginAt, 
       }));
       set({ employees: employeesWithEmail, isLoading: false });
     } catch (error) {
@@ -38,11 +43,11 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await employeesService.create(data);
-      // Recargar la lista completa para obtener el empleado con sus relaciones
       const employees = await employeesService.getByParkingLot(parkingLotId);
       const employeesWithEmail = employees.map(emp => ({
         ...emp,
         email: emp.user?.email || emp.email || 'Email no disponible',
+        lastLoginAt: emp.lastLoginAt || emp.user?.lastLoginAt,
       }));
       set({ employees: employeesWithEmail, isLoading: false });
     } catch (error) {
@@ -52,32 +57,41 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
   },
 
   updateEmployee: async (id: string, data: Partial<ParkingEmployee>) => {
-  set({ isLoading: true, error: null });
-  try {
-    const updated = await employeesService.update(id, data);
-    set((state) => ({
-      employees: state.employees.map(e => e.id === id ? { ...updated, email: updated.user?.email || updated.email } : e),
-      isLoading: false,
-    }));
-  } catch (error) {
-    set({ error: error as string, isLoading: false });
-    throw error;
-  }
-},
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await employeesService.update(id, data);
+      set((state) => ({
+        employees: state.employees.map(e => 
+          e.id === id 
+            ? { 
+                ...updated, 
+                email: updated.user?.email || updated.email,
+                lastLoginAt: updated.lastLoginAt || updated.user?.lastLoginAt
+              } 
+            : e
+        ),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: error as string, isLoading: false });
+      throw error;
+    }
+  },
 
- deleteEmployee: async (id: string) => {
-  set({ isLoading: true, error: null });
-  try {
-    await employeesService.delete(id);
-    set((state) => ({
-      employees: state.employees.filter(e => e.id !== id),
-      isLoading: false,
-    }));
-  } catch (error) {
-    console.error('❌ [STORE] Error al eliminar empleado:', error);
-    set({ error: error as string, isLoading: false });
-    throw error;
-  }
-},
+  deleteEmployee: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await employeesService.delete(id);
+      set((state) => ({
+        employees: state.employees.filter(e => e.id !== id),
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('❌ [STORE] Error al eliminar empleado:', error);
+      set({ error: error as string, isLoading: false });
+      throw error;
+    }
+  },
+  
   clearError: () => set({ error: null }),
 }));

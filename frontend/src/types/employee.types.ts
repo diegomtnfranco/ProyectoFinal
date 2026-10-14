@@ -17,7 +17,8 @@ export interface ParkingEmployee {
   employeeCode: string;
   position?: string;
   isActive: boolean;
-  email?: string; // ← Agregar campo directo
+  email?: string; 
+  lastLoginAt?: string; 
   user?: UserResponseDto;
   createdAt: string;
 }

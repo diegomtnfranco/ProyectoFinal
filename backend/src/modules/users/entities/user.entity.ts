@@ -54,6 +54,10 @@ export class User {
   @Column({ name: 'reset_password_expires', nullable: true, type: 'timestamp' })
   resetPasswordExpires?: Date;
 
+  // Fecha del último inicio de sesión (SCRUM-9)
+  @Column({ name: 'last_login_at', nullable: true, type: 'timestamp' })
+  lastLoginAt?: Date;
+
   @Column({ type: 'jsonb', name: 'oauth_data', nullable: true })
   oauthData?: {
     provider: 'google' | 'facebook';

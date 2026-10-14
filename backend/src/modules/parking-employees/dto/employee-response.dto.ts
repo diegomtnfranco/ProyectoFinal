@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 
 export class EmployeeParkingLotInfoDto {
   @ApiProperty({
@@ -82,4 +83,12 @@ export class EmployeeResponseDto {
     description: 'Fecha de última actualización',
   })
   updatedAt!: Date;
+
+  @ApiProperty({
+    example: '2024-10-12T15:45:00Z',
+    description: 'Fecha del último inicio de sesión del usuario asociado',
+    required: false,
+  })
+  @Expose()
+  lastLoginAt?: Date;
 }
