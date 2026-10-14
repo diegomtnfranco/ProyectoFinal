@@ -1,4 +1,6 @@
+
 // frontend/src/features/parking-lots/pages/ParkingListPage.tsx
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParkingLotsStore } from '../../../stores/parkingStore';
@@ -9,24 +11,46 @@ import {
   MapPin,
   Navigation,
   Search,
-  Map as MapIcon,
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import ParkingMapView from '../components/ParkingMapView';
 
 function ParkingListPage() {
   const navigate = useNavigate();
-  const { nearbyParkings, isLoading, error, fetchNearby, clearError, updateParkingAvailability } = useParkingLotsStore();
-  const { isConnected, connect, subscribe, unsubscribe, joinRoom, leaveRoom } = useWebsocketStore();
+
+  const {
+    nearbyParkings,
+    isLoading,
+    error,
+    fetchNearby,
+    clearError,
+    updateParkingAvailability,
+  } = useParkingLotsStore();
+
+  const {
+    isConnected,
+    connect,
+    subscribe,
+    unsubscribe,
+    joinRoom,
+    leaveRoom,
+  } = useWebsocketStore();
+
   const { user, token } = useAuthStore();
 
-  // ✅ Separar estados de búsqueda y filtro
   const [searchText, setSearchText] = useState('');
   const [filterText, setFilterText] = useState('');
-  const [showMap, setShowMap] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  const [searchLocation, setSearchLocation] = useState<{
+    lat: number;
+    lng: number;
+    address: string;
+  } | null>(null);
+
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -60,18 +84,21 @@ function ParkingListPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+
         setUserLocation({ lat: latitude, lng: longitude });
         setIsLocating(false);
         setIsUsingMyLocation(true);
         setSearchLocation(null);
         setSearchText('');
-        setFilterText(''); // ✅ Limpiar filtro también
+        setFilterText('');
       },
       (error) => {
         let errorMsg = 'Error al obtener tu ubicación';
+
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMsg = 'Permiso denegado. Activá la ubicación para ver parkings cerca tuyo.';
+            errorMsg =
+              'Permiso denegado. Activá la ubicación para ver parkings cerca tuyo.';
             break;
           case error.POSITION_UNAVAILABLE:
             errorMsg = 'No se pudo obtener tu ubicación';
@@ -80,6 +107,7 @@ function ParkingListPage() {
             errorMsg = 'Tiempo de espera agotado';
             break;
         }
+
         setLocationError(errorMsg);
         setIsLocating(false);
       },
@@ -103,7 +131,9 @@ function ParkingListPage() {
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchText
+        )}&limit=1`
       );
 
       if (!response.ok) {
@@ -120,9 +150,11 @@ function ParkingListPage() {
         setSearchLocation({ lat, lng: lon, address });
         setUserLocation({ lat, lng: lon });
         setIsUsingMyLocation(false);
-        setFilterText(''); // ✅ Limpiar filtro al buscar nueva ubicación
+        setFilterText('');
       } else {
-        setLocationError('No se encontró la dirección. Intentá con términos más precisos.');
+        setLocationError(
+          'No se encontró la dirección. Intentá con términos más precisos.'
+        );
       }
     } catch (err) {
       console.error(err);
@@ -132,7 +164,7 @@ function ParkingListPage() {
     }
   }, [searchText]);
 
-  // Cargar parkings según la ubicación actual
+  // Cargar estacionamientos según la ubicación actual
   const loadNearbyParkings = useCallback(async () => {
     if (!userLocation) return;
 
@@ -148,11 +180,11 @@ function ParkingListPage() {
     getUserLocation();
   };
 
-  // Suscribirse a WebSockets para los parkings cargados
+  // Suscribirse a WebSockets para los estacionamientos cargados
   useEffect(() => {
     if (!isConnected || nearbyParkings.length === 0) return;
 
-    nearbyParkings.forEach(parking => {
+    nearbyParkings.forEach((parking) => {
       if (!subscribedParkingsRef.current.has(parking.id)) {
         joinRoom(parking.id);
         subscribedParkingsRef.current.add(parking.id);
@@ -161,9 +193,10 @@ function ParkingListPage() {
 
     return () => {
       if (subscribedParkingsRef.current.size > 0) {
-        subscribedParkingsRef.current.forEach(parkingId => {
+        subscribedParkingsRef.current.forEach((parkingId) => {
           leaveRoom(parkingId);
         });
+
         subscribedParkingsRef.current.clear();
       }
     };
@@ -177,14 +210,14 @@ function ParkingListPage() {
     }
   }, [getUserLocation]);
 
-  // Cargar cuando tengamos ubicación
+  // Cargar estacionamientos cuando tengamos ubicación
   useEffect(() => {
     if (userLocation) {
       loadNearbyParkings();
     }
   }, [userLocation, loadNearbyParkings]);
 
-  // WebSockets - Handlers para eventos
+  // WebSockets: actualizaciones de disponibilidad y ocupación
   useEffect(() => {
     if (!isConnected) return;
 
@@ -201,16 +234,28 @@ function ParkingListPage() {
 
     const handleOccupancyUpdate = (data: any) => {
       if (data?.parkingLotId && data?.action) {
-        const parking = nearbyParkings.find(p => p.id === data.parkingLotId);
+        const parking = nearbyParkings.find(
+          (p) => p.id === data.parkingLotId
+        );
+
         if (parking) {
           const newAvailability = { ...parking.availability };
 
           if (data.action === 'check-in') {
-            newAvailability.available = Math.max(0, newAvailability.available - 1);
-            newAvailability.occupied = newAvailability.occupied + 1;
+            newAvailability.available = Math.max(
+              0,
+              newAvailability.available - 1
+            );
+            newAvailability.occupied += 1;
           } else if (data.action === 'check-out') {
-            newAvailability.available = Math.min(newAvailability.total, newAvailability.available + 1);
-            newAvailability.occupied = Math.max(0, newAvailability.occupied - 1);
+            newAvailability.available = Math.min(
+              newAvailability.total,
+              newAvailability.available + 1
+            );
+            newAvailability.occupied = Math.max(
+              0,
+              newAvailability.occupied - 1
+            );
           }
 
           updateParkingAvailability(data.parkingLotId, newAvailability);
@@ -231,32 +276,46 @@ function ParkingListPage() {
       Object.entries(wsHandlersRef.current).forEach(([event, handler]) => {
         unsubscribe(event, handler);
       });
+
       wsHandlersRef.current = {};
     };
-  }, [isConnected, subscribe, unsubscribe, updateParkingAvailability, nearbyParkings]);
+  }, [
+    isConnected,
+    subscribe,
+    unsubscribe,
+    updateParkingAvailability,
+    nearbyParkings,
+  ]);
 
-  // ✅ Manejar búsqueda
+  // Manejar búsqueda
   const handleSearch = () => {
     if (searchText.trim()) {
       searchAddress();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
 
-  // ✅ Filtrar por texto (usando filterText)
+  // Filtrar por nombre o dirección
   const filteredParkings = nearbyParkings.filter(
     (parking) =>
       parking.name.toLowerCase().includes(filterText.toLowerCase()) ||
       parking.address.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const totalAvailable = filteredParkings.reduce((sum, p) => sum + p.availability.available, 0);
-  const totalSpaces = filteredParkings.reduce((sum, p) => sum + p.availability.total, 0);
+  const totalAvailable = filteredParkings.reduce(
+    (sum, p) => sum + p.availability.available,
+    0
+  );
+
+  const totalSpaces = filteredParkings.reduce(
+    (sum, p) => sum + p.availability.total,
+    0
+  );
 
   const handleRetry = () => {
     clearError();
@@ -265,28 +324,33 @@ function ParkingListPage() {
     getUserLocation();
   };
 
-  // Estados de carga
-  if ((isLoading && nearbyParkings.length === 0) || (isLocating && !userLocation)) {
+  // Estado de carga
+  if (
+    (isLoading && nearbyParkings.length === 0) ||
+    (isLocating && !userLocation)
+  ) {
     return (
-      <div className='min-h-screen bg-gray-100 flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>Obteniendo tu ubicación...</p>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Obteniendo tu ubicación...</p>
         </div>
       </div>
     );
   }
 
+  // Estado de error
   if (locationError || error) {
     return (
-      <div className='min-h-screen bg-gray-100 flex items-center justify-center p-4'>
-        <div className='bg-white rounded-3xl shadow-xl p-8 max-w-md text-center'>
-          <AlertCircle size={64} className='text-red-500 mx-auto mb-4' />
-          <h2 className='text-2xl font-bold mb-2'>Error</h2>
-          <p className='text-gray-600 mb-6'>{locationError || error}</p>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md text-center">
+          <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Error</h2>
+          <p className="text-gray-600 mb-6">{locationError || error}</p>
+
           <button
             onClick={handleRetry}
-            className='bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all'
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
           >
             Reintentar
           </button>
@@ -296,192 +360,239 @@ function ParkingListPage() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-100'>
-      <main className='max-w-7xl mx-auto p-6 flex flex-col gap-6'>
+    <div className="min-h-screen bg-gray-100">
+      <main className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
         {/* Encabezado */}
-        <div className='flex items-center gap-5 mb-4 flex-wrap'>
-          <div className='bg-blue-100 p-6 rounded-full'>
-            <MapPin size={40} className='text-blue-600' />
+        <div className="flex items-center gap-4 sm:gap-5 mb-2 flex-wrap">
+          <div className="bg-blue-100 p-4 sm:p-6 rounded-full">
+            <MapPin size={36} className="text-blue-600 sm:h-10 sm:w-10" />
           </div>
-          <div className='flex-1'>
-            <h1 className='text-4xl font-bold'>Estacionar Ahora</h1>
-            <p className='text-gray-500 text-lg'>Encontrá estacionamientos disponibles cerca tuyo</p>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold">
+              Estacionar Ahora
+            </h1>
+
+            <p className="text-gray-500 text-base sm:text-lg">
+              Encontrá estacionamientos disponibles cerca tuyo
+            </p>
+
             {userLocation && (
-              <p className='text-sm text-green-600 mt-1 flex items-center gap-1'>
+              <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
                 <Navigation size={14} />
+
                 {isUsingMyLocation
                   ? 'Mostrando estacionamientos cerca de tu ubicación'
-                  : `Mostrando estacionamientos cerca de: ${searchLocation?.address?.substring(0, 50)}...`}
+                  : `Mostrando estacionamientos cerca de: ${searchLocation?.address?.substring(
+                      0,
+                      50
+                    )}...`}
               </p>
             )}
           </div>
         </div>
 
         {/* Buscador */}
-        <div className='bg-white rounded-2xl shadow-sm p-5'>
-          <label className='block text-sm text-gray-500 mb-3'>¿Dónde querés estacionar?</label>
-          <div className='flex flex-col sm:flex-row gap-3'>
-            <div className='flex-1 relative'>
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <label className="block text-sm text-gray-500">
+              ¿Dónde querés estacionar?
+            </label>
+
+            <button
+              type="button"
+              onClick={() => navigate('/client/map')}
+              className="hidden items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 lg:flex"
+            >
+              <MapPin size={18} />
+              Ver mapa
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
               <input
-                type='text'
-                placeholder='Ej: Yerba Buena, Centro, San Martín 450...'
+                type="text"
+                placeholder="Ej: Yerba Buena, Centro, San Martín 450..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className='w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+
               <button
+                type="button"
                 onClick={handleSearch}
                 disabled={isSearching}
-                className='absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50'
-                title='Buscar dirección'
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                title="Buscar dirección"
               >
-                {isSearching ? <Loader2 size={20} className='animate-spin' /> : <Search size={20} />}
+                {isSearching ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <Search size={20} />
+                )}
               </button>
             </div>
-            <div className='flex gap-2'>
+
+            <div className="flex gap-2">
               {!isUsingMyLocation && (
                 <button
+                  type="button"
                   onClick={backToMyLocation}
-                  className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-all flex items-center gap-2 text-sm'
-                  title='Volver a mi ubicación'
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-all flex items-center gap-2 text-sm"
+                  title="Volver a mi ubicación"
                 >
                   <Navigation size={18} />
                   Mi ubicación
                 </button>
               )}
-              <button
-                onClick={() => setShowMap(!showMap)}
-                className='bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl transition-all flex items-center gap-2'
-                title={showMap ? 'Ocultar mapa' : 'Mostrar mapa'}
-              >
-                <MapIcon size={20} />
-                {showMap ? 'Ocultar' : 'Mapa'}
-              </button>
             </div>
           </div>
-          {/* ✅ Filtro visual adicional */}
-          <div className='mt-3'>
+
+          {/* Filtro por nombre o dirección */}
+          <div className="mt-3">
             <input
-              type='text'
-              placeholder='Filtrar por nombre o dirección...'
+              type="text"
+              placeholder="Filtrar por nombre o dirección..."
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              className='w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
-        {/* Estado WebSocket */}
-        <div className='flex justify-between items-center text-sm'>
-          <div className='flex items-center gap-2'>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
-            <span className={`${isConnected ? 'text-green-600' : 'text-yellow-600'}`}>
-              {isConnected ? '✅ Actualizaciones en tiempo real' : '🔄 Conectando...'}
+        {/* Estado de WebSocket */}
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected
+                  ? 'bg-green-500'
+                  : 'bg-yellow-500 animate-pulse'
+              }`}
+            />
+
+            <span
+              className={
+                isConnected ? 'text-green-600' : 'text-yellow-600'
+              }
+            >
+              {isConnected
+                ? '✅ Actualizaciones en tiempo real'
+                : '🔄 Conectando...'}
             </span>
           </div>
-          <span className='text-gray-400 text-xs'>
+
+          <span className="text-gray-400 text-xs">
             {nearbyParkings.length} estacionamientos encontrados
           </span>
         </div>
 
-        {/* Mapa */}
-        {showMap ? (
-          <div className='bg-white rounded-2xl shadow-md overflow-hidden'>
-            <div className='bg-blue-600 text-white px-4 py-3 font-semibold flex items-center gap-2'>
-              <MapIcon size={18} />
-              Mapa de estacionamientos cercanos
+        {/* Lista de estacionamientos */}
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Panel lateral: solo escritorio */}
+          <aside className="hidden lg:flex flex-col gap-4">
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 p-3 rounded-full">🎯</div>
+                <div>
+                  <h3 className="font-semibold">Estadísticas</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {filteredParkings.length} estacionamientos
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">
+                    {totalAvailable} lugares disponibles de {totalSpaces}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className='h-96 w-full'>
-              <ParkingMapView
-                parkings={filteredParkings}
-                center={userLocation || { lat: -26.8083, lng: -65.2176 }}
-              />
+
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-start gap-3">
+                <div className="bg-green-100 p-3 rounded-full">🕒</div>
+                <div>
+                  <h3 className="font-semibold">En tiempo real</h3>
+                  <p className="text-sm text-gray-500">
+                    Disponibilidad actualizada al instante.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid lg:grid-cols-4 gap-6">
-            <aside className="hidden lg:flex flex-col gap-4">
-              <div className='bg-white rounded-2xl shadow-sm p-5'>
-                <div className='flex items-start gap-3'>
-                  <div className='bg-blue-100 p-3 rounded-full'>🎯</div>
-                  <div>
-                    <h3 className='font-semibold'>Estadísticas</h3>
-                    <p className='text-sm text-gray-500 mt-1'>{filteredParkings.length} estacionamientos</p>
-                    <p className='text-sm text-green-600 mt-1'>{totalAvailable} lugares disponibles de {totalSpaces}</p>
-                  </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-start gap-3">
+                <div className="bg-purple-100 p-3 rounded-full">🔒</div>
+                <div>
+                  <h3 className="font-semibold">Reserva fácil</h3>
+                  <p className="text-sm text-gray-500">
+                    Asegurá tu lugar en pocos clics.
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div className='bg-white rounded-2xl shadow-sm p-5'>
-                <div className='flex items-start gap-3'>
-                  <div className='bg-green-100 p-3 rounded-full'>🕒</div>
-                  <div>
-                    <h3 className='font-semibold'>En tiempo real</h3>
-                    <p className='text-sm text-gray-500'>Disponibilidad actualizada al instante.</p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl p-5">
+              <h3 className="font-bold text-lg">Reservá con anticipación</h3>
+              <p className="text-sm mt-2">
+                Evitá vueltas y asegurá tu espacio.
+              </p>
 
-              <div className='bg-white rounded-2xl shadow-sm p-5'>
-                <div className='flex items-start gap-3'>
-                  <div className='bg-purple-100 p-3 rounded-full'>🔒</div>
-                  <div>
-                    <h3 className='font-semibold'>Reserva fácil</h3>
-                    <p className='text-sm text-gray-500'>Asegurá tu lugar en pocos clics.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className='bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl p-5'>
-                <h3 className='font-bold text-lg'>Reservá con anticipación</h3>
-                <p className='text-sm mt-2'>Evitá vueltas y asegurá tu espacio.</p>
-                {!isAuthenticated && (
-                  <button
-                    onClick={() => navigate('/register')}
-                    className='mt-4 bg-white text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all w-full'
-                  >
-                    Registrate ahora
-                  </button>
-                )}
-              </div>
-            </aside>
-
-            <section className="order-1 lg:order-2 lg:col-span-3 flex flex-col gap-6">
-              {filteredParkings.length === 0 && !isLoading ? (
-                <div className='bg-white rounded-2xl shadow-sm p-6 text-center text-gray-500'>
-                  <p>No se encontraron estacionamientos para tu búsqueda</p>
-                  <button
-                    onClick={backToMyLocation}
-                    className='mt-4 text-blue-600 hover:text-blue-700 font-semibold'
-                  >
-                    Ver estacionamientos cerca de mí
-                  </button>
-                </div>
-              ) : (
-                filteredParkings.map((parking, index) => (
-                  <ParkingCard
-                    key={parking.id}
-                    parking={parking}
-                    isClosest={index === 0 && filteredParkings.length > 1}
-                  />
-                ))
+              {!isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  className="mt-4 bg-white text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all w-full"
+                >
+                  Registrate ahora
+                </button>
               )}
-            </section>
-          </div>
-        )}
+            </div>
+          </aside>
 
-        {/* Resumen de funcionalidades (mobile) */}
+          {/* Tarjetas */}
+          <section className="order-1 lg:order-2 lg:col-span-3 flex flex-col gap-6">
+            {filteredParkings.length === 0 && !isLoading ? (
+              <div className="bg-white rounded-2xl shadow-sm p-6 text-center text-gray-500">
+                <p>No se encontraron estacionamientos para tu búsqueda</p>
+
+                <button
+                  type="button"
+                  onClick={backToMyLocation}
+                  className="mt-4 text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  Ver estacionamientos cerca de mí
+                </button>
+              </div>
+            ) : (
+              filteredParkings.map((parking, index) => (
+                <ParkingCard
+                  key={parking.id}
+                  parking={parking}
+                  isClosest={
+                    index === 0 && filteredParkings.length > 1
+                  }
+                />
+              ))
+            )}
+          </section>
+        </div>
+
+        {/* Resumen para móvil */}
         <div className="lg:hidden bg-white rounded-2xl shadow-sm p-4 mt-4">
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
               <span>🎯</span>
-              <span>{filteredParkings.length} estacionamientos disponibles</span>
+              <span>
+                {filteredParkings.length} estacionamientos disponibles
+              </span>
             </div>
+
             <div className="flex items-center gap-3">
               <span>🕒</span>
               <span>Actualización en tiempo real</span>
             </div>
+
             <div className="flex items-center gap-3">
               <span>🔒</span>
               <span>Reserva rápida y segura</span>
@@ -490,11 +601,28 @@ function ParkingListPage() {
         </div>
 
         {/* Footer */}
-        <div className='bg-white rounded-2xl shadow-sm p-6 mt-4'>
-          <div className='grid md:grid-cols-3 gap-6 text-center'>
-            <div><h4 className='font-semibold'>🛡️ Seguridad</h4><p className='text-sm text-gray-500'>Estacionamientos verificados</p></div>
-            <div><h4 className='font-semibold'>🎧 Soporte</h4><p className='text-sm text-gray-500'>Atención 24 horas</p></div>
-            <div><h4 className='font-semibold'>📱 App móvil</h4><p className='text-sm text-gray-500'>Reservá desde cualquier lugar</p></div>
+        <div className="bg-white rounded-2xl shadow-sm p-6 mt-4">
+          <div className="grid md:grid-cols-3 gap-6 text-center">
+            <div>
+              <h4 className="font-semibold">🛡️ Seguridad</h4>
+              <p className="text-sm text-gray-500">
+                Estacionamientos verificados
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold">🎧 Soporte</h4>
+              <p className="text-sm text-gray-500">
+                Atención 24 horas
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold">📱 App móvil</h4>
+              <p className="text-sm text-gray-500">
+                Reservá desde cualquier lugar
+              </p>
+            </div>
           </div>
         </div>
       </main>

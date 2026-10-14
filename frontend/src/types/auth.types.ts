@@ -142,6 +142,7 @@ export interface UserResponseDto {
   isActive: boolean;
   avatarUrl?: string;
   createdAt: string;
+  lastLoginAt?: string; 
   clientProfile?: ClientProfileResponseDto;
   parkingOwnerProfile?: OwnerProfileResponseDto;
   employeeProfile?: EmployeeProfileResponseDto;

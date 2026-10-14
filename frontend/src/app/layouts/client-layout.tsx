@@ -7,9 +7,9 @@ function ClientLayout() {
     <div className='min-h-screen bg-gray-100'>
       <Navbar />
 
-      <main className='max-w-7xl mx-auto p-4'>
-        <Outlet />
-      </main>
+      <main className="max-w-7xl mx-auto p-4 pb-24 md:pb-4">
+  <Outlet />
+</main>
     </div>
   )
 }

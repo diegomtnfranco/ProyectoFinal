@@ -1,10 +1,36 @@
 import { useState } from 'react';
 import { useEmployeeStore } from '../../../stores/employeeStore';
 import { EmployeeDeleteButton } from './components/EmployeeDeleteButton';
-import { Users, Filter, UsersRound } from 'lucide-react';
+import { Users, Filter, UsersRound, Clock } from 'lucide-react'; // Agregamos Clock
 import { useParkingLotsStore } from '../../../stores/parkingStore';
 
 type FilterType = 'all' | 'active' | 'inactive';
+
+// Función para formatear "Última vez logueado" (SCRUM-9)
+const formatLastLogin = (dateString?: string | Date) => {
+  if (!dateString) return 'Nunca';
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffMs = now.getTime() - past.getTime();
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffMonths = Math.floor(diffDays / 30);
+
+  if (diffMins < 1) return 'Hace un momento';
+  if (diffMins < 60) return `Hace ${diffMins} minutos`;
+  if (diffHours < 24) return `Hace ${diffHours} hs`;
+  if (diffDays >= 1 && diffDays < 30) {
+    const remainingHours = diffHours % 24;
+    // Si pasaron pocos días, mostramos los días y las horas exactas
+    if (remainingHours > 0 && diffDays < 7) {
+      return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''} y ${remainingHours}hs`;
+    }
+    return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+  }
+  return `Hace ${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`;
+};
 
 export function EmployeeList() {
   const { employees, isLoading } = useEmployeeStore();
@@ -121,6 +147,15 @@ export function EmployeeList() {
                       Código: {employee.employeeCode}
                     </p>
                   )}
+                  
+                  {/* SCRUM-9: Nueva sección de Última vez logueado */}
+                  <div className="mt-3 flex items-center gap-1.5 text-sm text-slate-600 bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100">
+                    <Clock size={14} className="text-blue-500" />
+                    <span className="font-semibold text-slate-700">Última vez logueado:</span>
+                    {/* Buscamos la fecha en employee.user o directo en employee, dependiendo de cómo lo mande el DTO del backend */}
+                    <span>{formatLastLogin(employee.user?.lastLoginAt || employee.lastLoginAt)}</span>
+                  </div>
+
                 </div>
                 <EmployeeDeleteButton
                   employeeId={employee.id}
