@@ -31,6 +31,9 @@ import AboutUs from '../../features/landing/pages/AboutUs';
 import AdminParkingDetailPage from '../../features/admin/pages/AdminParkingDetailPage';
 import UsersPage from '../../features/admin/pages/UsersPage';
 import AdminUserEditPage from '../../features/admin/pages/AdminUserEditPage';
+// import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
+import ActivityPage from '../../features/owner/ActivityPage';
+
 
 // Actualizado al 18/06/2026
 function AppRouter() {
@@ -73,6 +76,7 @@ function AppRouter() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
             <Route path="settings" element={<ParkingSettingsPage />} />
+            <Route path="activity" element={<ActivityPage />} />
           </Route>
         </Route>
 
@@ -97,6 +101,7 @@ function AppRouter() {
             <Route path="rates" element={<RatesPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
+            <Route path="activity" element={<ActivityPage />} />
           </Route>
         </Route>
       </Routes>

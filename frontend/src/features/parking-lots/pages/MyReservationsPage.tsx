@@ -254,6 +254,7 @@ const formatCurrency = (amount: number | string) => {
       </div>
     );
   }
+  
 
   return (
     <div className='min-h-screen bg-gray-100'>

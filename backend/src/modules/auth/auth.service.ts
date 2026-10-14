@@ -747,14 +747,37 @@ export class AuthService {
 
     await queryRunner.manager.save(spaces);
     
-      // 7. Enviar email de verificación
-      await this.notificationsService.sendVerificationEmail(
-        user.email,
-        verificationToken,
-        registerDto.businessName,
-      );
+      // // 7. Enviar email de verificación
+      // await this.notificationsService.sendVerificationEmail(
+      //   user.email,
+      //   verificationToken,
+      //   registerDto.businessName,
+      // );
 
+      // await queryRunner.commitTransaction();
+
+      
+      // 7. Confirmar primero el registro en PostgreSQL
       await queryRunner.commitTransaction();
+
+      // 8. Enviar email después de guardar los datos
+      let emailSent = true;
+
+      try {
+        await this.notificationsService.sendVerificationEmail(
+          user.email,
+          verificationToken,
+          registerDto.businessName,
+        );
+      } catch (emailError) {
+        emailSent = false;
+
+        this.logger.error(
+          'El registro se guardó, pero no se pudo enviar el email de verificación.',
+          emailError instanceof Error ? emailError.stack : String(emailError),
+        );
+      }
+
 
       // 8. Generar token JWT
       const token = this.jwtService.sign({

@@ -20,7 +20,7 @@ export const useWebsocketStore = create<WebsocketState>((set, get) => ({
   connect: (token: string) => {
     if (get().socket?.connected) return;
 
-    const socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000/', {
+    const socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:5173/', {
       auth: { token },
       transports: ['websocket'],
     });
