@@ -8,7 +8,7 @@ import { useOccupancyStore } from '../../stores/occupancyStore';
 import { useReservationsStore } from '../../stores/reservationStore';
 import { VehicleType, SpaceStatus } from '../../types/auth.types';
 import ParkingMap from '../../shared/components/parking/ParkingMap';
-import ReservationPanel from '../../shared/components/reservation/ReservationPanel';
+import DashboardSidePanel from '../../shared/components/activity/DashboardSidePanel';
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 import { useState } from 'react';
 import { DownloadTicketModal } from '../../shared/components/tickets/DownloadTicketModal';
@@ -154,8 +154,8 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
 
   setShowTicketModal(false);
 };
-
-  if (parkingLoading || spacesLoading) {
+// Agregue && spaces.length === 0 para reducir la carga del spinner en cada entrada y salida del estacionamiento.
+  if (parkingLoading || spacesLoading && spaces.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -267,7 +267,7 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
           onManualCheckout={handleManualCheckout}
           className="w-full lg:w-4/6"
 />
-        <ReservationPanel className="w-full lg:w-2/6" />
+        <DashboardSidePanel parkingLotId={currentParkingLot.id} className="w-full lg:w-2/6" />
 
         <DownloadTicketModal
             isOpen={showTicketModal}

@@ -3,7 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  ForbiddenException
+  ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, In, MoreThan, EntityManager } from 'typeorm';
@@ -22,6 +23,15 @@ import { AnonymousCheckInDto } from './dto/anonymous-check-in.dto';
 import { AnonymousCheckInResponseDto, AnonymousCheckOutResponseDto } from './dto/anonymous-response.dto';
 import { AnonymousCheckOutDto } from './dto/anonymous-check-out.dto';
 import { CheckOutResponseDto } from './dto/check-out-response.dto';
+import { RateHistoryService } from '../rate-history/rate-history.service';
+import { NO_RATE_QR_MESSAGE, noRateManualMessage } from '../rate-history/rate-history.constants';
+
+/** Tarifa con la que se cobra un egreso (congelada al ingreso o, si no hay, la vigente) */
+interface ChargeRate {
+  id: string;
+  vehicleType: VehicleType;
+  pricePerHour: number;
+}
 
 @Injectable()
 export class OccupancyService {
@@ -36,8 +46,29 @@ export class OccupancyService {
     private dataSource: DataSource,
     private websocketGateway: WebsocketGateway,
     private parkingLotsService: ParkingLotsService,
-
+    // Opcional para no romper instancias/tests existentes que no lo pasan
+    @Optional()
+    private readonly rateHistory?: RateHistoryService,
   ) { }
+
+  /**
+   * Tarifa para cobrar un egreso: la congelada al ingreso (si existe) para que
+   * un cambio de tarifa no afecte a vehículos que ya estaban adentro; si no hay
+   * snapshot (ocupaciones previas a esta feature), la tarifa vigente.
+   */
+  private async resolveChargeRate(
+    occupancy: Occupancy,
+    parkingLotId: string,
+    at: Date,
+    manager: EntityManager,
+  ): Promise<ChargeRate | null> {
+    const snapshot = await this.rateHistory?.findSnapshot(occupancy.id, manager);
+    if (snapshot) {
+      return { id: snapshot.rateId, vehicleType: snapshot.vehicleType, pricePerHour: Number(snapshot.pricePerHour) };
+    }
+    const rate = await this.ratesService.findApplicableRate(parkingLotId, occupancy.vehicleType, at);
+    return rate ? { id: rate.id, vehicleType: rate.vehicleType, pricePerHour: Number(rate.pricePerHour) } : null;
+  }
 
   async checkIn(checkInDto: CheckInDto, userId: string, userRole: string): Promise<Occupancy> {
     // Solo empleados o dueños pueden hacer check-in
@@ -57,6 +88,12 @@ export class OccupancyService {
 
       if (!space) {
         throw new NotFoundException('Espacio no encontrado');
+      }
+
+      // 1.b Debe existir una tarifa para el tipo de vehículo (se congela al ingreso)
+      const rate = await this.ratesService.findApplicableRate(space.parkingLotId, checkInDto.vehicleType, new Date());
+      if (!rate) {
+        throw new BadRequestException(noRateManualMessage(checkInDto.vehicleType));
       }
 
       // 2. Verificar que el espacio esté disponible
@@ -102,6 +139,7 @@ export class OccupancyService {
         createdAt: new Date()
       });
       await queryRunner.manager.save(occupancy);
+      await this.rateHistory?.snapshotForOccupancy(queryRunner.manager, occupancy.id, rate);
 
       // 5. Actualizar el espacio
       space.status = SpaceStatus.OCCUPIED;
@@ -173,12 +211,8 @@ export class OccupancyService {
       const hours = Math.ceil((checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60));
       const hoursDecimal = (checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60);
 
-      // 3. Calcular tarifa
-      const rate = await this.ratesService.findApplicableRate(
-        space.parkingLotId,
-        occupancy.vehicleType,
-        checkOutTime,
-      );
+      // 3. Calcular tarifa (la congelada al ingreso, si existe)
+      const rate = await this.resolveChargeRate(occupancy, space.parkingLotId, checkOutTime, queryRunner.manager);
 
       if (!rate) {
         throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
@@ -417,6 +451,12 @@ export class OccupancyService {
     // 1. Validar QR y obtener estacionamiento
     const parkingLot = await this.parkingLotsService.validateQRToken(dto.token, 'check-in');
 
+    // 1.b Sin tarifa para ese tipo de vehículo no se permite el ingreso por QR
+    const rate = await this.ratesService.findApplicableRate(parkingLot.id, dto.vehicleType, new Date());
+    if (!rate) {
+      throw new BadRequestException(NO_RATE_QR_MESSAGE);
+    }
+
     // 2. Buscar reserva confirmada existente para esta patente
     const existingReservation = await this.findReservationByVehiclePlate(
       dto.vehiclePlate,
@@ -467,16 +507,7 @@ export class OccupancyService {
       targetSpace = availableSpace;
     }
 
-    // 4. Validar tarifa aplicable
-    const rate = await this.ratesService.findApplicableRate(
-      parkingLot.id,
-      dto.vehicleType,
-      new Date(),
-    );
-
-    if (!rate) {
-      throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-    }
+    // 4. La tarifa ya se validó al inicio (paso 1.b)
 
     // 5. Crear ocupación
     const occupancy = this.occupancyRepository.create({
@@ -490,6 +521,7 @@ export class OccupancyService {
       reservationId: existingReservation?.id,
     });
     await queryRunner.manager.save(occupancy);
+    await this.rateHistory?.snapshotForOccupancy(queryRunner.manager, occupancy.id, rate);
 
     // 6. Actualizar espacio
     targetSpace.status = SpaceStatus.OCCUPIED;
@@ -608,12 +640,8 @@ private async findReservationByVehiclePlate(
       );
       const hoursToCharge = Math.max(1, hours);
 
-      // 4. Obtener tarifa
-      const rate = await this.ratesService.findApplicableRate(
-        parkingLot.id,
-        occupancy.vehicleType,
-        checkOutTime,
-      );
+      // 4. Obtener tarifa (la congelada al ingreso, si existe)
+      const rate = await this.resolveChargeRate(occupancy, parkingLot.id, checkOutTime, queryRunner.manager);
 
       if (!rate) {
         throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');

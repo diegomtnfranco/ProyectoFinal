@@ -9,6 +9,7 @@ import {
   X,
   DollarSign,
   Loader2,
+  Trash2,
 
 } from "lucide-react";
 import { useRatesStore } from "../../stores/ratesStore";
@@ -16,6 +17,8 @@ import { useParkingLotsStore } from "../../stores/parkingStore";
 import { VehicleType, type UserVehicleType } from "../../types/auth.types";
 import type { Rate, CreateRateDto } from "../../types/parking.types";
 import { NoParkingMessage } from "../../shared/components/common/NoParkingMessage";
+import { ConfirmModal } from "../../shared/components/common/ConfirmModal";
+import { useToast } from "../../shared/hooks/useToast";
 
 // Importo los roles de usuarios definidos en auth.types.ts
 import { useAuthStore } from "../../stores/authStore";
@@ -41,7 +44,9 @@ const vehicleOptions: { value: UserVehicleType; label: string }[] = [
 
 export default function RatesPage() {
   const { currentParkingLot, fetchMyParkingLot, isLoading: parkingLoading } = useParkingLotsStore();
-  const { rates, fetchRatesByParkingLot, createRate, updateRate, isLoading: ratesLoading, error, clearError } = useRatesStore();
+  const { rates, fetchRatesByParkingLot, createRate, updateRate, deleteRate, isLoading: ratesLoading, error, clearError } = useRatesStore();
+  const { showSuccess, showError } = useToast();
+  const [rateToDelete, setRateToDelete] = useState<Rate | null>(null);
 
   const [selectedVehicleType, setSelectedVehicleType] = useState<UserVehicleType | null>(null);
   const [editedPrice, setEditedPrice] = useState("");
@@ -52,6 +57,8 @@ export default function RatesPage() {
   const role = useAuthStore((state) => state.user?.role);
 
   const isParkingEmployee = role === UserRole.PARKING_EMPLOYEE;
+  // Solo el dueño puede eliminar tarifas
+  const canDeleteRates = role === UserRole.PARKING_OWNER;
   // Cargar el estacionamiento del dueño
   useEffect(() => {
     fetchMyParkingLot();
@@ -120,6 +127,20 @@ export default function RatesPage() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!rateToDelete) return;
+    const name = vehicleConfig[rateToDelete.vehicleType]?.name ?? rateToDelete.vehicleType;
+    const deletedType = rateToDelete.vehicleType;
+    setRateToDelete(null);
+    try {
+      await deleteRate(rateToDelete.id);
+      if (selectedVehicleType === deletedType) handleCancel();
+      showSuccess(`Tarifa de ${name} eliminada correctamente`);
+    } catch (err) {
+      showError(typeof err === "string" ? err : `No se pudo eliminar la tarifa de ${name}`);
+    }
+  };
+
   const isLoading = parkingLoading || ratesLoading;
 
   if (isLoading) {
@@ -146,7 +167,7 @@ export default function RatesPage() {
 
   const selectedVehicleInfo = selectedVehicleType ? vehicleConfig[selectedVehicleType] : null;
   const selectedRate = selectedVehicleType ? rates.find(r => r.vehicleType === selectedVehicleType) : null;
-  const isEditing = selectedRate !== null;
+  const isEditing = !!selectedRate;
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-6">
@@ -285,12 +306,25 @@ export default function RatesPage() {
                     </div>
                   </div>
 
-                  <button disabled={isParkingEmployee} hidden={isParkingEmployee}
-                    onClick={() => handleVehicleSelect(rate.vehicleType)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-xl transition"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button disabled={isParkingEmployee} hidden={isParkingEmployee}
+                      onClick={() => handleVehicleSelect(rate.vehicleType)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-xl transition"
+                      aria-label={`Editar tarifa de ${vehicleInfo?.name}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    {canDeleteRates && (
+                      <button
+                        onClick={() => setRateToDelete(rate)}
+                        className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-xl transition"
+                        aria-label={`Eliminar tarifa de ${vehicleInfo?.name}`}
+                        title="Eliminar tarifa"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -302,6 +336,22 @@ export default function RatesPage() {
             )}
           </div>
         </section>
+
+        {/* CONFIRMACIÓN DE ELIMINACIÓN */}
+        <ConfirmModal
+          isOpen={!!rateToDelete}
+          title="Eliminar tarifa"
+          message={
+            rateToDelete
+              ? `¿Confirmás que querés eliminar la tarifa de ${vehicleConfig[rateToDelete.vehicleType]?.name ?? rateToDelete.vehicleType} ($${rateToDelete.pricePerHour} / hora)? Los vehículos que ya están adentro seguirán pagando esta tarifa hasta su salida, pero no se podrán registrar nuevos ingresos de este tipo hasta crear otra.`
+              : ""
+          }
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          variant="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setRateToDelete(null)}
+        />
 
         {/* TOAST DE ÉXITO */}
         {showToast && (

@@ -22,6 +22,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
 import { SeedModule } from './modules/seed/seed.module';
+import { ActivityModule } from './modules/activity/activity.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { SeedModule } from './modules/seed/seed.module';
     NotificationsModule,
     WebsocketModule,
     SeedModule,
+    ActivityModule,
   ],
   controllers: [],
   providers: [
