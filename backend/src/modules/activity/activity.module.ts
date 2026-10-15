@@ -7,11 +7,13 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { ParkingEmployee } from '../parking-employees/entities/parking-employee.entity';
 import { RatesModule } from '../rates/rates.module';
+import { RateHistoryModule } from '../rate-history/rate-history.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Occupancy, Reservation, ParkingLot, ParkingEmployee]),
     RatesModule,
+    RateHistoryModule,
   ],
   controllers: [ActivityController],
   providers: [ActivityService],

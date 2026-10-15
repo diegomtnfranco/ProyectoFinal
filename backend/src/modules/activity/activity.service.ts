@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Occupancy } from '../occupancy/entities/occupancy.entity';
@@ -10,6 +10,8 @@ import { UserRole } from '../users/entities/user.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { ActivityItemDto, PaginatedActivityDto } from './dto/activity-response.dto';
 import { ActivityType } from './dto/find-activity.dto';
+import { RateHistoryService } from '../rate-history/rate-history.service';
+import { RateChangeLog } from '../rate-history/entities/rate-change-log.entity';
 
 export interface ActivityRequester {
   id: string;
@@ -35,6 +37,9 @@ export class ActivityService {
     @InjectRepository(ParkingEmployee)
     private readonly parkingEmployeeRepository: Repository<ParkingEmployee>,
     private readonly ratesService: RatesService,
+    // Opcional para no romper instancias/tests existentes que no lo pasan
+    @Optional()
+    private readonly rateHistory?: RateHistoryService,
   ) {}
 
   /** Últimas N actividades (por defecto 3) para el panel del dashboard. */
@@ -68,8 +73,9 @@ export class ActivityService {
   ): Promise<{ items: ActivityItemDto[]; total: number }> {
     // Para paginar dos fuentes ordenadas basta con traer page*limit de cada una
     const window = Math.min(page * limit, ActivityService.MAX_WINDOW);
-    const wantOccupancies = type !== 'reservation';
+    const wantOccupancies = !type || type === 'check_in' || type === 'check_out';
     const wantReservations = !type || type === 'reservation';
+    const wantRateChanges = !!this.rateHistory && (!type || type === 'rate_change');
 
     const occQb = this.occupancyRepository
       .createQueryBuilder('o')
@@ -86,7 +92,7 @@ export class ActivityService {
       .where('rs.parkingLotId = :parkingLotId', { parkingLotId })
       .andWhere('res.status != :completed', { completed: ReservationStatus.COMPLETED });
 
-    const [occupancies, reservations, occTotal, resTotal] = await Promise.all([
+    const [occupancies, reservations, occTotal, resTotal, rateChanges, rateTotal] = await Promise.all([
       wantOccupancies
         ? occQb
             .clone()
@@ -99,18 +105,21 @@ export class ActivityService {
         : Promise.resolve([] as Reservation[]),
       withTotal && wantOccupancies ? occQb.getCount() : Promise.resolve(0),
       withTotal && wantReservations ? resQb.getCount() : Promise.resolve(0),
+      wantRateChanges ? this.rateHistory!.findChanges(parkingLotId, window) : Promise.resolve([] as RateChangeLog[]),
+      withTotal && wantRateChanges ? this.rateHistory!.countChanges(parkingLotId) : Promise.resolve(0),
     ]);
 
     const now = new Date();
     const occupancyItems = await this.mapOccupancies(occupancies, parkingLotId, now);
     const reservationItems = reservations.map((r) => this.mapReservation(r));
+    const rateChangeItems = rateChanges.map((l) => this.mapRateChange(l));
 
     const start = (page - 1) * limit;
-    const items = [...occupancyItems, ...reservationItems]
+    const items = [...occupancyItems, ...reservationItems, ...rateChangeItems]
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
       .slice(start, start + limit);
 
-    return { items, total: occTotal + resTotal };
+    return { items, total: occTotal + resTotal + rateTotal };
   }
 
   private async mapOccupancies(
@@ -119,8 +128,16 @@ export class ActivityService {
     now: Date,
   ): Promise<ActivityItemDto[]> {
     const rateCache = new Map<VehicleType, number | null>();
+    // Precio congelado al ingreso: si la tarifa cambió después, se sigue estimando con la anterior
+    const openIds = occupancies.filter((o) => !o.checkOutTime).map((o) => o.id);
+    const snapshotPrices = this.rateHistory ? await this.rateHistory.findSnapshotPrices(openIds) : new Map<string, number>();
 
     const estimate = async (occ: Occupancy): Promise<number | null> => {
+      const frozen = snapshotPrices.get(occ.id);
+      if (frozen != null) {
+        const frozenHours = Math.ceil((now.getTime() - new Date(occ.checkInTime).getTime()) / 3_600_000);
+        return frozen * Math.max(1, frozenHours);
+      }
       if (!rateCache.has(occ.vehicleType)) {
         const rate = await this.ratesService.findApplicableRate(parkingLotId, occ.vehicleType, now);
         rateCache.set(occ.vehicleType, rate ? Number(rate.pricePerHour) : null);
@@ -178,6 +195,31 @@ export class ActivityService {
       exitMethod: null,
       hasReservation: true,
       reservationStatus: r.status,
+    };
+  }
+
+  private mapRateChange(log: RateChangeLog): ActivityItemDto {
+    return {
+      id: `rate_change:${log.id}`,
+      type: 'rate_change',
+      sourceId: log.rateId,
+      occurredAt: log.createdAt,
+      vehiclePlate: '',
+      vehicleType: log.vehicleType,
+      checkInTime: null,
+      checkOutTime: null,
+      totalAmount: null,
+      isEstimated: false,
+      entryMethod: 'manual',
+      exitMethod: null,
+      hasReservation: false,
+      rateChange: {
+        action: log.action,
+        previousPricePerHour: log.previousPricePerHour != null ? Number(log.previousPricePerHour) : null,
+        newPricePerHour: log.newPricePerHour != null ? Number(log.newPricePerHour) : null,
+        changedByName: log.changedByName,
+        changedByEmail: log.changedByEmail,
+      },
     };
   }
 

@@ -4,11 +4,21 @@ export const ActivityType = {
   CHECK_IN: 'check_in',
   CHECK_OUT: 'check_out',
   RESERVATION: 'reservation',
+  RATE_CHANGE: 'rate_change',
 } as const;
 export type ActivityTypeValue = typeof ActivityType[keyof typeof ActivityType];
 
 export type ActivityEntryMethod = 'manual' | 'qr' | 'reservation';
 export type ActivityExitMethod = 'manual' | 'qr';
+
+/** Alta, edición o baja de una tarifa (solo type === 'rate_change') */
+export interface RateChangeInfo {
+  action: 'created' | 'updated' | 'deleted';
+  previousPricePerHour: number | null;
+  newPricePerHour: number | null;
+  changedByName: string | null;
+  changedByEmail: string | null;
+}
 
 export interface ActivityItem {
   id: string;
@@ -29,6 +39,7 @@ export interface ActivityItem {
   exitMethod: ActivityExitMethod | null;
   hasReservation: boolean;
   reservationStatus?: string;
+  rateChange?: RateChangeInfo;
 }
 
 export interface PaginatedActivity {

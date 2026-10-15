@@ -8,13 +8,15 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { RatesModule } from '../rates/rates.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import {ParkingLotsModule} from '../parking-lots/parking-lots.module';
+import { RateHistoryModule } from '../rate-history/rate-history.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Occupancy, Space, Reservation]),
     RatesModule,
     WebsocketModule,
-    ParkingLotsModule
+    ParkingLotsModule,
+    RateHistoryModule,
   ],
   controllers: [OccupancyController],
   providers: [OccupancyService],

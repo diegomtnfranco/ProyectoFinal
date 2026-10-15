@@ -44,4 +44,10 @@ export const formatRelative = (iso: string) => {
 };
 
 export const activityTitle = (item: ActivityItem) =>
-  item.type === 'check_in' ? 'Ingreso' : item.type === 'check_out' ? 'Egreso' : 'Reserva';
+  item.type === 'check_in'
+    ? 'Ingreso'
+    : item.type === 'check_out'
+      ? 'Egreso'
+      : item.type === 'rate_change'
+        ? 'Tarifa'
+        : 'Reserva';

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Rate } from './entities/rate.entity';
@@ -7,6 +7,8 @@ import { UpdateRateDto } from './dto/update-rate.dto';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { VehicleType } from '../common/enums/vehicle-type.enum';
 import { UserRole } from '../users/entities/user.entity';
+import { RateHistoryService } from '../rate-history/rate-history.service';
+import { RateChangeAction } from '../rate-history/entities/rate-change-log.entity';
 
 @Injectable()
 export class RatesService {
@@ -15,6 +17,9 @@ export class RatesService {
     private rateRepository: Repository<Rate>,
     @InjectRepository(ParkingLot)
     private parkingLotRepository: Repository<ParkingLot>,
+    // Opcional para no romper instancias/tests existentes que no lo pasan
+    @Optional()
+    private readonly rateHistory?: RateHistoryService,
   ) {}
 
   async create(createDto: CreateRateDto, userId: string, userRole: string): Promise<Rate> {
@@ -56,7 +61,15 @@ export class RatesService {
       endTime: createDto.endTime,
     });
 
-    return this.rateRepository.save(rate);
+    const saved = await this.rateRepository.save(rate);
+    await this.rateHistory?.recordChange({
+      action: RateChangeAction.CREATED,
+      rate: saved,
+      previousPricePerHour: null,
+      newPricePerHour: saved.pricePerHour,
+      userId,
+    });
+    return saved;
   }
 
   async findAll(): Promise<Rate[]> {
@@ -151,7 +164,18 @@ async findApplicableRate(
     }
 
     await this.rateRepository.update(id, updateDto);
-    return this.findOne(id);
+    const updated = await this.findOne(id);
+
+    // Desactivar por PATCH (isActive: false) cuenta como baja en el historial
+    const wasDeactivated = rate.isActive && updated.isActive === false;
+    await this.rateHistory?.recordChange({
+      action: wasDeactivated ? RateChangeAction.DELETED : RateChangeAction.UPDATED,
+      rate: updated,
+      previousPricePerHour: rate.pricePerHour,
+      newPricePerHour: wasDeactivated ? null : updated.pricePerHour,
+      userId,
+    });
+    return updated;
   }
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
@@ -159,8 +183,10 @@ async findApplicableRate(
 
     // Verificar permisos
     if (userRole === UserRole.PARKING_OWNER) {
+      // ownerId es el id de ParkingOwner, no el del usuario: se compara por owner.userId
+      // (igual que en update). Antes un dueño nunca podía eliminar sus tarifas.
       const parkingLot = await this.parkingLotRepository.findOne({
-        where: { id: rate.parkingLotId, ownerId: userId },
+        where: { id: rate.parkingLotId, owner: { userId } },
       });
       if (!parkingLot) {
         throw new ForbiddenException('No tienes permiso para eliminar esta tarifa');
@@ -169,6 +195,16 @@ async findApplicableRate(
 
     // Soft delete - solo desactivar
     await this.rateRepository.update(id, { isActive: false });
+
+    if (rate.isActive) {
+      await this.rateHistory?.recordChange({
+        action: RateChangeAction.DELETED,
+        rate,
+        previousPricePerHour: rate.pricePerHour,
+        newPricePerHour: null,
+        userId,
+      });
+    }
   }
 
   async hardRemove(id: string, userId: string, userRole: string): Promise<void> {
@@ -177,9 +213,20 @@ async findApplicableRate(
       throw new ForbiddenException('Solo administradores pueden eliminar tarifas permanentemente');
     }
 
+    const existing = await this.rateRepository.findOne({ where: { id } });
     const result = await this.rateRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Tarifa con ID ${id} no encontrada`);
+    }
+
+    if (existing?.isActive) {
+      await this.rateHistory?.recordChange({
+        action: RateChangeAction.DELETED,
+        rate: existing,
+        previousPricePerHour: existing.pricePerHour,
+        newPricePerHour: null,
+        userId,
+      });
     }
   }
 }

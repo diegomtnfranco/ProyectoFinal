@@ -8,6 +8,7 @@ import {
   reservationStatusLabel,
   vehicleTypeInfo,
 } from './activity.utils';
+import RateChangeCard from './RateChangeCard';
 
 const typeStyles = {
   check_in: { icon: LogIn, badge: 'bg-green-100 text-green-700', accent: 'border-l-green-500' },
@@ -33,6 +34,8 @@ interface ActivityCardProps {
 }
 
 function ActivityCard({ item }: ActivityCardProps) {
+  if (item.type === 'rate_change') return <RateChangeCard item={item} />;
+
   const style = typeStyles[item.type];
   const TypeIcon = style.icon;
   const vehicle = vehicleTypeInfo[item.vehicleType] ?? { label: item.vehicleType, icon: vehicleTypeInfo.car.icon };

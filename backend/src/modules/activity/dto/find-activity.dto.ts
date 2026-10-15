@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
-export const ACTIVITY_TYPES = ['check_in', 'check_out', 'reservation'] as const;
+export const ACTIVITY_TYPES = ['check_in', 'check_out', 'reservation', 'rate_change'] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export class RecentActivityQueryDto {

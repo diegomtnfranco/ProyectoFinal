@@ -3,7 +3,7 @@ import { CarFront, Motorbike, ParkingMeter, Van, Wrench, CalendarCheck } from 'l
 import { type Space } from '../../../types/parking.types';
 import { VehicleType, SpaceStatus } from '../../../types/auth.types';
 import { useSpacesStore } from '../../../stores/spacesStore';
-import { useUIStore } from '../../../stores/uiStore';
+import { useToast } from '../../hooks/useToast';
 import { useReservationsStore } from '../../../stores/reservationStore';
 import { CheckInModal } from '../occupancy/CheckInModal';
 import { CheckOutModal } from '../occupancy/CheckOutModal';
@@ -29,7 +29,16 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
     useState(false);
 
   const { updateSpaceStatus, occupySpace, liberateSpace } = useSpacesStore();
-  const { showNotification } = useUIStore();
+  // Los avisos usan sonner (<Toaster /> ya montado en App): son popups temporales.
+  // Antes se usaba uiStore.notification, que no se renderiza en ningún lado,
+  // por eso los errores de ingreso/egreso manual no se veían.
+  const { showSuccess, showError, showInfo } = useToast();
+  const showNotification = (message: unknown, type: 'success' | 'error' | 'info') => {
+    const text = Array.isArray(message) ? message.join('. ') : String(message ?? '');
+    if (type === 'success') showSuccess(text);
+    else if (type === 'error') showError(text || 'Ocurrió un error inesperado');
+    else showInfo(text);
+  };
   const { parkingReservations } = useReservationsStore();
 
   const activeReservation = parkingReservations.find(

@@ -29,6 +29,18 @@ const vehicleTypes = [
   { id: 'truck', label: 'Camioneta', icon: <Bus size={24} />, color: 'orange' },
 ];
 
+/**
+ * El interceptor de api.ts rechaza con el mensaje del backend (string),
+ * no con el error de axios; se contemplan ambos casos.
+ */
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'string' && error) return error;
+  if (Array.isArray(error)) return error.join('. ');
+  const message = (error as any)?.response?.data?.message;
+  if (Array.isArray(message)) return message.join('. ');
+  return message || fallback;
+};
+
 function ScanQRPage() {
   const { type } = useParams<{ type: string }>();
   const [searchParams] = useSearchParams();
@@ -87,7 +99,7 @@ function ScanQRPage() {
       setMessage(`✅ ¡Check-in registrado! Espacio asignado: ${response.data.spaceNumber}`);
       showSuccess('Entrada registrada exitosamente');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al registrar entrada';
+      const errorMsg = getErrorMessage(error, 'Error al registrar entrada');
       setStatus('error');
       setMessage(`❌ ${errorMsg}`);
       showError(errorMsg);
@@ -122,7 +134,7 @@ function ScanQRPage() {
       showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
 
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al registrar salida';
+      const errorMsg = getErrorMessage(error, 'Error al registrar salida');
       setStatus('error');
       setMessage(`❌ ${errorMsg}`);
       showError(errorMsg);

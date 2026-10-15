@@ -111,7 +111,8 @@ const isParkingListView = location.pathname === '/client';
                 src={
                   user?.avatarUrl
                     ? user.avatarUrl
-                    : 'https://i.pravatar.cc/40'
+                    : 'https://i.pinimg.com/474x/3c/13/98/3c139858ade16fe6bf2b3c8f7f2cd0fd.jpg?nii=t'
+                    // : 'https://i.pravatar.cc/40'
                 }
                 alt="Perfil"
                 className="w-10 h-10 rounded-full border-2 border-white"

@@ -3,6 +3,25 @@ import { VehicleType } from '../../common/enums/vehicle-type.enum';
 import type { ActivityType } from './find-activity.dto';
 
 export type EntryMethod = 'manual' | 'qr' | 'reservation';
+export type RateChangeActionValue = 'created' | 'updated' | 'deleted';
+
+/** Datos de la tarjeta de cambio de tarifa (solo type === 'rate_change') */
+export class RateChangeInfoDto {
+  @ApiProperty({ enum: ['created', 'updated', 'deleted'] })
+  action!: RateChangeActionValue;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Precio por hora anterior (null en altas)' })
+  previousPricePerHour!: number | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Precio por hora nuevo/actual (null en bajas)' })
+  newPricePerHour!: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  changedByName!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  changedByEmail!: string | null;
+}
 export type ExitMethod = 'manual' | 'qr';
 
 /**
@@ -14,7 +33,7 @@ export class ActivityItemDto {
   @ApiProperty({ description: 'Id único de la tarjeta: <tipo>:<id origen>' })
   id!: string;
 
-  @ApiProperty({ enum: ['check_in', 'check_out', 'reservation'] })
+  @ApiProperty({ enum: ['check_in', 'check_out', 'reservation', 'rate_change'] })
   type!: ActivityType;
 
   @ApiProperty({ description: 'Id de la ocupación o reserva de origen' })
@@ -55,6 +74,9 @@ export class ActivityItemDto {
 
   @ApiPropertyOptional({ description: 'Estado de la reserva (solo tarjetas de tipo reservation)' })
   reservationStatus?: string;
+
+  @ApiPropertyOptional({ type: RateChangeInfoDto, description: 'Solo tarjetas de tipo rate_change' })
+  rateChange?: RateChangeInfoDto;
 }
 
 export class PaginatedActivityDto {

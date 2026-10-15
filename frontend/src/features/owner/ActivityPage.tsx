@@ -15,6 +15,7 @@ const FILTERS: { value: ActivityTypeValue | undefined; label: string }[] = [
   { value: 'check_in', label: 'En el lugar' },
   { value: 'check_out', label: 'Egresos' },
   { value: 'reservation', label: 'Reservas' },
+  { value: 'rate_change', label: 'Tarifas' },
 ];
 
 /** Página completa de actividad del estacionamiento (owner y employee). */
