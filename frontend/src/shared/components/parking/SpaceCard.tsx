@@ -81,14 +81,23 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   };
 
   const getStatusText = () => {
-    switch (space.status) {
-      case SpaceStatus.AVAILABLE: return 'Disponible';
-      case SpaceStatus.OCCUPIED: return `Ocupado por ${space.occupiedByVehiclePlate || 'vehículo'}`;
-      case SpaceStatus.RESERVED: return 'Reservado';
-      case SpaceStatus.MAINTENANCE: return 'Mantenimiento';
-      default: return '';
-    }
-  };
+  switch (space.status) {
+    case SpaceStatus.AVAILABLE:
+      return 'Disponible';
+
+    case SpaceStatus.OCCUPIED:
+      return `Ocupado por ${space.occupiedByVehiclePlate || 'vehículo'}`;
+
+    case SpaceStatus.RESERVED:
+      return `Reservado: ${activeReservation?.vehiclePlate || 'Sin patente'}`;
+
+    case SpaceStatus.MAINTENANCE:
+      return 'Mantenimiento';
+
+    default:
+      return '';
+  }
+};
 
   const handleOccupy = async () => {
 
