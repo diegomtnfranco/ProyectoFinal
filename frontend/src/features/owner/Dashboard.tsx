@@ -150,6 +150,8 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
   totalAmount: ticketData.occupancy.totalAmount,
 
   isAnonymous: ticketData.occupancy.isAnonymous,
+
+  breakdown: ticketData.breakdown,
 });
 
   setShowTicketModal(false);

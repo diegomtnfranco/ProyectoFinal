@@ -7,6 +7,7 @@ import { useToast } from '../../hooks/useToast';
 import { useReservationsStore } from '../../../stores/reservationStore';
 import { CheckInModal } from '../occupancy/CheckInModal';
 import { CheckOutModal } from '../occupancy/CheckOutModal';
+import { OccupancyServicesModal } from '../occupancy/OccupancyServicesModal';
 
 
 interface SpaceCardProps {
@@ -26,6 +27,7 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
     useState(false);
 
   const { updateSpaceStatus, occupySpace, liberateSpace } = useSpacesStore();
@@ -108,12 +110,12 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
     setShowCheckInModal(true);
   };
 
-  const handleModalConfirm = async (plate: string, vehicleType: UserVehicleType) => {
+  const handleModalConfirm = async (plate: string, vehicleType: UserVehicleType, serviceKeys?: string[]) => {
     setShowCheckInModal(false);
     setIsLoading(true);
     try {
       const reservationId = getActiveReservationId();
-      await occupySpace(space.id, plate, vehicleType, reservationId);
+      await occupySpace(space.id, plate, vehicleType, reservationId, serviceKeys);
       showNotification(`Espacio ${space.spaceNumber} ocupado correctamente`, 'success');
       onSpaceUpdate?.();
     } catch (error) {
@@ -205,9 +207,14 @@ const handleConfirmLiberate = async () => {
               </button>
             )}
             {space.status === SpaceStatus.OCCUPIED && (
-              <button onClick={handleLiberate} className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all">
-                Liberar
-              </button>
+              <>
+                <button onClick={handleLiberate} className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-md transition-all">
+                  Liberar
+                </button>
+                <button onClick={() => setShowServicesModal(true)} className="bg-white/90 hover:bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-md transition-all">
+                  Servicios
+                </button>
+              </>
             )}
             {space.status === SpaceStatus.RESERVED && (
               <>
@@ -233,7 +240,12 @@ const handleConfirmLiberate = async () => {
         onClose={() => setShowCheckInModal(false)}
         onConfirm={handleModalConfirm}
         isLoading={isLoading}
+        parkingLotId={space.parkingLotId}
       />
+
+      {showServicesModal && (
+        <OccupancyServicesModal isOpen={showServicesModal} spaceId={space.id} onClose={() => setShowServicesModal(false)} />
+      )}
       
       <CheckOutModal
       isOpen={showCheckOutModal}

@@ -1,6 +1,7 @@
 import type { ParkingLotNearbyResponseDto } from '../../../types/parking.types';
 import { MapPin, Clock3, CircleDot, Star, Navigation, Car,  Truck, Van, Motorbike } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import OccupancyAlertButton from './OccupancyAlertButton';
 
 interface Props {
   parking: ParkingLotNearbyResponseDto;
@@ -141,7 +142,7 @@ function ParkingCard({ parking, isClosest = false }: Props) {
               )}
             </div>
 
-            <div className='flex gap-2'>
+            <div className='flex items-center gap-2'>
               <button
                 onClick={() => {
                   window.open(
@@ -153,21 +154,15 @@ function ParkingCard({ parking, isClosest = false }: Props) {
               >
                 Cómo llegar
               </button>
+              {/* Lleva a la página de reservas existente; el disponible/completo se informa arriba y en esa página */}
               <button
-                disabled={available === 0}
-                onClick={() => {
-                  if (available === 0) return;
-                  navigate(`/client/parking-lots/${parking.id}`);
-                }}
-                className={`px-5 py-2 rounded-xl text-white transition-all
-                  ${
-                    available > 0
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-400 cursor-not-allowed'
-                  }`}
+                onClick={() => navigate(`/client/parking-lots/${parking.id}`)}
+                className='px-5 py-2 rounded-xl text-white transition-all bg-blue-600 hover:bg-blue-700'
               >
-                {available > 0 ? 'Reservar' : 'Completo'}
+                Ver más
               </button>
+              {/* Alerta de lugar libre (abajo a la derecha, independiente de la navegación) */}
+              <OccupancyAlertButton parkingLotId={parking.id} parkingLotName={parking.name} />
             </div>
           </div>
         </div>

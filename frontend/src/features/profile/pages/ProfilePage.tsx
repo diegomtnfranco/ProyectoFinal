@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
+import ClientVehiclesManager from '../components/ClientVehiclesManager';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { authService } from '../../../services/auth.service';
 import {
-  User, Mail, Phone, Car, Building2, MapPin, Save, Loader2, Pencil, BadgeCheck, Briefcase
+  User, Mail, Phone, Building2, MapPin, Save, Loader2, Pencil, BadgeCheck, Briefcase
 } from 'lucide-react';
 
 function ProfilePage() {
@@ -537,39 +538,8 @@ function ProfilePage() {
         {/* Contenido - Vehículos (clientes) / Información negocio (dueños) */}
         {activeTab === 'vehicles' && !isEmployee && (
           <div className='bg-white rounded-2xl shadow-sm p-6'>
-            {isClient && (
-              <div className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    <Car size={14} className="inline mr-1" /> Patente por defecto
-                  </label>
-                  <input
-                    type='text'
-                    name='defaultVehiclePlate'
-                    value={formData.defaultVehiclePlate || ''}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    placeholder='ABC123'
-                    className='w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 uppercase'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>Tipo de vehículo</label>
-                  <select
-                    name='defaultVehicleType'
-                    value={formData.defaultVehicleType}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className='w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100'
-                  >
-                    <option value='car'>Auto</option>
-                    <option value='motorcycle'>Moto</option>
-                    <option value='van'>Van</option>
-                    <option value='truck'>Camión</option>
-                  </select>
-                </div>
-              </div>
-            )}
+            {/* Hasta 3 vehículos por cliente (tabla client_vehicles) */}
+            {isClient && <ClientVehiclesManager />}
 
             {isOwner && (
               <div className='space-y-4'>

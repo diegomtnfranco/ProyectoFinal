@@ -17,6 +17,7 @@ import { useReservationsStore } from '../../../stores/reservationStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { VehicleType, type UserVehicleType } from '../../../types/auth.types';
+import ParkingPublicInfo from '../components/ParkingPublicInfo';
 
 function ParkingDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -309,6 +310,9 @@ function ParkingDetailsPage() {
             </div>
 
             <hr />
+
+            {/* INFORMACIÓN PUBLICADA POR EL ESTACIONAMIENTO (solo lectura) */}
+            {id && <ParkingPublicInfo parkingLotId={id} />}
 
             {/* TARIFAS */}
             <div className='bg-blue-50 rounded-2xl p-6'>

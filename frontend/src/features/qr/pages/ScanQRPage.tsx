@@ -7,6 +7,10 @@ import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motor
 import type { AnonymousCheckOutResponse } from '../../../types/parking.types';
 import { DownloadTicketModal } from '../../../shared/components/tickets/DownloadTicketModal';
 import { generateTicketPDF } from '../../../shared/utils/GenerateTicketPDF';
+import { occupancyServicesService } from '../../../services/occupancy-services.service';
+import ServiceCheckboxList from '../../../shared/components/occupancy/ServiceCheckboxList';
+import ChargeBreakdownView from '../../../shared/components/occupancy/ChargeBreakdownView';
+import type { OfferedService } from '../../../types/occupancy-services.types';
 
 // Mapeo de tipos de vehículo
 const vehicleIcons = {
@@ -45,7 +49,7 @@ function ScanQRPage() {
   const { type } = useParams<{ type: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
 
   const token = searchParams.get('token');
 
@@ -56,6 +60,22 @@ function ScanQRPage() {
   const [message, setMessage] = useState('');
   const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  // Servicios opcionales del ingreso por QR (configurados por el dueño)
+  const [qrServices, setQrServices] = useState<OfferedService[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [checkInServices, setCheckInServices] = useState<{ key: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (type !== 'check-in' || !token) return;
+    let cancelled = false;
+    occupancyServicesService
+      .getQrServices(token)
+      .then((list) => !cancelled && setQrServices(list))
+      .catch(() => !cancelled && setQrServices([])); // si falla, el ingreso sigue sin servicios
+    return () => {
+      cancelled = true;
+    };
+  }, [type, token]);
 
   // Validar token al cargar
   useEffect(() => {
@@ -92,7 +112,12 @@ function ScanQRPage() {
         token,
         vehicleType: selectedVehicle,
         vehiclePlate: plate,
+        ...(selectedServices.length ? { serviceKeys: selectedServices } : {}),
       });
+      setCheckInServices(response.data.services ?? []);
+      if (response.data.ignoredServiceKeys?.length) {
+        showWarning('Algún servicio elegido ya no estaba disponible y no se registró');
+      }
       
       setResponseData(response.data);
       setStatus('success');
@@ -166,6 +191,8 @@ function ScanQRPage() {
     totalAmount: responseData.totalAmount,
 
     isAnonymous: true,
+
+    breakdown: responseData.breakdown,
   });
 
   setShowTicketModal(false);
@@ -204,7 +231,22 @@ function ScanQRPage() {
             </div>
           )}
           
-          {responseData?.totalAmount && (
+          {isCheckIn && checkInServices.length > 0 && (
+            <div className="bg-blue-50 rounded-xl p-3 mb-4 text-left">
+              <p className="text-sm font-semibold text-blue-800 mb-1">Servicios solicitados</p>
+              <ul className="text-sm text-blue-700 list-disc pl-5">
+                {checkInServices.map((s) => (
+                  <li key={s.key}>{s.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {responseData?.breakdown ? (
+            <div className="bg-green-50 rounded-xl p-4 mb-4">
+              <ChargeBreakdownView breakdown={responseData.breakdown} />
+            </div>
+          ) : responseData?.totalAmount && (
             <div className="bg-green-50 rounded-xl p-4 mb-4">
               <p className="text-green-700 font-semibold text-lg">
                 Total: ${responseData.totalAmount}
@@ -315,6 +357,24 @@ function ScanQRPage() {
                 ))}
               </div>
             </div>
+
+            {qrServices.length > 0 && (
+              <div className="mb-6">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
+                  Servicios adicionales <span className="font-normal text-gray-400">(opcional)</span>
+                </p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Elegí los que quieras usar. Los incluidos no tienen cargo; los adicionales se suman al total al salir.
+                </p>
+                <ServiceCheckboxList
+                  options={qrServices}
+                  selected={selectedServices}
+                  onChange={setSelectedServices}
+                  disabled={isLoading}
+                  showDetails
+                />
+              </div>
+            )}
 
             <button
               type="submit"

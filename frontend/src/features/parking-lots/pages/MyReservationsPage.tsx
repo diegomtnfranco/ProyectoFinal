@@ -24,6 +24,7 @@ import {
 import { useReservationsStore } from '../../../stores/reservationStore';
 import { useWebsocketStore } from '../../../stores/websocketStore';
 import { useAuthStore } from '../../../stores/authStore';
+import ParkedVehiclesSection from '../../tracking/components/ParkedVehiclesSection';
 import { useToast } from '../../../shared/hooks/useToast';
 import { ReservationStatus, VehicleType, type ReservationStatusType, type UserVehicleType } from '../../../types/auth.types';
 import type { Reservation } from '../../../types/parking.types';
@@ -66,20 +67,17 @@ function MyReservationsPage() {
     const handleReservationUpdate = (data: any) => {
       if (data?.id && data?.status) {
         updateReservationStatus(data.id, data.status);
-        showInfo(`Tu reserva ha sido ${data.status === 'confirmed' ? 'confirmada' : 'actualizada'}`);
+        // El aviso al cliente ahora llega como notificación persistente (campana)
         fetchMyReservations(); // Recargar para obtener datos actualizados
       }
     };
 
-    const handleReservationConfirmed = (data: any) => {
-      showSuccess(`¡Tu reserva para el espacio ${data.spaceNumber} ha sido confirmada!`);
+    // Confirmación y rechazo: aviso migrado al centro de notificaciones; acá solo se refresca la lista
+    const handleReservationConfirmed = () => {
       fetchMyReservations();
     };
 
-    const handleReservationCancelled = (data: any) => {
-      if (data?.cancelledBy === 'parking') {
-        showError(`Tu reserva fue cancelada por el estacionamiento${data.reason ? `: ${data.reason}` : ''}`);
-      }
+    const handleReservationCancelled = () => {
       fetchMyReservations();
     };
 
@@ -259,6 +257,9 @@ const formatCurrency = (amount: number | string) => {
   return (
     <div className='min-h-screen bg-gray-100'>
       <main className='max-w-6xl mx-auto p-6'>
+        {/* Vehículos estacionados (seguimiento), encima de "Mis Reservas" */}
+        <ParkedVehiclesSection />
+
         {/* Encabezado */}
         <div className='flex justify-between items-center mb-6 flex-wrap gap-4'>
           <div>

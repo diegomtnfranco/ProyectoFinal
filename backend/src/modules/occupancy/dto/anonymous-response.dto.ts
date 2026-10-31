@@ -1,3 +1,4 @@
+import type { ChargeBreakdown } from '../../occupancy-services/charge-calculator';
 import { ApiProperty } from '@nestjs/swagger';
 import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
@@ -16,6 +17,12 @@ export class AnonymousCheckInResponseDto {
 
   @ApiProperty()
   checkInTime!: Date;
+
+  /** Servicios asociados a esta ocupación (opcional, feature de servicios) */
+  services?: { key: string; name: string; pricing: unknown }[];
+
+  /** Servicios enviados que ya no estaban disponibles y no se asociaron */
+  ignoredServiceKeys?: string[];
 }
 
 export class AnonymousCheckOutResponseDto {
@@ -65,4 +72,6 @@ export class AnonymousCheckOutResponseDto {
     VehicleType: VehicleType;
     pricePerHour: number;
   }
+  /** Desglose (horas, noches, servicios). Opcional: no cambia los campos existentes */
+  breakdown?: ChargeBreakdown;
 }

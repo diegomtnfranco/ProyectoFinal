@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import NotificationBell from './notifications/NotificationBell';
 import { Link, useLocation } from 'react-router-dom';
 import ParkingLogo from '../../assets/logos/logo-eapp5.webp';
 import { ownerMenu } from '../components/OwnerMenu';
@@ -87,6 +88,13 @@ const isParkingListView = location.pathname === '/client';
             className="w-12 h-12 rounded-md"
           />
         </Link>
+
+        {/* Centro de notificaciones (todos los roles autenticados) */}
+        {user && (
+          <div className="ml-auto mr-3 md:mr-5">
+            <NotificationBell />
+          </div>
+        )}
 
         {/* Menú de escritorio */}
         <div className="hidden md:flex items-center gap-6">
