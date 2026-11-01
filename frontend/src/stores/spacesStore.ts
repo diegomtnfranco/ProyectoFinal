@@ -29,7 +29,7 @@ interface SpacesState {
   fetchAvailableSpaces: (parkingLotId: string, vehicleType?: UserVehicleType) => Promise<void>;
   createSpace: (data: CreateSpaceDto) => Promise<void>;
   updateSpaceStatus: (id: string, data: UpdateSpaceStatusDto) => Promise<void>;
-  occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => Promise<void>;  // ← Actualizar firma
+  occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string, serviceKeys?: string[]) => Promise<void>;  // ← Actualizar firma
   liberateSpace: (id: string) => Promise<CheckOutResponseDto>;  // ← Actualizar firma
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
@@ -115,7 +115,7 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
     }
   },
 
-  occupySpace: async (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string) => {
+  occupySpace: async (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string, serviceKeys?: string[]) => {
   set({ isLoading: true, error: null });
   try {
     const { occupancyService } = await import('../services/occupancy.service');
@@ -124,6 +124,7 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
       vehiclePlate,
       vehicleType,
       reservationId,  // ← Pasar el reservationId
+      ...(serviceKeys && serviceKeys.length ? { serviceKeys } : {}),
     });
     
     set((state) => {

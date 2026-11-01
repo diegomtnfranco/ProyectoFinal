@@ -9,6 +9,8 @@ import { RatesModule } from '../rates/rates.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import {ParkingLotsModule} from '../parking-lots/parking-lots.module';
 import { RateHistoryModule } from '../rate-history/rate-history.module';
+import { OccupancyServicesModule } from '../occupancy-services/occupancy-services.module';
+import { ClientTrackingModule } from '../client-tracking/client-tracking.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { RateHistoryModule } from '../rate-history/rate-history.module';
     WebsocketModule,
     ParkingLotsModule,
     RateHistoryModule,
+    OccupancyServicesModule,
+    ClientTrackingModule,
   ],
   controllers: [OccupancyController],
   providers: [OccupancyService],

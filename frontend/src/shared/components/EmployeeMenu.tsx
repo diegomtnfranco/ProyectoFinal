@@ -1,4 +1,5 @@
 import {
+  ListClock,
     ParkingMeter,
     QrCode,
     Receipt,
@@ -27,6 +28,11 @@ export const employeeMenu: employeeMenuItem[] = [
   path: '/employee/qr',
   icon: QrCode,
 },
+{ 
+    name: 'Actividad',
+    path: '/owner/activity',
+    icon: ListClock,
+  }
 // { 
 //     name: 'Configuración',
 //     path: '/owner/settings',

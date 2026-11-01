@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useParkingLotsStore } from '../../stores/parkingStore';
 import ParkingSettingsForm, { type ParkingData } from './ParkingSettingsForm';
 import SpaceManagementModal from './components/SpaceManagementModal';
+import ParkingProfileSection from './parking-profile/ParkingProfileSection';
+import NightPolicyCard from './parking-profile/NightPolicyCard';
 import { Settings, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -83,6 +85,16 @@ const ParkingSettingsPage = () => {
           onCancel={() => navigate('/owner/settings')}
           onManageSpaces={() => setShowSpaceModal(true)}
         />
+      </div>
+
+      {/* Tarifa nocturna del estacionamiento */}
+      <div className="mt-6">
+        <NightPolicyCard parkingLotId={currentParkingLot.id} />
+      </div>
+
+      {/* Información pública: descripción, características y servicios */}
+      <div className="mt-6">
+        <ParkingProfileSection parkingLotId={currentParkingLot.id} />
       </div>
 
       {/* Modal de gestión de espacios */}

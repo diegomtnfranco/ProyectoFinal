@@ -180,6 +180,8 @@ export interface CheckInDto {
   vehiclePlate: string;
   vehicleType: UserVehicleType;
   reservationId?: string;
+  /** Opcional: servicios solicitados ('catalog:<code>' | 'custom:<uuid>') */
+  serviceKeys?: string[];
 }
 
 export interface CheckOutDto {
@@ -424,6 +426,8 @@ export interface AnonymousCheckOutResponse {
     vehicleType: UserVehicleType;
     pricePerHour: number;
   }
+  /** Desglose (horas, noches, servicios) calculado por el backend */
+  breakdown?: import('./occupancy-services.types').ChargeBreakdown;
 }
 
 // ✅ AGREGAR respuesta para check-in anónimo

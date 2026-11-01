@@ -31,7 +31,7 @@ import AboutUs from '../../features/landing/pages/AboutUs';
 import AdminParkingDetailPage from '../../features/admin/pages/AdminParkingDetailPage';
 import UsersPage from '../../features/admin/pages/UsersPage';
 import AdminUserEditPage from '../../features/admin/pages/AdminUserEditPage';
-// import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
+import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
 import ActivityPage from '../../features/owner/ActivityPage';
 
 
@@ -63,6 +63,7 @@ function AppRouter() {
             <Route path="parking-lots/:id" element={<ParkingDetailsPage />} />
             <Route path="my-reservations" element={<MyReservationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="map" element={<ParkingMapPage />} />
           </Route>
         </Route>
 

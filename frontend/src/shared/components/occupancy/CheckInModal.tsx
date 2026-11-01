@@ -1,6 +1,9 @@
-import { useState, type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { Car, Motorbike, Truck, X } from 'lucide-react';
 import { VehicleType, type UserVehicleType } from '../../../types/auth.types';
+import { occupancyServicesService } from '../../../services/occupancy-services.service';
+import ServiceCheckboxList from './ServiceCheckboxList';
+import type { OfferedService } from '../../../types/occupancy-services.types';
 
 const vehicleOptions: { value: UserVehicleType; label: string; icon: JSX.Element }[] = [
   { value: VehicleType.CAR, label: 'Auto', icon: <Car size={20} /> },
@@ -12,10 +15,12 @@ const vehicleOptions: { value: UserVehicleType; label: string; icon: JSX.Element
 interface CheckInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (plate: string, vehicleType: UserVehicleType) => void;
+  onConfirm: (plate: string, vehicleType: UserVehicleType, serviceKeys?: string[]) => void;
   isLoading?: boolean;
   defaultPlate?: string;
   defaultVehicleType?: UserVehicleType;
+  /** Si se indica, muestra los servicios activos del estacionamiento (opcionales) */
+  parkingLotId?: string;
 }
 
 export function CheckInModal({
@@ -25,16 +30,36 @@ export function CheckInModal({
   isLoading = false,
   defaultPlate = '',
   defaultVehicleType = VehicleType.CAR,
+  parkingLotId,
 }: CheckInModalProps) {
   const [plate, setPlate] = useState(defaultPlate);
   const [vehicleType, setVehicleType] = useState<UserVehicleType>(defaultVehicleType);
+  const [services, setServices] = useState<OfferedService[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  // Servicios activos del estacionamiento; si falla, el ingreso sigue funcionando sin ellos
+  useEffect(() => {
+    if (!isOpen || !parkingLotId) return;
+    let cancelled = false;
+    occupancyServicesService
+      .getSelectableServices(parkingLotId)
+      .then((list) => {
+        if (cancelled) return;
+        setServices(list);
+        setSelectedServices([]);
+      })
+      .catch(() => !cancelled && setServices([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, parkingLotId]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (plate.trim()) {
-      onConfirm(plate.trim().toUpperCase(), vehicleType);
+      onConfirm(plate.trim().toUpperCase(), vehicleType, selectedServices);
     }
   };
 
@@ -73,6 +98,14 @@ export function CheckInModal({
               ))}
             </select>
           </div>
+          {services.length > 0 && (
+            <div className="mb-6">
+              <p className="block text-sm font-medium mb-1">
+                Servicios solicitados <span className="font-normal text-gray-400">(opcional)</span>
+              </p>
+              <ServiceCheckboxList options={services} selected={selectedServices} onChange={setSelectedServices} disabled={isLoading} />
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               type="button"

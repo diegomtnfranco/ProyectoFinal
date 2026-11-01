@@ -1,0 +1,12 @@
+import EmbeddedPostgres from 'embedded-postgres';
+import fs from 'fs';
+const dir = `${process.env.HOME}/pgdata-it`;
+fs.rmSync(dir, { recursive: true, force: true });
+const pg = new EmbeddedPostgres({ databaseDir: dir, user: 'postgres', password: 'pw', port: 54329, persistent: false });
+await pg.initialise();
+await pg.start();
+await pg.createDatabase('estacionapp_it');
+console.log('PG_READY');
+const stop = async () => { await pg.stop(); process.exit(0); };
+process.on('SIGTERM', stop); process.on('SIGINT', stop);
+setInterval(() => {}, 1000);

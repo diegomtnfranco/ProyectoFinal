@@ -25,6 +25,8 @@ import { AnonymousCheckOutDto } from './dto/anonymous-check-out.dto';
 import { CheckOutResponseDto } from './dto/check-out-response.dto';
 import { RateHistoryService } from '../rate-history/rate-history.service';
 import { NO_RATE_QR_MESSAGE, noRateManualMessage } from '../rate-history/rate-history.constants';
+import { OccupancyServicesService } from '../occupancy-services/occupancy-services.service';
+import { ClientTrackingService } from '../client-tracking/client-tracking.service';
 
 /** Tarifa con la que se cobra un egreso (congelada al ingreso o, si no hay, la vigente) */
 interface ChargeRate {
@@ -49,6 +51,12 @@ export class OccupancyService {
     // Opcional para no romper instancias/tests existentes que no lo pasan
     @Optional()
     private readonly rateHistory?: RateHistoryService,
+    // Opcional: servicios por ocupación + tarifa nocturna (si falta, cálculo histórico)
+    @Optional()
+    private readonly occupancyExtras?: OccupancyServicesService,
+    // Opcional: seguimiento para clientes con la patente registrada + patente única por estacionamiento
+    @Optional()
+    private readonly clientTracking?: ClientTrackingService,
   ) { }
 
   /**
@@ -140,6 +148,18 @@ export class OccupancyService {
       });
       await queryRunner.manager.save(occupancy);
       await this.rateHistory?.snapshotForOccupancy(queryRunner.manager, occupancy.id, rate);
+      const tracking = await this.clientTracking?.onCheckIn(queryRunner.manager, {
+        occupancyId: occupancy.id,
+        parkingLotId: space.parkingLotId,
+        plate: checkInDto.vehiclePlate,
+      });
+      const extras = await this.occupancyExtras?.onCheckIn(queryRunner.manager, {
+        occupancyId: occupancy.id,
+        parkingLotId: space.parkingLotId,
+        serviceKeys: checkInDto.serviceKeys,
+        via: 'manual',
+        userId,
+      });
 
       // 5. Actualizar el espacio
       space.status = SpaceStatus.OCCUPIED;
@@ -158,6 +178,7 @@ export class OccupancyService {
       }
 
       await queryRunner.commitTransaction();
+      void this.clientTracking?.afterCheckIn(tracking);
 
 
       this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
@@ -173,6 +194,9 @@ export class OccupancyService {
 
       this.websocketGateway.emitParkingAvailability(space.parkingLotId);
 
+      if (extras) {
+        Object.assign(occupancy, { services: extras.selected, ignoredServiceKeys: extras.ignoredServiceKeys });
+      }
       return occupancy;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -218,9 +242,10 @@ export class OccupancyService {
         throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
       }
 
-      // 4. Calcular monto (mínimo 1 hora)
+      // 4. Calcular monto (mínimo 1 hora). Con servicios/tarifa nocturna delega en la calculadora única.
       const hoursToCharge = Math.max(1, hours);
-      const totalAmount = rate.pricePerHour * hoursToCharge;
+      const breakdown = await this.occupancyExtras?.computeCharge(queryRunner.manager, occupancy, rate.pricePerHour, checkOutTime);
+      const totalAmount = breakdown ? breakdown.total : rate.pricePerHour * hoursToCharge;
 
       // 5. Actualizar registro de ocupación
       occupancy.checkOutTime = checkOutTime;
@@ -239,6 +264,7 @@ export class OccupancyService {
       await queryRunner.manager.save(space);
 
       await queryRunner.commitTransaction();
+      void this.clientTracking?.afterCheckOut(occupancy.id);
 
 
       // ✅ Emitir evento WebSocket
@@ -313,7 +339,8 @@ export class OccupancyService {
           id: rate.id,
           VehicleType: rate.vehicleType,
           pricePerHour: rate.pricePerHour,
-        }
+        },
+        ...(breakdown ? { breakdown } : {}),
       };
 
       return response;
@@ -522,6 +549,18 @@ export class OccupancyService {
     });
     await queryRunner.manager.save(occupancy);
     await this.rateHistory?.snapshotForOccupancy(queryRunner.manager, occupancy.id, rate);
+    const tracking = await this.clientTracking?.onCheckIn(queryRunner.manager, {
+      occupancyId: occupancy.id,
+      parkingLotId: parkingLot.id,
+      plate: occupancy.vehiclePlate,
+    });
+    const extras = await this.occupancyExtras?.onCheckIn(queryRunner.manager, {
+      occupancyId: occupancy.id,
+      parkingLotId: parkingLot.id,
+      serviceKeys: dto.serviceKeys,
+      via: 'qr',
+      userId: null,
+    });
 
     // 6. Actualizar espacio
     targetSpace.status = SpaceStatus.OCCUPIED;
@@ -540,6 +579,7 @@ export class OccupancyService {
 
     // 8. Commit transacción
     await queryRunner.commitTransaction();
+    void this.clientTracking?.afterCheckIn(tracking);
 
     // 9. Emitir eventos WebSocket
     const message = existingReservation
@@ -564,6 +604,7 @@ export class OccupancyService {
       spaceNumber: targetSpace.spaceNumber,
       vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
       checkInTime: occupancy.checkInTime,
+      ...(extras ? { services: extras.selected, ignoredServiceKeys: extras.ignoredServiceKeys } : {}),
     };
 
   } catch (error) {
@@ -647,7 +688,8 @@ private async findReservationByVehiclePlate(
         throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
       }
 
-      let totalAmount = rate.pricePerHour * hoursToCharge;
+      const breakdown = await this.occupancyExtras?.computeCharge(queryRunner.manager, occupancy, rate.pricePerHour, checkOutTime);
+      let totalAmount = breakdown ? breakdown.parkingAmount : rate.pricePerHour * hoursToCharge;
 
       if (occupancy.reservationId) {
         const reservation = await queryRunner.manager.findOne(Reservation, {
@@ -656,7 +698,18 @@ private async findReservationByVehiclePlate(
 
         if (reservation && reservation.totalAmount !== undefined && reservation.totalAmount !== null && reservation.status === ReservationStatus.COMPLETED) {
           totalAmount = reservation.totalAmount;
+          if (breakdown) {
+            // Regla existente: la reserva fija el componente de estacionamiento
+            breakdown.parkingSource = 'reservation';
+            breakdown.parkingAmount = Number(reservation.totalAmount);
+          }
         }
+      }
+
+      // Servicios adicionales: se suman aparte del componente de estacionamiento
+      if (breakdown) {
+        totalAmount = Math.round((Number(totalAmount) + breakdown.servicesAmount) * 100) / 100;
+        breakdown.total = totalAmount;
       }
 
       // 5. Actualizar ocupación
@@ -674,6 +727,7 @@ private async findReservationByVehiclePlate(
       await queryRunner.manager.save(space);
 
       await queryRunner.commitTransaction();
+      void this.clientTracking?.afterCheckOut(occupancy.id);
 
       // 7. Emitir eventos WebSocket
       this.websocketGateway.emitSpaceUpdate(parkingLot.id, space.id, SpaceStatus.AVAILABLE);
@@ -722,8 +776,8 @@ private async findReservationByVehiclePlate(
           id: rate.id,
           VehicleType: rate.vehicleType,
           pricePerHour: rate.pricePerHour,
-        }
-        
+        },
+        ...(breakdown ? { breakdown } : {}),
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();

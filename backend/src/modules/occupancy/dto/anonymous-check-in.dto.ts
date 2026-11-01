@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEnum, Matches, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsEnum, Matches, MaxLength, MinLength, IsOptional, IsArray, ArrayMaxSize } from 'class-validator';
 import { VehicleType } from '../../common/enums/vehicle-type.enum';
 
 export class AnonymousCheckInDto {
@@ -17,4 +17,12 @@ export class AnonymousCheckInDto {
   @ApiProperty({ enum: VehicleType, description: 'Tipo de vehículo' })
   @IsEnum(VehicleType)
   vehicleType!: VehicleType;
+
+  @ApiPropertyOptional({ type: [String], description: 'Opcional: servicios elegidos por el cliente' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  serviceKeys?: string[];
 }
