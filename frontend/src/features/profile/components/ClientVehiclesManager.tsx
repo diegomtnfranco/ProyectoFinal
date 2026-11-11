@@ -6,6 +6,8 @@ import { useToast } from '../../../shared/hooks/useToast';
 import { ConfirmModal } from '../../../shared/components/common/ConfirmModal';
 import { MAX_CLIENT_VEHICLES, type ClientVehicle, type ClientVehiclePayload } from '../../../types/client-tracking.types';
 import type { UserVehicleType } from '../../../types/auth.types';
+import { useAuthStore } from '../../../stores/authStore';
+import { useClientVehiclesStore } from '../../../stores/clientVehiclesStore';
 
 const TYPES: { value: UserVehicleType; label: string }[] = [
   { value: 'car', label: 'Auto' },
@@ -26,6 +28,13 @@ function ClientVehiclesManager() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<ClientVehicle | null>(null);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const syncSharedVehicles = useClientVehiclesStore((s) => s.setVehicles);
+
+  // Mantiene sincronizadas las recomendaciones de tarifas del listado (sin otra petición)
+  useEffect(() => {
+    if (vehicles && userId) syncSharedVehicles(userId, vehicles);
+  }, [vehicles, userId, syncSharedVehicles]);
 
   useEffect(() => {
     let cancelled = false;

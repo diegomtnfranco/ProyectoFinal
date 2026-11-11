@@ -6,13 +6,15 @@ import { useToast } from '../../../shared/hooks/useToast';
 interface OccupancyAlertButtonProps {
   parkingLotId: string;
   parkingLotName: string;
+  /** 'compact': versión discreta (más chica, fondo translúcido) para usar sobre la tarjeta. */
+  variant?: 'default' | 'compact';
 }
 
 /**
  * Campana de la tarjeta: "avisame cuando se libere un lugar". El estado se lee
  * del backend al cargar y se guarda allí (no se pierde al recargar).
  */
-function OccupancyAlertButton({ parkingLotId, parkingLotName }: OccupancyAlertButtonProps) {
+function OccupancyAlertButton({ parkingLotId, parkingLotName, variant = 'default' }: OccupancyAlertButtonProps) {
   const { subscribed, loaded, pending, load, toggle } = useOccupancyAlertsStore();
   const { showSuccess, showError } = useToast();
   const active = subscribed.has(parkingLotId);
@@ -34,6 +36,13 @@ function OccupancyAlertButton({ parkingLotId, parkingLotName }: OccupancyAlertBu
     }
   };
 
+  const compact = variant === 'compact';
+  const iconSize = compact ? 16 : 20;
+  const sizeClass = compact ? 'h-9 w-9' : 'h-11 w-11';
+  const idleClass = compact
+    ? 'border-gray-200 bg-white/90 text-gray-500 shadow-sm backdrop-blur hover:bg-white hover:text-gray-700'
+    : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50';
+
   const label = active ? `Desactivar alerta de lugar libre en ${parkingLotName}` : `Avisarme cuando se libere un lugar en ${parkingLotName}`;
 
   return (
@@ -44,11 +53,11 @@ function OccupancyAlertButton({ parkingLotId, parkingLotName }: OccupancyAlertBu
       aria-pressed={active}
       aria-label={label}
       title={active ? 'Alerta activa: te avisamos cuando se libere un lugar' : 'Avisarme cuando se libere un lugar'}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-60 ${
-        active ? 'border-amber-400 bg-amber-400 text-white shadow-md hover:bg-amber-500' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full border transition disabled:opacity-60 ${
+        active ? 'border-amber-400 bg-amber-400 text-white shadow-md hover:bg-amber-500' : idleClass
       }`}
     >
-      {busy ? <LoaderCircle size={20} className="animate-spin" /> : active ? <BellRing size={20} /> : <Bell size={20} />}
+      {busy ? <LoaderCircle size={iconSize} className="animate-spin" /> : active ? <BellRing size={iconSize} /> : <Bell size={iconSize} />}
     </button>
   );
 }
