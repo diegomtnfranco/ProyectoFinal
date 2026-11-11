@@ -3,11 +3,11 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { authService } from '../../../services/auth.service';
 import {
-  User, Mail, Phone, Car, Building2, MapPin, Save, Loader2, Pencil, BadgeCheck, Briefcase
+  User, Mail, Phone, Car, Building2, MapPin, Save, Loader2, Pencil, BadgeCheck, Briefcase, LogOut
 } from 'lucide-react';
 
 function ProfilePage() {
-  const { user, updateProfile, updateUser, isLoading: authLoading } = useAuthStore();
+  const { user, updateProfile, updateUser, logout, isLoading: authLoading } = useAuthStore();
   const { showSuccess, showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -530,6 +530,18 @@ function ProfilePage() {
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Cerrar sesión: va debajo del formulario, no es parte de él */}
+            <div className='mt-6 pt-6 border-t border-gray-100 flex justify-center'>
+              <button
+                type='button'
+                onClick={() => logout()}
+                className='flex items-center gap-2 px-6 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 transition-all font-medium'
+              >
+                <LogOut size={18} />
+                Cerrar sesión
+              </button>
             </div>
           </div>
         )}

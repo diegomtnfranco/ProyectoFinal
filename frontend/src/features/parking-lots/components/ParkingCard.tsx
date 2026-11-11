@@ -1,6 +1,7 @@
 import type { ParkingLotNearbyResponseDto } from '../../../types/parking.types';
 import { MapPin, Clock3, CircleDot, Star, Navigation, Car,  Truck, Van, Motorbike } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../../stores/authStore';
 
 interface Props {
   parking: ParkingLotNearbyResponseDto;
@@ -32,6 +33,10 @@ const getVehicleConfig = (vehicleType: string) => {
 
 function ParkingCard({ parking, isClosest = false }: Props) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const goToDetails = () => navigate(`/client/parking-lots/${parking.id}`);
+  // Tipo de vehículo del cliente (Perfil > Vehículos). Si no hay, se muestran todas las tarifas
+  const clientVehicleType = user?.role === 'client' ? user?.clientProfile?.defaultVehicleType : undefined;
   const available = parking.availability.available;
   const total = parking.availability.total;
   const occupancyPercentage = total > 0 ? ((total - available) / total) * 100 : 0;
@@ -52,17 +57,21 @@ function ParkingCard({ parking, isClosest = false }: Props) {
     if (!parking.rates || parking.rates.length === 0) {
       return (
         <div className="flex items-center gap-1 text-gray-400 text-xs mt-2">
-          <span>💰</span>
           <span>Consultar tarifas</span>
         </div>
       );
     }
     
+    // Solo las tarifas del vehículo del cliente (si ninguna coincide, se muestran todas)
+    const matchingRates = clientVehicleType
+      ? parking.rates.filter((r) => r.vehicleType?.toLowerCase() === String(clientVehicleType).toLowerCase())
+      : [];
+    const ratesToShow = matchingRates.length > 0 ? matchingRates : parking.rates;
+
     return (
       <div className="mt-2">
-        <p className="text-xs font-semibold text-gray-700 mb-1">Tarifas por hora:</p>
         <div className="flex flex-wrap gap-2">
-          {parking.rates.map((rate) => {
+          {ratesToShow.map((rate) => {
             const config = getVehicleConfig(rate.vehicleType);
             return (
               <div
@@ -71,8 +80,7 @@ function ParkingCard({ parking, isClosest = false }: Props) {
               >
                 <span className={config.color}>{config.icon}</span>
                 <span className="text-gray-700">{config.label}</span>
-                <span className="font-semibold text-gray-900">${rate.price}</span>
-                <span className="text-gray-400 text-[10px]">/h</span>
+                <span className="font-semibold text-gray-900">${rate.price}/h</span>
               </div>
             );
           })}
@@ -82,11 +90,17 @@ function ParkingCard({ parking, isClosest = false }: Props) {
   };
 
   return (
-    <div className='bg-white rounded-3xl shadow-md p-6 hover:shadow-lg transition-shadow'>
+    <div
+      onClick={() => {
+        // En celular toda la tarjeta es el acceso a "Ver más"
+        if (window.matchMedia('(max-width: 767px)').matches) goToDetails();
+      }}
+      className='bg-white rounded-3xl shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer md:cursor-default'
+    >
       <div className='md:flex'>
         {/* Imagen placeholder */}
-        <div className='md:w-72 h-56 bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center'>
-          {parking.imageUrl?<img src={parking.imageUrl}  className=''/> :<span className='text-white text-6xl'>🅿️</span> }
+        <div className='md:w-72 h-56 bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center'>
+          {parking.imageUrl ? <img src={parking.imageUrl} alt={parking.name} className='w-full h-full object-cover' /> : <Car size={48} className='text-gray-300' />}
         </div>
 
         <div className='flex-1 p-6 flex flex-col justify-between'>
@@ -121,52 +135,28 @@ function ParkingCard({ parking, isClosest = false }: Props) {
           <div className='mt-5 flex items-center justify-between flex-wrap gap-3'>
             <div>
               {available > 0 ? (
-                <>
-                  <span className={`flex items-center gap-2 font-semibold ${getOccupancyColor()}`}>
-                    <CircleDot size={16} />
-                    {available === total ? 'Hay lugar' : available > total * 0.3 ? 'Disponible' : 'Últimos lugares'}
-                  </span>
-                  <p className='text-gray-500 text-sm'>
-                    {available} de {total} lugares libres
-                    <span className='text-xs ml-1'>
-                      ({Math.round((available / total) * 100)}% disponible)
-                    </span>
-                  </p>
-                </>
-              ) : (
-                <span className='text-red-600 font-semibold flex items-center gap-2'>
+                <span className={`flex items-center gap-2 text-sm font-semibold ${getOccupancyColor()}`}>
                   <CircleDot size={16} />
-                  Completamente lleno
+                  {available} de {total} lugares libres
+                </span>
+              ) : (
+                <span className='text-red-600 text-sm font-semibold flex items-center gap-2'>
+                  <CircleDot size={16} />
+                  Completo
                 </span>
               )}
             </div>
 
-            <div className='flex gap-2'>
+            {/* Solo en PC: en celular toda la tarjeta es clickeable */}
+            <div className='hidden md:flex gap-2'>
               <button
-                onClick={() => {
-                  window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${parking.latitude},${parking.longitude}`,
-                    '_blank'
-                  );
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToDetails();
                 }}
-                className='px-4 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all'
+                className='px-5 py-2 rounded-xl text-white transition-all bg-blue-600 hover:bg-blue-700'
               >
-                Cómo llegar
-              </button>
-              <button
-                disabled={available === 0}
-                onClick={() => {
-                  if (available === 0) return;
-                  navigate(`/client/parking-lots/${parking.id}`);
-                }}
-                className={`px-5 py-2 rounded-xl text-white transition-all
-                  ${
-                    available > 0
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-400 cursor-not-allowed'
-                  }`}
-              >
-                {available > 0 ? 'Reservar' : 'Completo'}
+                Ver más
               </button>
             </div>
           </div>
