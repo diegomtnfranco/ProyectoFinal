@@ -1,4 +1,5 @@
 import type { UserVehicleType } from './auth.types';
+import type { PaymentSummary } from './payments.types';
 
 export const ActivityType = {
   CHECK_IN: 'check_in',
@@ -40,6 +41,10 @@ export interface ActivityItem {
   hasReservation: boolean;
   reservationStatus?: string;
   rateChange?: RateChangeInfo;
+  /** Reserva asociada al egreso */
+  reservationId?: string | null;
+  /** Estado de pago (egresos y reservas). Solo lo envía el backend a dueño y empleado */
+  payment?: PaymentSummary;
 }
 
 export interface PaginatedActivity {

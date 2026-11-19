@@ -147,8 +147,9 @@ export class ReservationsController {
   @ApiResponse({ status: 200, description: 'Reserva obtenida exitosamente' })
   @ApiResponse({ status: 403, description: 'Acceso denegado' })
   @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.reservationsService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    // Antes devolvía cualquier reserva a cualquier cliente o dueño autenticado
+    return this.reservationsService.findOneForRequester(id, user.id, user.role);
   }
 
   /**

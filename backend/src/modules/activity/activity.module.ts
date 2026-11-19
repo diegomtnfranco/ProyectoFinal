@@ -8,12 +8,14 @@ import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
 import { ParkingEmployee } from '../parking-employees/entities/parking-employee.entity';
 import { RatesModule } from '../rates/rates.module';
 import { RateHistoryModule } from '../rate-history/rate-history.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Occupancy, Reservation, ParkingLot, ParkingEmployee]),
     RatesModule,
     RateHistoryModule,
+    PaymentsModule,
   ],
   controllers: [ActivityController],
   providers: [ActivityService],

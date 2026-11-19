@@ -12,6 +12,7 @@ import DashboardSidePanel from '../../shared/components/activity/DashboardSidePa
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 import { useState } from 'react';
 import { DownloadTicketModal } from '../../shared/components/tickets/DownloadTicketModal';
+import CheckoutPaymentStatus from '../../shared/components/payments/CheckoutPaymentStatus';
 import { generateTicketPDF } from '../../shared/utils/GenerateTicketPDF';
 
 const DashboardOwner: React.FC = () => {
@@ -275,10 +276,20 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
             isOpen={showTicketModal}
             onClose={() => setShowTicketModal(false)}
             onDownload={handleDownloadTicket}
-        />
+        >
+          {/* Importe final y estado del pago del egreso */}
+          {ticketData?.occupancy?.id && ticketData?.occupancy?.space?.parkingLot?.id && (
+            <CheckoutPaymentStatus
+              key={ticketData.occupancy.id}
+              parkingLotId={ticketData.occupancy.space.parkingLot.id}
+              occupancyId={ticketData.occupancy.id}
+              vehiclePlate={ticketData.occupancy.vehiclePlate ?? ''}
+            />
+          )}
+        </DownloadTicketModal>
       </div>
     </div>
   );
 };
 
-export default DashboardOwner;
+export default DashboardOwner;

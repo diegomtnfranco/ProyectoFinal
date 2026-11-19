@@ -12,6 +12,9 @@ export const NotificationType = {
   RESERVATION_CONFIRMED: 'reservation_confirmed',
   RESERVATION_REJECTED: 'reservation_rejected',
   RESERVATION_CANCELLED_BY_PARKING: 'reservation_cancelled_by_parking',
+  PAYMENT_APPROVED: 'payment_approved',
+  PAYMENT_REJECTED: 'payment_rejected',
+  PAYMENT_PENDING: 'payment_pending',
 } as const;
 export type NotificationTypeValue =
   (typeof NotificationType)[keyof typeof NotificationType];
@@ -25,6 +28,9 @@ export const NOTIFICATION_CATEGORY: Record<NotificationTypeValue, string> = {
   reservation_confirmed: 'Reservas',
   reservation_rejected: 'Reservas',
   reservation_cancelled_by_parking: 'Reservas',
+  payment_approved: 'Pagos',
+  payment_rejected: 'Pagos',
+  payment_pending: 'Pagos',
 };
 
 export const addDays = (date: Date, days: number) =>

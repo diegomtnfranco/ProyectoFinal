@@ -12,6 +12,8 @@ import { ActivityItemDto, PaginatedActivityDto } from './dto/activity-response.d
 import { ActivityType } from './dto/find-activity.dto';
 import { RateHistoryService } from '../rate-history/rate-history.service';
 import { RateChangeLog } from '../rate-history/entities/rate-change-log.entity';
+import { PaymentsService } from '../payments/payments.service';
+import { decimalToCents } from '../payments/money.util';
 
 export interface ActivityRequester {
   id: string;
@@ -40,13 +42,16 @@ export class ActivityService {
     // Opcional para no romper instancias/tests existentes que no lo pasan
     @Optional()
     private readonly rateHistory?: RateHistoryService,
+    // Opcional: estado de pago en las tarjetas (feature billetera / Mercado Pago)
+    @Optional()
+    private readonly payments?: PaymentsService,
   ) {}
 
   /** Últimas N actividades (por defecto 3) para el panel del dashboard. */
   async getRecent(parkingLotId: string, user: ActivityRequester, limit = 3): Promise<ActivityItemDto[]> {
     await this.assertCanAccess(parkingLotId, user);
     const { items } = await this.collect(parkingLotId, 1, limit);
-    return items;
+    return this.attachPayments(items, user);
   }
 
   /** Listado paginado para la página "Actividad". */
@@ -59,7 +64,7 @@ export class ActivityService {
   ): Promise<PaginatedActivityDto> {
     await this.assertCanAccess(parkingLotId, user);
     const { items, total } = await this.collect(parkingLotId, page, limit, type, true);
-    return { items, page, limit, total, hasMore: page * limit < total };
+    return { items: await this.attachPayments(items, user), page, limit, total, hasMore: page * limit < total };
   }
 
   // ---------------------------------------------------------------------------
@@ -173,6 +178,7 @@ export class ActivityService {
         entryMethod: occ.checkedInViaQr ? 'qr' : 'manual',
         exitMethod: isOpen ? null : occ.checkedOutViaQr ? 'qr' : 'manual',
         hasReservation: !!occ.reservationId,
+        reservationId: occ.reservationId ?? null,
       });
     }
     return items;
@@ -221,6 +227,35 @@ export class ActivityService {
         changedByEmail: log.changedByEmail,
       },
     };
+  }
+
+  /**
+   * Agrega el estado de pago a egresos y reservas. Solo para dueño y empleado:
+   * la vista del administrador no cambia con esta feature.
+   */
+  private async attachPayments(items: ActivityItemDto[], user: ActivityRequester): Promise<ActivityItemDto[]> {
+    if (!this.payments) return items;
+    if (user.role !== UserRole.PARKING_OWNER && user.role !== UserRole.PARKING_EMPLOYEE) return items;
+    const refs = items
+      .filter((i) => i.type === 'check_out' || i.type === 'reservation')
+      .map((i) => ({
+        kind: (i.type === 'reservation' ? 'RESERVATION' : 'OCCUPANCY') as 'RESERVATION' | 'OCCUPANCY',
+        id: i.sourceId,
+        reservationId: i.type === 'check_out' ? (i.reservationId ?? null) : null,
+        billedAmountCents: i.totalAmount != null ? decimalToCents(i.totalAmount) : null,
+      }));
+    if (!refs.length) return items;
+    try {
+      const summaries = await this.payments.summariesFor(refs);
+      for (const item of items) {
+        const kind = item.type === 'reservation' ? 'RESERVATION' : item.type === 'check_out' ? 'OCCUPANCY' : null;
+        const summary = kind ? summaries.get(`${kind}:${item.sourceId}`) : undefined;
+        if (summary) item.payment = summary;
+      }
+    } catch {
+      // Si falla la consulta de pagos, el feed se muestra igual (sin datos de pago)
+    }
+    return items;
   }
 
   /** Owner: dueño del estacionamiento. Employee: asignado y activo. Admin: todo. */

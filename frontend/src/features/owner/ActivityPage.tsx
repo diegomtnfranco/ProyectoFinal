@@ -7,6 +7,7 @@ import { useActivityFeed } from '../../shared/hooks/useActivityFeed';
 import ActivityCard from '../../shared/components/activity/ActivityCard';
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 import type { ActivityTypeValue } from '../../types/activity.types';
+import { sortByRecent } from '../../shared/components/activity/activity.utils';
 
 const PAGE_SIZE = 12;
 
@@ -79,8 +80,11 @@ function ActivityPage() {
           <button
             key={f.label}
             onClick={() => changeFilter(f.value)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-              type === f.value ? 'bg-blue-500 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 motion-reduce:transition-none ${
+              type === f.value
+                ? 'bg-blue-500 text-white shadow-[0_2px_8px_rgba(59,130,246,0.25)]'
+                : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
             {f.label}
@@ -96,11 +100,12 @@ function ActivityPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* Una sola columna a todo el ancho: tarjetas colapsadas, cada una expandible */}
+      <div className="grid w-full grid-cols-1 gap-3">
         {isLoading && !data &&
-          Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-44 animate-pulse rounded-xl bg-slate-100" />)}
-        {data?.items.map((item) => (
-          <ActivityCard key={item.id} item={item} />
+          Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-[74px] animate-pulse rounded-2xl bg-[#F5F5F4]" />)}
+        {data && sortByRecent(data.items).map((item) => (
+          <ActivityCard key={item.id} item={item} expandable wide />
         ))}
       </div>
 

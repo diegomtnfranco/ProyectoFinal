@@ -378,31 +378,7 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
         </div>
       </div>
 
-      {/* Guardar secciones 1 a 3 */}
-      <div className="sticky bottom-2 z-10 flex flex-col items-stretch justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center">
-        <span className="text-sm text-gray-500 sm:mr-auto">
-          {isDirty ? 'Tenés cambios sin guardar en las secciones 1 a 3.' : 'Secciones 1 a 3 guardadas.'}
-        </span>
-        <button
-          type="button"
-          disabled={!isDirty || saving}
-          onClick={() => setDraft(buildDraft(profile))}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-        >
-          Descartar
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!isDirty || saving}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? <LoaderCircle size={16} className="animate-spin" /> : <Save size={16} />}
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
-      </div>
-
-      {/* 4. Servicios personalizados */}
+      {/* 3. Servicios personalizados */}
       <div>
         <div className="flex items-start justify-between gap-2">
           <SectionTitle n={4} title="Servicios personalizados" hint="Se guardan al instante y pertenecen solo a este estacionamiento." />
@@ -476,6 +452,30 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
         onCancel={() => !deletingId && setToDelete(null)}
         variant="danger"
       />
+
+      {/* Guardar secciones 1 a 3 */}
+      <div className="sticky bottom-2 z-10 flex flex-col items-stretch justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center">
+        <span className="text-sm text-gray-500 sm:mr-auto">
+          {isDirty ? 'Tenés cambios sin guardar en las secciones 1 a 3.' : 'Secciones 1 a 3 guardadas.'}
+        </span>
+        <button
+          type="button"
+          disabled={!isDirty || saving}
+          onClick={() => setDraft(buildDraft(profile))}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+        >
+          Descartar
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!isDirty || saving}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {saving ? <LoaderCircle size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </button>
+      </div>
     </section>
   );
 }

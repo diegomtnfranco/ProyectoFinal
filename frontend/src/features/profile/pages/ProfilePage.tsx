@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import ClientVehiclesManager from '../components/ClientVehiclesManager';
+import WalletProfileCard from '../../payments/components/WalletProfileCard';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { authService } from '../../../services/auth.service';
@@ -374,6 +375,8 @@ function ProfilePage() {
         {/* Contenido - Información personal */}
         {activeTab === 'info' && (
           <div className='bg-white rounded-2xl shadow-sm p-6'>
+            {/* Mi billetera (demo): solo clientes */}
+            {isClient && <WalletProfileCard />}
             <div className='space-y-4'>
               {/* Email - Todos los roles pueden editar */}
               <div>
@@ -633,4 +636,4 @@ function ProfilePage() {
   );
 }
 
-export default ProfilePage;
+export default ProfilePage;

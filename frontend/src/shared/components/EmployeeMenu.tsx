@@ -30,7 +30,7 @@ export const employeeMenu: employeeMenuItem[] = [
 },
 { 
     name: 'Actividad',
-    path: '/owner/activity',
+    path: '/employee/activity',
     icon: ListClock,
   }
 // { 
