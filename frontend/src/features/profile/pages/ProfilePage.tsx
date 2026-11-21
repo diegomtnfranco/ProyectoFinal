@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ClientVehiclesManager from '../components/ClientVehiclesManager';
 import WalletProfileCard from '../../payments/components/WalletProfileCard';
 import { useAuthStore } from '../../../stores/authStore';
@@ -14,7 +15,12 @@ function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'vehicles' | 'security'>('info');
+  // ?tab=vehicles abre directamente "Vehículos" (lo usa el aviso de vehículo obligatorio)
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'info' | 'vehicles' | 'security'>(
+    searchParams.get('tab') === 'vehicles' ? 'vehicles' : 'info',
+  );
+
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Estados del formulario
@@ -636,4 +642,4 @@ function ProfilePage() {
   );
 }
 
-export default ProfilePage;
+export default ProfilePage;

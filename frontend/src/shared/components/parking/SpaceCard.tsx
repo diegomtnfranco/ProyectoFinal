@@ -214,12 +214,18 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
     setShowCheckOutModal(true);
   };
 
-  const handleConfirmLiberate = async () => {
+  const handleConfirmLiberate = async (paymentReceived: boolean) => {
     setIsLoading(true);
     try {
-      const result = await liberateSpace(space.id);
+      const result = await liberateSpace(space.id, paymentReceived);
       setShowCheckOutModal(false);
-      showNotification(`Espacio ${space.spaceNumber} liberado correctamente`, 'success');
+      const pending = result?.checkout?.paymentStatus === 'PENDING';
+      showNotification(
+        pending
+          ? `Espacio ${space.spaceNumber} liberado. El pago quedó pendiente.`
+          : `Espacio ${space.spaceNumber} liberado correctamente`,
+        pending ? 'info' : 'success',
+      );
       onSpaceUpdate?.(result);
     } catch (error) {
       showNotification(error as string, 'error');
@@ -408,6 +414,7 @@ const SpaceCard = ({ space, onSpaceUpdate }: SpaceCardProps) => {
         spaceNumber={space.spaceNumber}
         vehiclePlate={space.occupiedByVehiclePlate}
         isLoading={isLoading}
+        spaceId={space.id}
       />
     </>
   );

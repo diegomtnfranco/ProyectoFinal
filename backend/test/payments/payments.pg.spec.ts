@@ -153,6 +153,11 @@ describe('Billetera demo + pagos (E2E)', () => {
       await q(`INSERT INTO users (id, email, role) VALUES ($1,$2,$3)`, [id, `${id}@x.com`, role]);
     }
     await q(`INSERT INTO client_profiles (id, user_id, name) VALUES ($1,$2,'C1'),($3,$4,'C2')`, [cp.c1, u.client1, cp.c2, u.client2]);
+    // Desde el checkout QR con pagos, los clientes necesitan al menos un vehículo para pagar (D8)
+    await q(
+      `INSERT INTO client_vehicles (client_profile_id, plate, plate_normalized, vehicle_type) VALUES ($1,'ZZ900AA','ZZ900AA','car'),($2,'ZZ901AA','ZZ901AA','car')`,
+      [cp.c1, cp.c2],
+    );
     const poA = randomUUID();
     const poB = randomUUID();
     await q(`INSERT INTO parking_owners (id, user_id, name, business_name) VALUES ($1,$2,'A','A'),($3,$4,'B','B')`, [

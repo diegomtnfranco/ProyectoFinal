@@ -58,6 +58,25 @@ export class ObligationResolverService {
     }
   }
 
+  /**
+   * D3: parte de una estadía ya pagada a través de su reserva. Se usa también
+   * para cotizar egresos todavía abiertos (antes de que exista la obligación).
+   */
+  async reservationCoverage(
+    manager: EntityManager,
+    reservationId: string | null | undefined,
+    billedCents: number,
+  ): Promise<number> {
+    if (!reservationId) return 0;
+    const reservationPayment = await manager.findOne(Payment, {
+      where: {
+        obligationKey: obligationKey(ObligationType.RESERVATION, reservationId),
+        status: PaymentStatus.APPROVED,
+      },
+    });
+    return reservationPayment ? Math.min(billedCents, reservationPayment.amountCents) : 0;
+  }
+
   // ---------------------------------------------------------------------------
 
   private async resolveReservation(manager: EntityManager, id: string): Promise<Obligation> {
@@ -113,16 +132,7 @@ export class ObligationResolverService {
     const billed = decimalToCents(occupancy.totalAmount) ?? 0;
 
     // D3: si la reserva asociada ya fue pagada, se cobra solo la diferencia
-    let covered = 0;
-    if (occupancy.reservationId) {
-      const reservationPayment = await manager.findOne(Payment, {
-        where: {
-          obligationKey: obligationKey(ObligationType.RESERVATION, occupancy.reservationId),
-          status: PaymentStatus.APPROVED,
-        },
-      });
-      if (reservationPayment) covered = Math.min(billed, reservationPayment.amountCents);
-    }
+    const covered = await this.reservationCoverage(manager, occupancy.reservationId, billed);
 
     const payers = new Set<string>();
     if (occupancy.reservation?.client?.userId) payers.add(occupancy.reservation.client.userId);

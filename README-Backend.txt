@@ -11,6 +11,11 @@ npm install @nestjs/jwt passport-jwt passport bcrypt
 npm install @nestjs/swagger
 
 
+cloudflared
+npm install cloudflared
+
+cloudflared tunnel --url http://localhost:5173/ --> Inicia el tunel con cloudflare y reemplaza la url ne .env frontend_url
+
 dev dependencias
 npm install -D @types/bcrypt
 

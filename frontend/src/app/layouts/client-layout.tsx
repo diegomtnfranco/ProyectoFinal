@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 
 import Navbar from '../../shared/components/Navbar'
 import ClientTrackingListener from '../../features/tracking/components/ClientTrackingListener'
+import VehicleRequiredGate from '../../features/profile/components/VehicleRequiredGate'
 
 function ClientLayout() {
   return (
@@ -9,6 +10,8 @@ function ClientLayout() {
       <Navbar />
       {/* Avisos de seguimiento (ingreso, cierre, noche, egreso) en todas las páginas del cliente */}
       <ClientTrackingListener />
+      {/* Registro obligatorio de al menos un vehículo */}
+      <VehicleRequiredGate />
 
       <main className="max-w-7xl mx-auto p-4 pb-24 md:pb-4">
   <Outlet />

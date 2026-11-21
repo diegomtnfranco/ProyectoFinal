@@ -11,6 +11,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { RequiresClientVehicle } from '../client-vehicles/vehicle-required.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ReservationResponseDto } from './dto/reservation-response.dto';
 
@@ -27,6 +28,7 @@ export class ReservationsController {
    */
   @Post()
   @Roles(UserRole.CLIENT)
+  @RequiresClientVehicle()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Crear una nueva reserva' ,description: 'Crea una nueva reserva para el cliente autenticado' })
   @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })

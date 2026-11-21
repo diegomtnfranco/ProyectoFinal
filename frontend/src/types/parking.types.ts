@@ -186,6 +186,8 @@ export interface CheckInDto {
 
 export interface CheckOutDto {
   spaceId: string;
+  /** El personal recibió el pago en el lugar. Sin marcar, el egreso queda con el pago pendiente */
+  paymentReceived?: boolean;
 }
 
 export interface ActiveOccupancy {
@@ -403,6 +405,16 @@ export interface CheckOutResponseDto{
     vehicleType: UserVehicleType;
     pricePerHour: number;
   }
+  /** Resultado del cobro en el egreso del personal (dueño/empleado) */
+  checkout?: {
+    paymentStatus: 'APPROVED' | 'PENDING' | 'COVERED';
+    paymentReceived: boolean;
+    billedAmountCents: number;
+    coveredAmountCents: number;
+    amountCents: number;
+    paymentId: string | null;
+    checkoutRequestId: string | null;
+  };
 }
 
 // ✅ AGREGAR respuesta para checkout anónimo

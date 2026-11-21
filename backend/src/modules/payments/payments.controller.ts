@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { RequiresClientVehicle } from '../client-vehicles/vehicle-required.guard';
 import {
   IDEMPOTENCY_HEADER,
   PageQueryDto,
@@ -54,6 +55,7 @@ export class PaymentsController {
 
   @Post('wallet')
   @Roles(UserRole.CLIENT)
+  @RequiresClientVehicle()
   @ApiOperation({ summary: 'Pagar con saldo EstacionApp (atómico, sin pagos parciales)' })
   @ApiHeader({ name: 'Idempotency-Key', required: false })
   payWithWallet(
@@ -66,6 +68,7 @@ export class PaymentsController {
 
   @Post('mercadopago')
   @Roles(UserRole.CLIENT)
+  @RequiresClientVehicle()
   @ApiOperation({ summary: 'Iniciar Checkout Pro (Sandbox). Devuelve la URL de redirección' })
   startMercadoPago(@CurrentUser('id') userId: string, @Body() dto: PayObligationDto) {
     return this.mercadoPago.start(userId, dto.obligationType, dto.obligationId);

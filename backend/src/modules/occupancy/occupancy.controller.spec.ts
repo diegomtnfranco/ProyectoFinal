@@ -75,9 +75,10 @@ describe('OccupancyController', () => {
     occupancyService.anonymousCheckOut.mockResolvedValue({ success: true });
 
     await controller.anonymousCheckIn(anonymousCheckInDto as any);
-    await controller.anonymousCheckOut(anonymousCheckOutDto as any);
+    // D1: la salida por QR sin sesión quedó deshabilitada (410) y no cierra ninguna ocupación
+    await expect(controller.anonymousCheckOut(anonymousCheckOutDto as any)).rejects.toMatchObject({ status: 410 });
 
     expect(occupancyService.anonymousCheckIn).toHaveBeenCalledWith(anonymousCheckInDto);
-    expect(occupancyService.anonymousCheckOut).toHaveBeenCalledWith(anonymousCheckOutDto);
+    expect(occupancyService.anonymousCheckOut).not.toHaveBeenCalled();
   });
 });

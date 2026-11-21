@@ -443,10 +443,18 @@ describe('Tarifa nocturna + servicios por ocupación (E2E)', () => {
         .getRepository(Occupancy)
         .update(occ.id, { checkInTime: new Date(Date.now() - 30 * 3_600_000) });
 
-      const res = await request(srv())
+      // D1 (checkout QR con pagos): la salida QR anónima se deshabilitó; el egreso
+      // del personal usa el mismo cálculo único (D5), así que se verifica por esa vía
+      await request(srv())
         .post('/api/occupancy/anonymous/check-out')
         .send({ token: tok.outA, vehiclePlate: 'QRS111' })
+        .expect(410);
+      const out = await request(srv())
+        .post('/api/occupancy/check-out')
+        .set(H.ownerA())
+        .send({ spaceId: occ.spaceId })
         .expect(201);
+      const res = { body: { breakdown: out.body.breakdown, totalAmount: out.body.occupancy.totalAmount } };
       const b = res.body.breakdown;
       expect(b.mode).toBe('special');
       expect(b.nights).toBeGreaterThanOrEqual(1);

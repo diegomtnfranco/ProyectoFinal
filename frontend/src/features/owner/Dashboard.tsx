@@ -13,6 +13,7 @@ import { NoParkingMessage } from '../../shared/components/common/NoParkingMessag
 import { useState } from 'react';
 import { DownloadTicketModal } from '../../shared/components/tickets/DownloadTicketModal';
 import CheckoutPaymentStatus from '../../shared/components/payments/CheckoutPaymentStatus';
+import CashRequestsPanel from '../../shared/components/payments/CashRequestsPanel';
 import { generateTicketPDF } from '../../shared/utils/GenerateTicketPDF';
 
 const DashboardOwner: React.FC = () => {
@@ -258,6 +259,9 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
         </div>
       </div>
 
+      {/* Clientes que pidieron salir pagando en efectivo (tiempo real) */}
+      <CashRequestsPanel parkingLotId={currentParkingLot.id} />
+
       {/* Mapa y panel de reservas - responsive: columna en mobile, fila en desktop */}
       <div className="flex flex-col lg:flex-row gap-4 w-full">
         <ParkingMap
@@ -292,4 +296,4 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
   );
 };
 
-export default DashboardOwner;
+export default DashboardOwner;

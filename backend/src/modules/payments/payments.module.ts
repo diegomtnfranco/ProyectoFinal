@@ -32,6 +32,6 @@ import { MercadoPagoWebhookController } from './mercadopago/mercadopago-webhook.
     MercadoPagoClient,
     MercadoPagoService,
   ],
-  exports: [PaymentsService, ParkingAccessService],
+  exports: [PaymentsService, ParkingAccessService, WalletService, ObligationResolverService, PaymentNotifierService],
 })
 export class PaymentsModule {}
