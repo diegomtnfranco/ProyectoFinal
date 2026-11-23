@@ -72,7 +72,7 @@ function ActivityPaymentInfo({ payment: initial, obligationType, obligationId, v
           <span className="self-start sm:self-auto">
             <PaymentStatusBadge status={payment.status} size="md" />
           </span>
-          {canRegister && (
+          {/* {canRegister && (
             <button
               type="button"
               onClick={() => setConfirming(true)}
@@ -88,7 +88,7 @@ function ActivityPaymentInfo({ payment: initial, obligationType, obligationId, v
               {busy ? <Loader2 size={18} className="animate-spin" /> : <Banknote size={18} aria-hidden="true" />}
               Registrar pago presencial
             </button>
-          )}
+          )} */}
         </div>
       </div>
 

@@ -1,18 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  BadgeCheck,
-  Building2,
-  CircleAlert,
-  LoaderCircle,
-  MapPin,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Save,
-  Sparkles,
-  Trash2,
-  Wrench,
-} from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { parkingProfileService, toErrorMessage } from '../../../services/parking-profile.service';
 import { useToast } from '../../../shared/hooks/useToast';
 import { ConfirmModal } from '../../../shared/components/common/ConfirmModal';
@@ -53,22 +40,25 @@ const buildDraft = (p: ParkingProfileAdmin): Draft => ({
   ),
 });
 
-function SystemBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-      <BadgeCheck size={12} /> EstacionApp
-    </span>
-  );
-}
+/* Estilos neutros compartidos */
+const FIELD =
+  'w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
+const BTN_EDIT =
+  'inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-blue-700 ' +
+  'transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300';
+const BTN_DELETE =
+  'inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 ' +
+  'transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200';
+const CHECKBOX = 'h-4 w-4 flex-shrink-0 rounded accent-blue-600';
+/** Borde de una fila según esté activa o no */
+const rowTone = (active: boolean) =>
+  active ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200 hover:border-blue-200';
 
-function SectionTitle({ n, title, hint }: { n: number; title: string; hint?: string }) {
+function SubTitle({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="mb-3">
-      <h3 className="flex items-center gap-2 font-semibold text-gray-800">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-800 text-xs text-white">{n}</span>
-        {title}
-      </h3>
-      {hint && <p className="ml-8 text-xs text-gray-500">{hint}</p>}
+      <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+      {hint && <p className="mt-0.5 text-sm text-gray-500">{hint}</p>}
     </div>
   );
 }
@@ -79,7 +69,7 @@ interface ParkingProfileSectionProps {
 
 /**
  * Administración de la información publicada del estacionamiento seleccionado:
- * descripción, características físicas, servicios predefinidos y personalizados.
+ * descripción, características físicas y servicios (predefinidos y personalizados en una sola lista).
  */
 function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
   const { showSuccess, showError } = useToast();
@@ -117,17 +107,17 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
 
   if (loadError && !profile) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
-        <CircleAlert size={28} className="mx-auto mb-2 opacity-70" />
-        <p>{loadError}</p>
+      <div className="text-sm">
+        <p className="text-red-700">{loadError}</p>
         <button
+          type="button"
           onClick={() => {
             setLoadError(null);
             setReloadToken((t) => t + 1);
           }}
-          className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:underline"
+          className="mt-2 font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700"
         >
-          <RefreshCw size={14} /> Reintentar
+          Reintentar
         </button>
       </div>
     );
@@ -135,8 +125,8 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
 
   if (!profile || !draft) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white p-8 text-gray-500">
-        <LoaderCircle size={18} className="animate-spin" /> Cargando información publicada…
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <LoaderCircle size={16} className="animate-spin" /> Cargando información publicada…
       </div>
     );
   }
@@ -235,29 +225,22 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
   };
 
   return (
-    <section className="space-y-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-      <header className="flex flex-col gap-1 border-b border-gray-100 pb-4">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
-          <Building2 size={20} /> Información para clientes
-        </h2>
-        <p className="text-sm text-gray-500">
-          Lo que publiques acá se muestra en la página de reservas de <strong>{profile.parkingLotName}</strong>. Los precios
-          son informativos: no se cobran ni modifican tus tarifas de estacionamiento.
-        </p>
-      </header>
+    <div className="space-y-5">
+      <p className="text-sm text-gray-500">
+        Se muestra en la página de reservas de {profile.parkingLotName}. Los precios son informativos: no se cobran ni modifican tus
+        tarifas de estacionamiento.
+      </p>
 
-      {/* 1. Información general */}
+      {/* Información general */}
       <div>
-        <SectionTitle n={1} title="Información general" />
-        <div className="mb-3 flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
-          <MapPin size={16} className="mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium text-gray-700">{profile.address}</p>
-            <p className="text-xs text-gray-500">Dirección registrada del estacionamiento (no se edita desde esta sección).</p>
-          </div>
+        <SubTitle title="Información general" />
+        <div className="mb-6 rounded-xl border border-gray-200 px-4 py-3">
+          <p className="text-sm font-bold text-gray-900">Dirección</p>
+          <p className="text-sm text-gray-900">{profile.address}</p>
+          <p className="mt-0.5 text-xs text-gray-500">No se edita desde esta sección.</p>
         </div>
-        <label htmlFor="profile-description" className="mb-1 block text-sm font-medium text-gray-700">
-          Descripción <span className="font-normal text-gray-400">(opcional)</span>
+        <label htmlFor="profile-description" className="mb-2 block text-xl font-bold text-gray-900">
+          Descripción <span className="font-normal text-gray-500">(opcional)</span>
         </label>
         <textarea
           id="profile-description"
@@ -269,37 +252,36 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
             setDescriptionError(null);
           }}
           placeholder="Contá a tus clientes cómo es tu estacionamiento, accesos, horarios especiales…"
-          className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            descriptionError ? 'border-red-400' : 'border-gray-300'
-          }`}
+          className={`${FIELD} ${descriptionError ? 'border-red-400' : 'border-gray-300'}`}
         />
-        <div className="flex justify-between text-xs">
+        <div className="mt-1 flex justify-between text-xs">
           <span className="text-red-600">{descriptionError}</span>
-          <span className="text-gray-400">
+          <span className="text-gray-500">
             {draft.description.length}/{DESCRIPTION_MAX}
           </span>
         </div>
       </div>
 
-      {/* 2. Características físicas */}
+      {/* Características físicas */}
       <div>
-        <SectionTitle n={2} title="Características físicas" hint="Podés marcar varias. Usá la aclaración para indicar su alcance (ej.: «solo planta baja»)." />
-        <div className="grid gap-3 sm:grid-cols-3">
+        <SubTitle title="Características físicas" hint="Podés marcar varias. Usá la aclaración para indicar su alcance (ej.: «solo planta baja»)." />
+        {/* Una debajo de la otra, a todo el ancho; la aclaración va al costado cuando hay lugar */}
+        <div className="flex flex-col gap-3">
           {profile.physicalFeatures.map((f) => {
             const d = draft.features[f.code];
             return (
-              <div key={f.code} className={`rounded-xl border p-3 transition ${d.enabled ? 'border-blue-400 bg-blue-50/50' : 'border-gray-200'}`}>
-                <label className="flex cursor-pointer items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                    <input
-                      type="checkbox"
-                      checked={d.enabled}
-                      onChange={(e) => updateFeature(f.code, { enabled: e.target.checked })}
-                      className="h-4 w-4 rounded"
-                    />
-                    {f.name}
-                  </span>
-                  <SystemBadge />
+              <div
+                key={f.code}
+                className={`flex flex-col gap-2 rounded-xl border px-4 py-3 transition-colors cq-md:min-h-[58px] cq-md:flex-row cq-md:items-center cq-md:gap-4 ${rowTone(d.enabled)}`}
+              >
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm font-semibold text-gray-900 cq-md:w-56 cq-md:flex-none">
+                  <input
+                    type="checkbox"
+                    checked={d.enabled}
+                    onChange={(e) => updateFeature(f.code, { enabled: e.target.checked })}
+                    className={CHECKBOX}
+                  />
+                  {f.name}
                 </label>
                 {d.enabled && (
                   <input
@@ -308,7 +290,7 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
                     onChange={(e) => updateFeature(f.code, { notes: e.target.value })}
                     placeholder="Aclaración (opcional)"
                     aria-label={`Aclaración de ${f.name}`}
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 cq-md:flex-1"
                   />
                 )}
               </div>
@@ -317,32 +299,32 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
         </div>
       </div>
 
-      {/* 3. Servicios predefinidos */}
+      {/* Servicios: predefinidos y personalizados en una sola lista */}
       <div>
-        <SectionTitle n={3} title="Servicios predefinidos" hint="Activá solo los que ofrecés. Para publicarlos necesitás indicar su modalidad de cobro." />
+        <SubTitle
+          title="Servicios"
+          hint="Activá los que ofrecés e indicá su modalidad de cobro. Los servicios que agregás vos se guardan al instante."
+        />
         <div className="space-y-3">
+          {/* Predefinidos: se guardan con «Guardar cambios» */}
           {profile.services.map((s) => {
             const d = draft.services[s.code];
             return (
-              <div key={s.code} className={`rounded-xl border p-4 transition ${d.enabled ? 'border-blue-400 bg-blue-50/30' : 'border-gray-200'}`}>
+              <div key={s.code} className={`rounded-xl border p-4 transition-colors ${rowTone(d.enabled)}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="flex cursor-pointer items-center gap-2 font-medium text-gray-800">
+                  <label className="flex cursor-pointer items-center gap-2.5 font-semibold text-gray-900">
                     <input
                       type="checkbox"
                       checked={d.enabled}
                       onChange={(e) => updateService(s.code, { enabled: e.target.checked })}
-                      className="h-4 w-4 rounded"
+                      className={CHECKBOX}
                     />
-                    <Sparkles size={16} className="text-blue-500" />
                     {s.name}
                   </label>
-                  <div className="flex items-center gap-2">
-                    {!d.enabled && s.pricing && <span className="text-xs text-gray-400">{formatPrice(s.pricing)}</span>}
-                    <SystemBadge />
-                  </div>
+                  {!d.enabled && s.pricing && <span className="text-xs text-gray-500">{formatPrice(s.pricing)}</span>}
                 </div>
                 {d.enabled && (
-                  <div className="mt-3 space-y-3 pl-6">
+                  <div className="mt-4 space-y-3 cq-sm:pl-[26px]">
                     <PricingFields
                       idPrefix={`svc-${s.code}`}
                       value={d.pricing}
@@ -350,7 +332,7 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
                       error={serviceErrors[s.code]}
                       disabled={saving}
                     />
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2 cq-md:grid-cols-2">
                       <textarea
                         rows={2}
                         maxLength={NOTES_MAX}
@@ -358,7 +340,7 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
                         onChange={(e) => updateService(s.code, { notes: e.target.value })}
                         placeholder="Descripción (opcional)"
                         aria-label={`Descripción de ${s.name}`}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`${FIELD} border-gray-300`}
                       />
                       <textarea
                         rows={2}
@@ -367,7 +349,7 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
                         onChange={(e) => updateService(s.code, { conditions: e.target.value })}
                         placeholder="Condiciones (opcional)"
                         aria-label={`Condiciones de ${s.name}`}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`${FIELD} border-gray-300`}
                       />
                     </div>
                   </div>
@@ -375,70 +357,53 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* 3. Servicios personalizados */}
-      <div>
-        <div className="flex items-start justify-between gap-2">
-          <SectionTitle n={4} title="Servicios personalizados" hint="Se guardan al instante y pertenecen solo a este estacionamiento." />
-          {editing !== 'new' && (
-            <button
-              type="button"
-              onClick={() => setEditing('new')}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-900"
-            >
-              <Plus size={16} /> Agregar
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {editing === 'new' && <CustomServiceEditor onSubmit={handleCustomSubmit} onCancel={() => setEditing(null)} />}
-
-          {profile.customServices.length === 0 && editing !== 'new' && (
-            <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
-              Todavía no creaste servicios personalizados.
-            </p>
-          )}
-
+          {/* Personalizados: se guardan al instante */}
           {profile.customServices.map((c) =>
             editing === c.id ? (
               <CustomServiceEditor key={c.id} initial={c} onSubmit={handleCustomSubmit} onCancel={() => setEditing(null)} />
             ) : (
-              <div key={c.id} className="flex flex-col gap-2 rounded-xl border border-gray-200 p-4 sm:flex-row sm:items-start sm:justify-between">
+              <div
+                key={c.id}
+                className={`flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4 transition-colors ${rowTone(c.isActive)}`}
+              >
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Wrench size={15} className="text-violet-500" />
-                    <span className="font-medium text-gray-800">{c.title}</span>
-                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">Personalizado</span>
-                    {!c.isActive && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">No publicado</span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm font-semibold text-gray-700">{formatPrice(c.pricing)}</p>
-                  {c.description && <p className="mt-1 text-sm text-gray-600">{c.description}</p>}
+                  <p className="font-semibold text-gray-900">
+                    {c.title}
+                    {!c.isActive && <span className="ml-2 text-xs font-normal text-gray-500">No publicado</span>}
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatPrice(c.pricing)}</p>
+                  {c.description && <p className="mt-1 text-sm text-gray-900">{c.description}</p>}
                   {c.conditions && <p className="mt-1 text-xs text-gray-500">Condiciones: {c.conditions}</p>}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(c.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <Pencil size={14} /> Editar
+                  <button type="button" onClick={() => setEditing(c.id)} className={BTN_EDIT}>
+                    Editar
                   </button>
                   <button
                     type="button"
                     onClick={() => setToDelete(c)}
                     disabled={deletingId === c.id}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className={BTN_DELETE}
                   >
-                    {deletingId === c.id ? <LoaderCircle size={14} className="animate-spin" /> : <Trash2 size={14} />} Eliminar
+                    {deletingId === c.id && <LoaderCircle size={14} className="animate-spin" />} Eliminar
                   </button>
                 </div>
               </div>
             ),
+          )}
+
+          {editing === 'new' ? (
+            <CustomServiceEditor onSubmit={handleCustomSubmit} onCancel={() => setEditing(null)} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing('new')}
+              className="inline-flex items-center rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors
+                hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            >
+              Agregar servicio
+            </button>
           )}
         </div>
       </div>
@@ -453,16 +418,16 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
         variant="danger"
       />
 
-      {/* Guardar secciones 1 a 3 */}
-      <div className="sticky bottom-2 z-10 flex flex-col items-stretch justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center">
-        <span className="text-sm text-gray-500 sm:mr-auto">
-          {isDirty ? 'Tenés cambios sin guardar en las secciones 1 a 3.' : 'Secciones 1 a 3 guardadas.'}
+      {/* Guardar descripción, características y servicios activados */}
+      <div className="sticky bottom-2 z-10 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <span className={`mr-auto text-sm ${isDirty ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
+          {isDirty ? 'Tenés cambios sin guardar.' : 'Sin cambios.'}
         </span>
         <button
           type="button"
           disabled={!isDirty || saving}
           onClick={() => setDraft(buildDraft(profile))}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:opacity-40"
         >
           Descartar
         </button>
@@ -470,13 +435,13 @@ function ParkingProfileSection({ parkingLotId }: ParkingProfileSectionProps) {
           type="button"
           onClick={handleSave}
           disabled={!isDirty || saving}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {saving ? <LoaderCircle size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving && <LoaderCircle size={16} className="animate-spin" />}
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 

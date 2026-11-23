@@ -36,6 +36,7 @@ import ActivityPage from '../../features/owner/ActivityPage';
 import WalletPage from '../../features/payments/pages/WalletPage';
 import PaymentResultPage from '../../features/payments/pages/PaymentResultPage';
 import FinancePage from '../../features/owner/FinancePage';
+import ClientQrScannerPage from '../../features/qr/pages/ClientQrScannerPage';
 
 
 // Actualizado al 18/06/2026
@@ -69,6 +70,7 @@ function AppRouter() {
             <Route path="map" element={<ParkingMapPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="payments/result" element={<PaymentResultPage />} />
+            <Route path="scan" element={<ClientQrScannerPage />} />
           </Route>
         </Route>
 

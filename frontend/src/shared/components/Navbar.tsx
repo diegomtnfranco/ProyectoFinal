@@ -13,6 +13,7 @@ import {
   MapPin,
   Map as MapIcon,
   History,
+  QrCode,
 } from 'lucide-react';
 
 function Navbar() {
@@ -25,6 +26,7 @@ function Navbar() {
 
   const isMapView = location.pathname === '/client/map';
 const isParkingListView = location.pathname === '/client';
+  const isScanView = location.pathname === '/client/scan';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -211,7 +213,7 @@ const isParkingListView = location.pathname === '/client';
           aria-label="Navegación del cliente"
           className="md:hidden fixed bottom-0 inset-x-0 z-[1000] bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]"
         >
-          <div className="grid grid-cols-4 min-h-16">
+          <div className="grid grid-cols-5 min-h-16">
             {/* Estacionamientos */}
             <Link
               to="/client"
@@ -223,7 +225,7 @@ const isParkingListView = location.pathname === '/client';
               }`}
             >
               <MapPin size={22} />
-              <span>Estacionamientos</span>
+              <span className="max-w-full truncate px-1">Estacionamientos</span>
             </Link>
 
             {/* Mapa */}
@@ -238,6 +240,23 @@ const isParkingListView = location.pathname === '/client';
             >
               <MapIcon size={22} />
               <span>Mapa</span>
+            </Link>
+
+            {/* Lector QR (botón destacado) */}
+            <Link
+              to="/client/scan"
+              aria-label="Escanear QR"
+              aria-current={isScanView ? 'page' : undefined}
+              className="flex flex-col items-center justify-start text-xs"
+            >
+              <span
+                className={`-mt-6 flex h-14 w-14 items-center justify-center rounded-full border-4 border-white text-white shadow-lg transition-colors ${
+                  isScanView ? 'bg-blue-700' : 'bg-blue-600 active:bg-blue-700'
+                }`}
+              >
+                <QrCode size={26} strokeWidth={2.25} />
+              </span>
+              <span className="mt-0.5 font-semibold text-blue-600">Escanear</span>
             </Link>
 
             {/* Historial */}
