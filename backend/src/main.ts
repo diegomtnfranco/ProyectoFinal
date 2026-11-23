@@ -16,13 +16,19 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     })
   );
-  app.enableCors(
-    {origin:  process.env.FRONTEND_URL || 'http://localhost:5173',
-    // {origin:  process.env.FRONTEND_URL || 'http://localhost:5173',
-     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-     credentials: true,
-    }
-  );
+  // Acepta localhost y la URL pública (túnel) definida en FRONTEND_URL
+  const allowedOrigins = [
+    'http://localhost:5173',
+    ...(process.env.FRONTEND_URL ?? '')
+      .split(',')
+      .map((u) => u.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  ];
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 app.use(json({ limit: '10mb' }));
 app.use(urlencoded({ extended: true, limit: '10mb' }));
   // ============Configuracion SWAGGER http://localhost:3000/api/docs ============

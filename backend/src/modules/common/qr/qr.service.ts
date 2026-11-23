@@ -19,7 +19,9 @@ export class QRService {
    * Genera URL para el QR
    */
   getQRUrl(token: string, type: 'check-in' | 'check-out'): string {
-    const frontendUrl = this.configService.get('FRONTEND_URL');
+    const frontendUrl = String(this.configService.get('FRONTEND_URL') ?? '')
+      .trim()
+      .replace(/\/+$/, '');
     return `${frontendUrl}/scan/${type}?token=${token}`;
   }
 

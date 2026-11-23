@@ -136,9 +136,25 @@ export class ClientVehiclesService {
         'No podés eliminar un vehículo que está estacionado',
       );
     }
-    await this.vehicleRepository.delete({
-      id: vehicle.id,
-      clientProfileId: profile.id,
+    await this.dataSource.transaction(async (manager) => {
+      // Mismo candado que el alta: dos bajas simultáneas no pueden dejar al cliente sin vehículos
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `client-vehicles:${profile.id}`,
+      ]);
+      const count = await manager.count(ClientVehicle, {
+        where: { clientProfileId: profile.id },
+      });
+      if (count <= 1) {
+        throw new ConflictException({
+          code: 'LAST_VEHICLE',
+          message:
+            'Necesitás tener al menos un vehículo registrado. Registrá otro antes de eliminar este.',
+        });
+      }
+      await manager.delete(ClientVehicle, {
+        id: vehicle.id,
+        clientProfileId: profile.id,
+      });
     });
   }
 

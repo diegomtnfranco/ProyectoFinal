@@ -124,11 +124,17 @@ describe('Centro de notificaciones (E2E)', () => {
         `${k}-${u[k]}@x.com`,
         role[k],
       ]);
-    for (const k of ['c1', 'c2', 'c3'] as const)
+    for (const k of ['c1', 'c2', 'c3'] as const) {
       await q(
         `INSERT INTO client_profiles (id, user_id, name) VALUES ($1,$2,$3)`,
         [prof[k], u[k], k.toUpperCase()],
       );
+      // Desde el checkout QR con pagos, reservar exige al menos un vehículo (D8)
+      await q(
+        `INSERT INTO client_vehicles (client_profile_id, plate, plate_normalized, vehicle_type) VALUES ($1,$2,$2,'car')`,
+        [prof[k], `NT${k.toUpperCase()}001`],
+      );
+    }
     const poA = randomUUID();
     const poB = randomUUID();
     await q(

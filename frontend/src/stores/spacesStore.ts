@@ -30,7 +30,8 @@ interface SpacesState {
   createSpace: (data: CreateSpaceDto) => Promise<void>;
   updateSpaceStatus: (id: string, data: UpdateSpaceStatusDto) => Promise<void>;
   occupySpace: (id: string, vehiclePlate: string, vehicleType: UserVehicleType, reservationId?: string, serviceKeys?: string[]) => Promise<void>;  // ← Actualizar firma
-  liberateSpace: (id: string) => Promise<CheckOutResponseDto>;  // ← Actualizar firma
+  /** `paymentReceived`: el personal cobró en el lugar (pago presencial aprobado) */
+  liberateSpace: (id: string, paymentReceived?: boolean) => Promise<CheckOutResponseDto>;
   updateSpaceInRealTime: (spaceId: string, updates: Partial<Space>) => void;
   clearSpaces: () => void;
   clearError: () => void;
@@ -156,12 +157,12 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
 
 
   // Liberar espacio (check-out)
-  liberateSpace: async (id) => {
+  liberateSpace: async (id, paymentReceived) => {
     set({ isLoading: true, error: null });
     try {
       // Llamar al servicio de occupancy para check-out
       const { occupancyService } = await import('../services/occupancy.service');
-        const result =await occupancyService.checkOut({ spaceId: id });
+        const result = await occupancyService.checkOut({ spaceId: id, ...(paymentReceived !== undefined ? { paymentReceived } : {}) });
       
       // Actualizar el espacio localmente
       set((state) => {

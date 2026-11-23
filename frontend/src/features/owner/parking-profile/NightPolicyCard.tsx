@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CircleAlert, LoaderCircle, Moon, RefreshCw, Save } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { occupancyServicesService } from '../../../services/occupancy-services.service';
 import { toErrorMessage } from '../../../services/parking-profile.service';
 import { useToast } from '../../../shared/hooks/useToast';
@@ -12,7 +12,11 @@ interface NightPolicyCardProps {
 
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
 
-/** Configuración de la tarifa nocturna del estacionamiento seleccionado */
+/**
+ * Configuración de la tarifa nocturna del estacionamiento seleccionado.
+ * Se muestra dentro del bloque "Tarifa nocturna" de la página de configuración
+ * (el título y el contenedor los pone SettingsSection).
+ */
 function NightPolicyCard({ parkingLotId }: NightPolicyCardProps) {
   const { showSuccess, showError } = useToast();
   const [policy, setPolicy] = useState<NightPolicy | null>(null);
@@ -42,18 +46,22 @@ function NightPolicyCard({ parkingLotId }: NightPolicyCardProps) {
 
   if (loadError && !policy) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-        <CircleAlert size={18} className="mb-1 inline" /> {loadError}{' '}
-        <button onClick={() => setReloadToken((t) => t + 1)} className="ml-2 inline-flex items-center gap-1 text-blue-600 hover:underline">
-          <RefreshCw size={14} /> Reintentar
+      <div className="text-sm text-gray-900">
+        <p className="text-red-700">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => setReloadToken((t) => t + 1)}
+          className="mt-2 font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700"
+        >
+          Reintentar
         </button>
       </div>
     );
   }
   if (!policy) {
     return (
-      <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white p-6 text-gray-500">
-        <LoaderCircle size={18} className="animate-spin" /> Cargando tarifa nocturna…
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <LoaderCircle size={16} className="animate-spin" /> Cargando tarifa nocturna…
       </div>
     );
   }
@@ -94,61 +102,70 @@ function NightPolicyCard({ parkingLotId }: NightPolicyCardProps) {
     }
   };
 
-  const option = (value: NightRateModeValue, title: string, text: string) => (
-    <label
-      className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
-        mode === value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
-      } ${value === NightRateMode.SPECIAL && policy.isOpen24h ? 'pointer-events-none opacity-50' : ''}`}
-    >
-      <input
-        type="radio"
-        name="night-mode"
-        className="mt-1"
-        checked={mode === value}
-        onChange={() => {
-          setMode(value);
-          setAmountError(null);
-        }}
-        disabled={saving || (value === NightRateMode.SPECIAL && policy.isOpen24h)}
-      />
-      <span>
-        <span className="block font-medium text-gray-800">{title}</span>
-        <span className="block text-sm text-gray-500">{text}</span>
-      </span>
-    </label>
-  );
+  const option = (value: NightRateModeValue, title: string, text: string) => {
+    const selected = mode === value;
+    const blocked = value === NightRateMode.SPECIAL && policy.isOpen24h;
+    return (
+      <label
+        className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition-colors ${
+          selected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'
+        } ${blocked ? 'pointer-events-none opacity-50' : ''}`}
+      >
+        <input
+          type="radio"
+          name="night-mode"
+          className="mt-0.5 h-4 w-4 accent-blue-600"
+          checked={selected}
+          onChange={() => {
+            setMode(value);
+            setAmountError(null);
+          }}
+          disabled={saving || blocked}
+        />
+        <span>
+          <span className={`block font-bold ${selected ? 'text-blue-700' : 'text-gray-900'}`}>{title}</span>
+          <span className="mt-0.5 block text-sm text-gray-500">{text}</span>
+        </span>
+      </label>
+    );
+  };
+
+  const current =
+    policy.mode === NightRateMode.SPECIAL && policy.nightAmount != null
+      ? `Tarifa nocturna especial de ${money.format(policy.nightAmount)} por noche.`
+      : 'Se cobra por hora también después del cierre.';
 
   return (
-    <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-      <header>
-        <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
-          <Moon size={20} className="text-indigo-600" /> Tarifa nocturna
-        </h2>
-        <p className="text-sm text-gray-500">
-          Horario del estacionamiento: <strong>{policy.openTime} – {policy.closeTime}</strong>. Se considera noche el tramo de cierre a
-          reapertura, con {policy.toleranceMinutes} minutos de tolerancia después del cierre.
+    <div className="space-y-7">
+      {/* Horario y regla vigente: lo más importante primero */}
+      <div className="space-y-1">
+        <p className="text-sm text-gray-900">
+          Horario: <strong className="font-bold">{policy.openTime} – {policy.closeTime}</strong> · Vigente: <strong className="font-bold">{current}</strong>
+        </p>
+        <p className="text-xs text-gray-500">
+          Se considera noche el tramo de cierre a reapertura, con {policy.toleranceMinutes} minutos de tolerancia después del cierre.
         </p>
         {policy.isOpen24h && (
-          <p className="mt-1 text-sm text-amber-700">El horario figura como abierto las 24 h: no hay período nocturno.</p>
+          <p className="text-sm text-gray-900">El horario figura como abierto las 24 h: no hay período nocturno.</p>
         )}
-      </header>
+      </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {option(NightRateMode.HOURLY, 'Seguir cobrando por hora', 'Las horas después del cierre se siguen cobrando con la tarifa por hora hasta el egreso.')}
+      <div className="grid gap-3 cq-md:grid-cols-2">
+        {option(NightRateMode.HOURLY, 'Seguir cobrando por hora', 'Las horas después del cierre se cobran con la tarifa por hora hasta el egreso.')}
         {option(
           NightRateMode.SPECIAL,
           'Tarifa nocturna especial',
-          'Cada noche que el vehículo pasa adentro se cobra un importe fijo que reemplaza las horas de cierre a reapertura.',
+          'Cada noche adentro se cobra un importe fijo que reemplaza las horas de cierre a reapertura.',
         )}
       </div>
 
       {mode === NightRateMode.SPECIAL && (
         <div className="max-w-xs">
-          <label htmlFor="night-amount" className="mb-1 block text-sm font-medium text-gray-700">
-            Importe por noche (ARS)
+          <label htmlFor="night-amount" className="mb-2 block text-base font-bold text-gray-900">
+            Importe por noche
           </label>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
             <input
               id="night-amount"
               inputMode="decimal"
@@ -159,7 +176,7 @@ function NightPolicyCard({ parkingLotId }: NightPolicyCardProps) {
               }}
               disabled={saving}
               placeholder="0,00"
-              className={`w-full rounded-lg border py-2 pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full rounded-xl border py-2.5 pl-7 pr-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 ${
                 amountError ? 'border-red-400' : 'border-gray-300'
               }`}
             />
@@ -168,24 +185,28 @@ function NightPolicyCard({ parkingLotId }: NightPolicyCardProps) {
         </div>
       )}
 
-      <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
-        {policy.mode === NightRateMode.SPECIAL && policy.nightAmount != null
-          ? `Vigente: tarifa nocturna especial de ${money.format(policy.nightAmount)} por noche. Las horas fuera de la noche se cobran por hora y los servicios adicionales se suman aparte.`
-          : 'Vigente: se cobra por hora también después del cierre.'}{' '}
-        Los cambios aplican a los vehículos que ingresen después de guardar; los que ya están adentro conservan la regla con la que ingresaron.
-      </div>
+      <p className="text-xs text-gray-500">
+          Los cambios aplican a los vehículos que ingresen después de guardar; los que ya están adentro conservan la regla con la que ingresaron.
+          {policy.mode === NightRateMode.SPECIAL && ' Las horas fuera de la noche se cobran por hora y los servicios adicionales se suman aparte.'}
+      </p>
 
-      <div className="flex justify-end">
+      {/* Barra de guardado: queda fija sobre la pantalla mientras el bloque está a la vista */}
+      <div className="sticky bottom-2 z-10 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <span className={`mr-auto text-sm ${isDirty ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
+          {isDirty ? 'Tenés cambios sin guardar.' : 'Sin cambios.'}
+        </span>
         <button
+          type="button"
           onClick={handleSave}
           disabled={!isDirty || saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1"
         >
-          {saving ? <LoaderCircle size={16} className="animate-spin" /> : <Save size={16} />}
-          {saving ? 'Guardando…' : 'Guardar tarifa nocturna'}
+          {saving && <LoaderCircle size={16} className="animate-spin" />}
+          {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 

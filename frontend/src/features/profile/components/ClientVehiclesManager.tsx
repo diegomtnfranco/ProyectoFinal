@@ -40,7 +40,12 @@ function ClientVehiclesManager() {
     let cancelled = false;
     clientVehiclesService
       .list()
-      .then((list) => !cancelled && setVehicles(list))
+      .then((list) => {
+        if (cancelled) return;
+        setVehicles(list);
+        // Sin vehículos: se abre el formulario directamente (registro obligatorio)
+        if (list.length === 0) setEditing('new');
+      })
       .catch((err) => !cancelled && setLoadError(toErrorMessage(err, 'No se pudieron cargar tus vehículos')));
     return () => {
       cancelled = true;
@@ -196,6 +201,10 @@ function ClientVehiclesManager() {
         </form>
       )}
 
+      {vehicles.length === 1 && editing === null && (
+        <p className="text-xs text-gray-500">Necesitás al menos un vehículo registrado: para eliminar este, primero agregá otro.</p>
+      )}
+
       {vehicles.length === 0 && editing === null && (
         <p className="rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">Todavía no registraste vehículos.</p>
       )}
@@ -219,8 +228,14 @@ function ClientVehiclesManager() {
               </button>
               <button
                 onClick={() => setToDelete(v)}
-                disabled={v.isParked}
-                title={v.isParked ? 'No se puede eliminar mientras está estacionado' : undefined}
+                disabled={v.isParked || vehicles.length <= 1}
+                title={
+                  v.isParked
+                    ? 'No se puede eliminar mientras está estacionado'
+                    : vehicles.length <= 1
+                      ? 'Necesitás al menos un vehículo registrado'
+                      : undefined
+                }
                 className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
               >
                 <Trash2 size={14} /> Eliminar

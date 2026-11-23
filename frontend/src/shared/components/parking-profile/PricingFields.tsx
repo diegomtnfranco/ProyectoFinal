@@ -13,6 +13,9 @@ interface PricingFieldsProps {
 const TYPES = [PricingType.INCLUDED, PricingType.FREE, PricingType.EXTRA_COST] as const;
 const UNITS = [PriceUnit.PER_VEHICLE, PriceUnit.PER_USE, PriceUnit.PER_HOUR, PriceUnit.FIXED] as const;
 
+const FIELD =
+  'w-full rounded-xl border border-gray-300 bg-white py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
+
 /** Modalidad excluyente (radio) + importe/unidad solo para costo adicional */
 function PricingFields({ idPrefix, value, onChange, error, disabled }: PricingFieldsProps) {
   const setType = (type: PricingTypeValue) =>
@@ -20,13 +23,15 @@ function PricingFields({ idPrefix, value, onChange, error, disabled }: PricingFi
 
   return (
     <fieldset className="space-y-2" disabled={disabled}>
-      <legend className="mb-1 text-sm font-medium text-gray-700">Modalidad de cobro</legend>
+      <legend className="mb-1.5 text-sm font-bold text-gray-900">Modalidad de cobro</legend>
       <div className="flex flex-wrap gap-2">
         {TYPES.map((type) => (
           <label
             key={type}
-            className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition ${
-              value.type === type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-300 ${
+              value.type === type
+                ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-500'
+                : 'border-gray-300 bg-white text-gray-900 hover:border-blue-300 hover:bg-blue-50/40'
             }`}
           >
             <input
@@ -43,13 +48,13 @@ function PricingFields({ idPrefix, value, onChange, error, disabled }: PricingFi
       </div>
 
       {value.type === PricingType.EXTRA_COST && (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 pt-1 cq-sm:grid-cols-2">
           <div>
             <label htmlFor={`${idPrefix}-amount`} className="mb-1 block text-xs text-gray-500">
               Importe (ARS)
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
               <input
                 id={`${idPrefix}-amount`}
                 type="text"
@@ -57,7 +62,7 @@ function PricingFields({ idPrefix, value, onChange, error, disabled }: PricingFi
                 value={value.amount}
                 onChange={(e) => onChange({ ...value, amount: e.target.value })}
                 placeholder="0,00"
-                className="w-full rounded-lg border border-gray-300 py-2 pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`${FIELD} pl-7 pr-3`}
               />
             </div>
           </div>
@@ -69,7 +74,7 @@ function PricingFields({ idPrefix, value, onChange, error, disabled }: PricingFi
               id={`${idPrefix}-unit`}
               value={value.unit}
               onChange={(e) => onChange({ ...value, unit: e.target.value as PriceUnitValue | '' })}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`${FIELD} px-3`}
             >
               <option value="">Elegí una unidad</option>
               {UNITS.map((u) => (

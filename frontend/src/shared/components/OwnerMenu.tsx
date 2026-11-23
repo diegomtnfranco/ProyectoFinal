@@ -5,6 +5,7 @@ import {
   Users,
   Settings,
   ListClock,
+  CircleDollarSign,
   type LucideIcon
 } from 'lucide-react'
 
@@ -44,6 +45,11 @@ export const ownerMenu: OwnerMenuItem[] = [
     name: 'Actividad',
     path: '/owner/activity',
     icon: ListClock,
+  },
+  {
+    name: 'Finanzas',
+    path: '/owner/finance',
+    icon: CircleDollarSign,
   }
   
-]
+]

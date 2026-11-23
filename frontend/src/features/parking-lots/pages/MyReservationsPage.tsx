@@ -25,6 +25,8 @@ import { useReservationsStore } from '../../../stores/reservationStore';
 import { useWebsocketStore } from '../../../stores/websocketStore';
 import { useAuthStore } from '../../../stores/authStore';
 import ParkedVehiclesSection from '../../tracking/components/ParkedVehiclesSection';
+import ReservationPayButton from '../../payments/components/ReservationPayButton';
+import { usePaidReservations } from '../../payments/hooks/usePaidReservations';
 import { useToast } from '../../../shared/hooks/useToast';
 import { ReservationStatus, VehicleType, type ReservationStatusType, type UserVehicleType } from '../../../types/auth.types';
 import type { Reservation } from '../../../types/parking.types';
@@ -42,6 +44,7 @@ function MyReservationsPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { myReservations, isLoading, totalSpent, fetchMyReservations, cancelReservation, updateReservationStatus } = useReservationsStore();
+  const { paidIds, refresh: refreshPaid } = usePaidReservations();
   const { isConnected, subscribe, unsubscribe } = useWebsocketStore();
   const { showSuccess, showError, showInfo } = useToast();
 
@@ -464,7 +467,8 @@ const formatCurrency = (amount: number | string) => {
                     </div>
                     
                     {/* Acciones */}
-                    <div className='flex gap-2'>
+                    <div className='flex gap-2 items-center'>
+                      <ReservationPayButton reservation={reservation} paid={paidIds.has(reservation.id)} onPaid={refreshPaid} />
                       <button
                         onClick={() => setExpandedReservation(expandedReservation === reservation.id ? null : reservation.id)}
                         className='p-2 text-gray-400 hover:text-blue-600 transition-colors'
@@ -554,4 +558,4 @@ const formatCurrency = (amount: number | string) => {
   );
 }
 
-export default MyReservationsPage;
+export default MyReservationsPage;

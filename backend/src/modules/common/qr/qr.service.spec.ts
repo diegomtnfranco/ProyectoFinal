@@ -19,4 +19,9 @@ describe('QRService', () => {
     expect(configService.get).toHaveBeenCalledWith('FRONTEND_URL');
     expect(url).toContain('token-1');
   });
+
+  it('should not produce a double slash when FRONTEND_URL ends with /', () => {
+    configService.get.mockReturnValue('https://frontend.test/ ');
+    expect(service.getQRUrl('abc', 'check-in')).toBe('https://frontend.test/scan/check-in?token=abc');
+  });
 });

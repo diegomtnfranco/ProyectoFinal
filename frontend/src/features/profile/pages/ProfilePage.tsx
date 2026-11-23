@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ClientVehiclesManager from '../components/ClientVehiclesManager';
+import WalletProfileCard from '../../payments/components/WalletProfileCard';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { authService } from '../../../services/auth.service';
@@ -13,7 +15,12 @@ function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'vehicles' | 'security'>('info');
+  // ?tab=vehicles abre directamente "Vehículos" (lo usa el aviso de vehículo obligatorio)
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'info' | 'vehicles' | 'security'>(
+    searchParams.get('tab') === 'vehicles' ? 'vehicles' : 'info',
+  );
+
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Estados del formulario
@@ -374,6 +381,8 @@ function ProfilePage() {
         {/* Contenido - Información personal */}
         {activeTab === 'info' && (
           <div className='bg-white rounded-2xl shadow-sm p-6'>
+            {/* Mi billetera (demo): solo clientes */}
+            {isClient && <WalletProfileCard />}
             <div className='space-y-4'>
               {/* Email - Todos los roles pueden editar */}
               <div>

@@ -5,7 +5,8 @@ import ParkingSettingsForm, { type ParkingData } from './ParkingSettingsForm';
 import SpaceManagementModal from './components/SpaceManagementModal';
 import ParkingProfileSection from './parking-profile/ParkingProfileSection';
 import NightPolicyCard from './parking-profile/NightPolicyCard';
-import { Settings, ArrowLeft } from 'lucide-react';
+import SettingsSection from './parking-profile/SettingsSection';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ParkingSettingsPage = () => {
@@ -62,39 +63,56 @@ const ParkingSettingsPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+    <div className="w-full">
       {/* Header con navegación */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="mb-6 flex items-center gap-3">
         <button
+          type="button"
           onClick={() => navigate('/owner/parking')}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Volver al panel"
+          className="rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <Settings size={20} />
-          Configuración del Parking
-        </h1>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Configuración del estacionamiento</h1>
+          <p className="text-sm text-gray-500">{currentParkingLot.name}</p>
+        </div>
       </div>
 
-      {/* Formulario principal - key para forzar refresh */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
+      <div className="space-y-4">
+
+      {/* 1 · Opciones generales - key para forzar refresh */}
+      <SettingsSection
+        id="general"
+        title="Opciones generales"
+        description="Imagen, nombre, espacios y disponibilidad del estacionamiento."
+      >
         <ParkingSettingsForm 
           key={refreshKey} // ✅ Forzar re-render cuando cambia
           parkingData={parkingDataForForm} 
           onCancel={() => navigate('/owner/settings')}
           onManageSpaces={() => setShowSpaceModal(true)}
         />
-      </div>
+      </SettingsSection>
 
-      {/* Tarifa nocturna del estacionamiento */}
-      <div className="mt-6">
+      {/* 2 · Tarifa nocturna */}
+      <SettingsSection
+        id="night"
+        title="Tarifa nocturna"
+        description="Cómo se cobra el tiempo entre el cierre y la reapertura."
+      >
         <NightPolicyCard parkingLotId={currentParkingLot.id} />
-      </div>
+      </SettingsSection>
 
-      {/* Información pública: descripción, características y servicios */}
-      <div className="mt-6">
+      {/* 3 · Servicios: información pública, características y servicios */}
+      <SettingsSection
+        id="services"
+        title="Servicios"
+        description="Lo que ven tus clientes en la página de reservas."
+      >
         <ParkingProfileSection parkingLotId={currentParkingLot.id} />
+      </SettingsSection>
       </div>
 
       {/* Modal de gestión de espacios */}

@@ -52,7 +52,7 @@ function ParkingDetailsPage() {
       try {
         setIsLoading(true);
         // Usar el endpoint de parkings cercanos o el de detalle
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/parking-lots/${id}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/parking-lots/${id}`);
         if (!response.ok) throw new Error('Error al cargar el estacionamiento');
         const data = await response.json();
         
@@ -64,7 +64,7 @@ function ParkingDetailsPage() {
         }
         
         // Cargar disponibilidad
-        const availabilityResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/parking-lots/${id}/availability`);
+        const availabilityResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/parking-lots/${id}/availability`);
         if (availabilityResponse.ok) {
           const availabilityData = await availabilityResponse.json();
           setAvailability(availabilityData);

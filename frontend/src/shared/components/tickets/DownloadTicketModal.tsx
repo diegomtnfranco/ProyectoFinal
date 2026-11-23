@@ -1,16 +1,20 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import type { ReactNode } from 'react';
 import { Download, X } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onDownload: () => void;
+  /** Contenido extra opcional (p. ej. estado del pago del egreso) */
+  children?: ReactNode;
 }
 
 export const DownloadTicketModal = ({
   isOpen,
   onClose,
   onDownload,
+  children,
 }: Props) => {
   return (
     <Dialog
@@ -43,6 +47,8 @@ export const DownloadTicketModal = ({
             <p className="text-gray-600">
               ¿Desea descargar el ticket de pago y salida?
             </p>
+
+            {children}
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
@@ -65,4 +71,4 @@ export const DownloadTicketModal = ({
       </div>
     </Dialog>
   );
-};
+};

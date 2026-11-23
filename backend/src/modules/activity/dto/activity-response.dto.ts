@@ -22,6 +22,30 @@ export class RateChangeInfoDto {
   @ApiPropertyOptional({ nullable: true })
   changedByEmail!: string | null;
 }
+/** Estado de pago asociado a la tarjeta. NONE = sin pago registrado; COVERED = cubierto por la reserva */
+export class ActivityPaymentDto {
+  @ApiProperty({ enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'NONE', 'COVERED'] })
+  status!: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'NONE' | 'COVERED';
+
+  @ApiPropertyOptional({ nullable: true, enum: ['WALLET', 'MERCADO_PAGO', 'PRESENTIAL'] })
+  method!: 'WALLET' | 'MERCADO_PAGO' | 'PRESENTIAL' | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Importe del pago en centavos' })
+  amountCents!: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  billedAmountCents!: number | null;
+
+  @ApiProperty()
+  coveredAmountCents!: number;
+
+  @ApiPropertyOptional({ nullable: true })
+  paymentId!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  updatedAt!: Date | null;
+}
+
 export type ExitMethod = 'manual' | 'qr';
 
 /**
@@ -77,6 +101,12 @@ export class ActivityItemDto {
 
   @ApiPropertyOptional({ type: RateChangeInfoDto, description: 'Solo tarjetas de tipo rate_change' })
   rateChange?: RateChangeInfoDto;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Reserva asociada (egresos)' })
+  reservationId?: string | null;
+
+  @ApiPropertyOptional({ type: () => ActivityPaymentDto, description: 'Estado del pago (egresos y reservas; solo dueño/empleado)' })
+  payment?: ActivityPaymentDto;
 }
 
 export class PaginatedActivityDto {

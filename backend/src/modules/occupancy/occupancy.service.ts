@@ -27,13 +27,43 @@ import { RateHistoryService } from '../rate-history/rate-history.service';
 import { NO_RATE_QR_MESSAGE, noRateManualMessage } from '../rate-history/rate-history.constants';
 import { OccupancyServicesService } from '../occupancy-services/occupancy-services.service';
 import { ClientTrackingService } from '../client-tracking/client-tracking.service';
+import type { ChargeBreakdown } from '../occupancy-services/charge-calculator';
 
 /** Tarifa con la que se cobra un egreso (congelada al ingreso o, si no hay, la vigente) */
-interface ChargeRate {
+export interface ChargeRate {
   id: string;
   vehicleType: VehicleType;
   pricePerHour: number;
 }
+
+/** Resultado del cálculo único del importe de un egreso */
+export interface FinalCharge {
+  rate: ChargeRate;
+  /** Importe total en pesos (2 decimales) */
+  totalAmount: number;
+  hoursToCharge: number;
+  breakdown?: ChargeBreakdown;
+}
+
+export interface CheckOutOptions {
+  /**
+   * Se ejecuta dentro de la transacción del egreso, después de cerrar la
+   * ocupación y antes del commit. Si lanza, se revierte todo el egreso.
+   * Lo que devuelve se agrega a la respuesta.
+   */
+  beforeCommit?: (manager: EntityManager, occupancy: Occupancy, charge: FinalCharge) => Promise<Record<string, unknown> | void>;
+}
+
+const formatAr = (date: Date) =>
+  new Date(date).toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 
 @Injectable()
 export class OccupancyService {
@@ -206,7 +236,12 @@ export class OccupancyService {
     }
   }
 
-  async checkOut(checkOutDto: CheckOutDto, userId: string, userRole: string): Promise<CheckOutResponseDto> {
+  async checkOut(
+    checkOutDto: CheckOutDto,
+    userId: string,
+    userRole: string,
+    options?: CheckOutOptions,
+  ): Promise<CheckOutResponseDto & { checkout?: unknown }> {
     // Solo empleados o dueños pueden hacer check-out
     if (userRole !== UserRole.PARKING_OWNER && userRole !== UserRole.PARKING_EMPLOYEE && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('No tienes permiso para realizar check-out');
@@ -217,139 +252,166 @@ export class OccupancyService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Obtener la ocupación activa del espacio
-      const occupancy = await queryRunner.manager.findOne(Occupancy, {
+      // 1. Bloquear la ocupación activa del espacio: dos egresos simultáneos no pueden
+      //    cerrar la misma estadía (el segundo espera y ya no la encuentra activa)
+      const locked = await queryRunner.manager.findOne(Occupancy, {
         where: { spaceId: checkOutDto.spaceId, isCompleted: false },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new NotFoundException('No hay una ocupación activa en este espacio');
+      }
+      const occupancy = await queryRunner.manager.findOne(Occupancy, {
+        where: { id: locked.id },
         relations: ['space', 'space.parkingLot'],
       });
-
-      if (!occupancy) {
+      if (!occupancy || occupancy.isCompleted) {
         throw new NotFoundException('No hay una ocupación activa en este espacio');
       }
 
-      const space = occupancy.space;
-
-      // 2. Calcular horas ocupadas
+      // 2. Importe final (cálculo único: tarifa congelada, servicios, noche y reserva)
       const checkOutTime = new Date();
-      const updatedAt = new Date();
-      const hours = Math.ceil((checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60));
-      const hoursDecimal = (checkOutTime.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60);
+      const charge = await this.computeFinalCharge(queryRunner.manager, occupancy, occupancy.space.parkingLotId, checkOutTime);
 
-      // 3. Calcular tarifa (la congelada al ingreso, si existe)
-      const rate = await this.resolveChargeRate(occupancy, space.parkingLotId, checkOutTime, queryRunner.manager);
-
-      if (!rate) {
-        throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-      }
-
-      // 4. Calcular monto (mínimo 1 hora). Con servicios/tarifa nocturna delega en la calculadora única.
-      const hoursToCharge = Math.max(1, hours);
-      const breakdown = await this.occupancyExtras?.computeCharge(queryRunner.manager, occupancy, rate.pricePerHour, checkOutTime);
-      const totalAmount = breakdown ? breakdown.total : rate.pricePerHour * hoursToCharge;
-
-      // 5. Actualizar registro de ocupación
-      occupancy.checkOutTime = checkOutTime;
-      occupancy.checkedOutBy = userId;
-      occupancy.totalAmount = totalAmount;
-      occupancy.isCompleted = true;
-      occupancy.updatedAt = updatedAt;
+      // 3. Cerrar la ocupación y liberar el espacio
+      this.applyCheckOut(occupancy, charge, checkOutTime, { checkedOutBy: userId, viaQr: false });
       await queryRunner.manager.save(occupancy);
+      const space = await this.releaseSpace(queryRunner.manager, occupancy.space);
 
-      // 6. Liberar el espacio
-      space.status = SpaceStatus.AVAILABLE;
-      space.occupiedSince = null;
-      space.occupiedByVehiclePlate = null;
-      space.occupiedByVehicleType = null;
-
-      await queryRunner.manager.save(space);
+      // 4. Pasos adicionales en la misma transacción (pago presencial, solicitud de egreso)
+      const extra = await options?.beforeCommit?.(queryRunner.manager, occupancy, charge);
 
       await queryRunner.commitTransaction();
-      void this.clientTracking?.afterCheckOut(occupancy.id);
+      this.afterCheckOut(occupancy, space, charge.totalAmount, false);
 
-
-      // ✅ Emitir evento WebSocket
-      this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
-        spaceId: space.id,
-        spaceNumber: space.spaceNumber,
-        action: 'check-out',
-        vehiclePlate: occupancy.vehiclePlate,
-      });
-
-      // ✅ Emitir actualización de espacio
-      this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.AVAILABLE);
-
-      // ✅ Calcular y emitir disponibilidad actualizada
-      //const availability = await this.calculateAvailability(space.parkingLotId);
-      this.websocketGateway.emitParkingAvailability(space.parkingLotId);
-
-      const response: CheckOutResponseDto = {
-        occupancy: {
-          id: occupancy.id,
-          spaceId: occupancy.spaceId,
-          reservationId: occupancy.reservationId || '',
-          vehiclePlate: occupancy.vehiclePlate || '',
-          vehicleType: occupancy.vehicleType,
-          checkInTime: occupancy.checkInTime.toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
-            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
-            year: 'numeric',     // Año completo (aaaa)
-            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
-            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
-            hour12: false        // Formato de 24 horas
-          }),
-          checkOutTime: occupancy.checkOutTime.toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
-            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
-            year: 'numeric',     // Año completo (aaaa)
-            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
-            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
-            hour12: false        // Formato de 24 horas
-          }),
-          checkedInBy: occupancy.checkedInBy,
-          checkedOutBy: occupancy.checkedOutBy,
-          totalAmount: occupancy.totalAmount,
-          isCompleted: occupancy.isCompleted,
-          isAnonymous: occupancy.isAnonymous,
-          checkedInViaQr: occupancy.checkedInViaQr,
-          checkedOutViaQr: occupancy.checkedOutViaQr,
-          createdAt: occupancy.createdAt.toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
-            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
-            year: 'numeric',     // Año completo (aaaa)
-            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
-            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
-            hour12: false        // Formato de 24 horas
-          }),
-          updatedAt: occupancy.updatedAt.toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit',      // Fuerza 2 dígitos para el día (dd)
-            month: '2-digit',    // Fuerza 2 dígitos para el mes (mm)
-            year: 'numeric',     // Año completo (aaaa)
-            hour: '2-digit',     // Fuerza 2 dígitos para la hora (hh)
-            minute: '2-digit',   // Fuerza 2 dígitos para los minutos (MM)
-            hour12: false        // Formato de 24 horas
-          }),
-          space: occupancy.space,
-          reservation: occupancy.reservation || undefined,
-        },
-        rate: {
-          id: rate.id,
-          VehicleType: rate.vehicleType,
-          pricePerHour: rate.pricePerHour,
-        },
-        ...(breakdown ? { breakdown } : {}),
-      };
-
-      return response;
+      const response = this.buildCheckOutResponse(occupancy, charge);
+      return extra ? Object.assign(response, extra) : response;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // ------------------------------------------------------------------ egreso: piezas compartidas
+
+  /**
+   * Importe final de una estadía. Único cálculo para el egreso manual, el QR,
+   * la cotización y los pagos: tarifa congelada al ingreso (o vigente), mínimo
+   * 1 hora, servicios y tarifa nocturna (si están configurados) y, si la
+   * ocupación viene de una reserva completada con importe, ese importe fija el
+   * componente de estacionamiento (los servicios adicionales se suman aparte).
+   * No persiste nada.
+   */
+  async computeFinalCharge(
+    manager: EntityManager,
+    occupancy: Occupancy,
+    parkingLotId: string,
+    at: Date,
+  ): Promise<FinalCharge> {
+    const rate = await this.resolveChargeRate(occupancy, parkingLotId, at, manager);
+    if (!rate) {
+      throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
+    }
+    const hours = Math.ceil((at.getTime() - new Date(occupancy.checkInTime).getTime()) / (1000 * 60 * 60));
+    const hoursToCharge = Math.max(1, hours);
+
+    const breakdown = await this.occupancyExtras?.computeCharge(manager, occupancy, rate.pricePerHour, at);
+    let totalAmount = breakdown ? Number(breakdown.parkingAmount) : rate.pricePerHour * hoursToCharge;
+
+    if (occupancy.reservationId) {
+      const reservation = await manager.findOne(Reservation, { where: { id: occupancy.reservationId } });
+      if (
+        reservation &&
+        reservation.totalAmount !== undefined &&
+        reservation.totalAmount !== null &&
+        reservation.status === ReservationStatus.COMPLETED
+      ) {
+        totalAmount = Number(reservation.totalAmount);
+        if (breakdown) {
+          breakdown.parkingSource = 'reservation';
+          breakdown.parkingAmount = Number(reservation.totalAmount);
+        }
+      }
+    }
+
+    if (breakdown) {
+      totalAmount = Math.round((totalAmount + Number(breakdown.servicesAmount)) * 100) / 100;
+      breakdown.total = totalAmount;
+    }
+    totalAmount = Math.round(Number(totalAmount) * 100) / 100;
+    return { rate, totalAmount, hoursToCharge, breakdown: breakdown ?? undefined };
+  }
+
+  /** Marca la ocupación como finalizada (no guarda) */
+  applyCheckOut(
+    occupancy: Occupancy,
+    charge: FinalCharge,
+    at: Date,
+    by: { checkedOutBy?: string | null; viaQr: boolean },
+  ): void {
+    occupancy.checkOutTime = at;
+    occupancy.totalAmount = charge.totalAmount;
+    occupancy.isCompleted = true;
+    occupancy.updatedAt = new Date();
+    if (by.checkedOutBy) occupancy.checkedOutBy = by.checkedOutBy;
+    if (by.viaQr) occupancy.checkedOutViaQr = true;
+  }
+
+  /** Libera el espacio (dentro de la transacción del egreso) */
+  async releaseSpace(manager: EntityManager, space: Space): Promise<Space> {
+    space.status = SpaceStatus.AVAILABLE;
+    space.occupiedSince = null;
+    space.occupiedByVehiclePlate = null;
+    space.occupiedByVehicleType = null;
+    await manager.save(space);
+    return space;
+  }
+
+  /** Eventos posteriores al commit de un egreso (seguimiento y tiempo real) */
+  afterCheckOut(occupancy: Occupancy, space: Space, totalAmount: number, viaQr: boolean): void {
+    void this.clientTracking?.afterCheckOut(occupancy.id);
+    this.websocketGateway.emitOccupancyUpdate(space.parkingLotId, {
+      spaceId: space.id,
+      spaceNumber: space.spaceNumber,
+      action: 'check-out',
+      vehiclePlate: occupancy.vehiclePlate?.toUpperCase(),
+      ...(viaQr ? { totalAmount, isAnonymous: occupancy.isAnonymous } : {}),
+    });
+    this.websocketGateway.emitSpaceUpdate(space.parkingLotId, space.id, SpaceStatus.AVAILABLE);
+    this.websocketGateway.emitParkingAvailability(space.parkingLotId);
+  }
+
+  buildCheckOutResponse(occupancy: Occupancy, charge: FinalCharge): CheckOutResponseDto {
+    return {
+      occupancy: {
+        id: occupancy.id,
+        spaceId: occupancy.spaceId,
+        reservationId: occupancy.reservationId || '',
+        vehiclePlate: occupancy.vehiclePlate || '',
+        vehicleType: occupancy.vehicleType,
+        checkInTime: formatAr(occupancy.checkInTime),
+        checkOutTime: formatAr(occupancy.checkOutTime!),
+        checkedInBy: occupancy.checkedInBy,
+        checkedOutBy: occupancy.checkedOutBy!,
+        totalAmount: occupancy.totalAmount!,
+        isCompleted: occupancy.isCompleted,
+        isAnonymous: occupancy.isAnonymous,
+        checkedInViaQr: occupancy.checkedInViaQr,
+        checkedOutViaQr: occupancy.checkedOutViaQr,
+        createdAt: formatAr(occupancy.createdAt),
+        updatedAt: formatAr(occupancy.updatedAt),
+        space: occupancy.space,
+        reservation: occupancy.reservation || undefined,
+      },
+      rate: {
+        id: charge.rate.id,
+        VehicleType: charge.rate.vehicleType,
+        pricePerHour: charge.rate.pricePerHour,
+      },
+      ...(charge.breakdown ? { breakdown: charge.breakdown } : {}),
+    };
   }
 
   private async calculateAvailability(parkingLotId: string) {
@@ -469,7 +531,11 @@ export class OccupancyService {
   /**
    * Check-in anónimo usando QR (sin autenticación)
    */
-  async anonymousCheckIn(dto: AnonymousCheckInDto): Promise<AnonymousCheckInResponseDto> {
+  async anonymousCheckIn(
+    dto: AnonymousCheckInDto,
+    // Ingreso por QR de un cliente autenticado con un vehículo de su perfil (CheckoutService.clientQrCheckIn)
+    opts: { isAnonymous?: boolean } = {},
+  ): Promise<AnonymousCheckInResponseDto> {
   const queryRunner = this.dataSource.createQueryRunner();
   await queryRunner.connect();
   await queryRunner.startTransaction();
@@ -543,7 +609,7 @@ export class OccupancyService {
       vehiclePlate: dto.vehiclePlate.trim().toUpperCase(),
       checkInTime: new Date(),
       isCompleted: false,
-      isAnonymous: true,
+      isAnonymous: opts.isAnonymous ?? true,
       checkedInViaQr: true,
       reservationId: existingReservation?.id,
     });
@@ -594,7 +660,7 @@ export class OccupancyService {
       vehiclePlate: targetSpace.occupiedByVehiclePlate,
       action: 'check-in',
       vehicleType: dto.vehicleType,
-      isAnonymous: true,
+      isAnonymous: opts.isAnonymous ?? true,
       clientId: existingReservation?.client?.user?.id,
     });
 
@@ -674,72 +740,18 @@ private async findReservationByVehiclePlate(
         throw new NotFoundException('Espacio no encontrado');
       }
 
-      // 3. Calcular horas y monto
+      // 3. Importe final (cálculo único compartido con el egreso manual y los pagos)
       const checkOutTime = new Date();
-      const hours = Math.ceil(
-        (checkOutTime.getTime() - occupancy.checkInTime.getTime()) / (1000 * 60 * 60)
-      );
-      const hoursToCharge = Math.max(1, hours);
+      const charge = await this.computeFinalCharge(queryRunner.manager, occupancy, parkingLot.id, checkOutTime);
+      const { rate, totalAmount, hoursToCharge, breakdown } = charge;
 
-      // 4. Obtener tarifa (la congelada al ingreso, si existe)
-      const rate = await this.resolveChargeRate(occupancy, parkingLot.id, checkOutTime, queryRunner.manager);
-
-      if (!rate) {
-        throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-      }
-
-      const breakdown = await this.occupancyExtras?.computeCharge(queryRunner.manager, occupancy, rate.pricePerHour, checkOutTime);
-      let totalAmount = breakdown ? breakdown.parkingAmount : rate.pricePerHour * hoursToCharge;
-
-      if (occupancy.reservationId) {
-        const reservation = await queryRunner.manager.findOne(Reservation, {
-          where: { id: occupancy.reservationId },
-        });
-
-        if (reservation && reservation.totalAmount !== undefined && reservation.totalAmount !== null && reservation.status === ReservationStatus.COMPLETED) {
-          totalAmount = reservation.totalAmount;
-          if (breakdown) {
-            // Regla existente: la reserva fija el componente de estacionamiento
-            breakdown.parkingSource = 'reservation';
-            breakdown.parkingAmount = Number(reservation.totalAmount);
-          }
-        }
-      }
-
-      // Servicios adicionales: se suman aparte del componente de estacionamiento
-      if (breakdown) {
-        totalAmount = Math.round((Number(totalAmount) + breakdown.servicesAmount) * 100) / 100;
-        breakdown.total = totalAmount;
-      }
-
-      // 5. Actualizar ocupación
-      occupancy.checkOutTime = checkOutTime;
-      occupancy.totalAmount = totalAmount;
-      occupancy.isCompleted = true;
-      occupancy.checkedOutViaQr = true;
+      // 4. Cerrar la ocupación y liberar el espacio
+      this.applyCheckOut(occupancy, charge, checkOutTime, { viaQr: true });
       await queryRunner.manager.save(occupancy);
-
-      // 6. Liberar espacio
-      space.status = SpaceStatus.AVAILABLE;
-      space.occupiedSince = null;
-      space.occupiedByVehiclePlate = null;
-      space.occupiedByVehicleType = null;
-      await queryRunner.manager.save(space);
+      await this.releaseSpace(queryRunner.manager, space);
 
       await queryRunner.commitTransaction();
-      void this.clientTracking?.afterCheckOut(occupancy.id);
-
-      // 7. Emitir eventos WebSocket
-      this.websocketGateway.emitSpaceUpdate(parkingLot.id, space.id, SpaceStatus.AVAILABLE);
-      this.websocketGateway.emitParkingAvailability(parkingLot.id);
-      this.websocketGateway.emitOccupancyUpdate(parkingLot.id, {
-        spaceId: space.id,
-        spaceNumber: space.spaceNumber,
-        vehiclePlate: occupancy.vehiclePlate?.toUpperCase()!,
-        action: 'check-out',
-        totalAmount,
-        isAnonymous: true,
-      });
+      this.afterCheckOut(occupancy, space, totalAmount, true);
 
       return {
         success: true,

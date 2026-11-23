@@ -183,6 +183,17 @@ describe('Seguimiento de vehículos para clientes (E2E)', () => {
         .set(C3())
         .expect(200);
       expect(list.body.map((v: any) => v.plate)).toEqual(['OLD-777']);
+      // Checkout QR con pagos: no se puede eliminar el único vehículo
+      const lastOne = await request(srv())
+        .delete(`/api/client-vehicles/me/${list.body[0].id}`)
+        .set(C3())
+        .expect(409);
+      expect(lastOne.body.message).toMatch(/al menos un vehículo/);
+      const other = await request(srv())
+        .post('/api/client-vehicles/me')
+        .set(C3())
+        .send({ plate: 'NEW 888', vehicleType: 'car' })
+        .expect(201);
       await request(srv())
         .delete(`/api/client-vehicles/me/${list.body[0].id}`)
         .set(C3())
@@ -193,8 +204,8 @@ describe('Seguimiento de vehículos para clientes (E2E)', () => {
             .get('/api/client-vehicles/me')
             .set(C3())
             .expect(200)
-        ).body,
-      ).toEqual([]);
+        ).body.map((v: any) => v.id),
+      ).toEqual([other.body.id]); // el vehículo previo no se vuelve a crear
       const profile = await ds.query(
         `SELECT default_vehicle_plate FROM client_profiles WHERE id = $1`,
         [prof.c3],
