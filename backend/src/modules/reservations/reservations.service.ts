@@ -472,6 +472,25 @@ export class ReservationsService {
     return this.mapToResponseDto(reservation);
   }
 
+  /**
+   * GET /reservations/:id con control de pertenencia:
+   * cliente -> solo sus reservas; dueño -> solo reservas de sus estacionamientos;
+   * admin -> sin cambios. Responde 404 en lugar de 403 para no revelar ids ajenos.
+   */
+  async findOneForRequester(id: string, userId: string, userRole: UserRole): Promise<ReservationResponseDto> {
+    const reservation = await this.reservationRepository.findOne({
+      where: { id },
+      relations: ['client', 'space', 'space.parkingLot', 'space.parkingLot.owner', 'appliedRate'],
+    });
+    if (!reservation) throw new NotFoundException(`Reserva con ID ${id} no encontrada`);
+    const allowed =
+      userRole === UserRole.ADMIN ||
+      (userRole === UserRole.CLIENT && reservation.client?.userId === userId) ||
+      (userRole === UserRole.PARKING_OWNER && reservation.space?.parkingLot?.owner?.userId === userId);
+    if (!allowed) throw new NotFoundException(`Reserva con ID ${id} no encontrada`);
+    return this.mapToResponseDto(reservation);
+  }
+
   async findMyReservations(userId: string): Promise<ReservationResponseDto[]> {
     const client = await this.clientRepository.findOne({ where: { userId } });
     if (!client) throw new NotFoundException('Perfil de cliente no encontrado');

@@ -180,10 +180,14 @@ export interface CheckInDto {
   vehiclePlate: string;
   vehicleType: UserVehicleType;
   reservationId?: string;
+  /** Opcional: servicios solicitados ('catalog:<code>' | 'custom:<uuid>') */
+  serviceKeys?: string[];
 }
 
 export interface CheckOutDto {
   spaceId: string;
+  /** El personal recibió el pago en el lugar. Sin marcar, el egreso queda con el pago pendiente */
+  paymentReceived?: boolean;
 }
 
 export interface ActiveOccupancy {
@@ -401,6 +405,16 @@ export interface CheckOutResponseDto{
     vehicleType: UserVehicleType;
     pricePerHour: number;
   }
+  /** Resultado del cobro en el egreso del personal (dueño/empleado) */
+  checkout?: {
+    paymentStatus: 'APPROVED' | 'PENDING' | 'COVERED';
+    paymentReceived: boolean;
+    billedAmountCents: number;
+    coveredAmountCents: number;
+    amountCents: number;
+    paymentId: string | null;
+    checkoutRequestId: string | null;
+  };
 }
 
 // ✅ AGREGAR respuesta para checkout anónimo
@@ -424,6 +438,8 @@ export interface AnonymousCheckOutResponse {
     vehicleType: UserVehicleType;
     pricePerHour: number;
   }
+  /** Desglose (horas, noches, servicios) calculado por el backend */
+  breakdown?: import('./occupancy-services.types').ChargeBreakdown;
 }
 
 // ✅ AGREGAR respuesta para check-in anónimo

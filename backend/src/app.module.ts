@@ -22,6 +22,11 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CloudinaryService } from './modules/common/cloudinary/cloudinary.service';
 import { SeedModule } from './modules/seed/seed.module';
+import { ActivityModule } from './modules/activity/activity.module';
+import { ParkingProfilesModule } from './modules/parking-profiles/parking-profiles.module';
+import { UserNotificationsModule } from './modules/user-notifications/user-notifications.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -62,6 +67,11 @@ import { SeedModule } from './modules/seed/seed.module';
     NotificationsModule,
     WebsocketModule,
     SeedModule,
+    ActivityModule,
+    ParkingProfilesModule,
+    UserNotificationsModule,
+    PaymentsModule,
+    FinanceModule,
   ],
   controllers: [],
   providers: [

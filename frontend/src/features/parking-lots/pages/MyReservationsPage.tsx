@@ -24,6 +24,9 @@ import {
 import { useReservationsStore } from '../../../stores/reservationStore';
 import { useWebsocketStore } from '../../../stores/websocketStore';
 import { useAuthStore } from '../../../stores/authStore';
+import ParkedVehiclesSection from '../../tracking/components/ParkedVehiclesSection';
+import ReservationPayButton from '../../payments/components/ReservationPayButton';
+import { usePaidReservations } from '../../payments/hooks/usePaidReservations';
 import { useToast } from '../../../shared/hooks/useToast';
 import { ReservationStatus, VehicleType, type ReservationStatusType, type UserVehicleType } from '../../../types/auth.types';
 import type { Reservation } from '../../../types/parking.types';
@@ -41,6 +44,7 @@ function MyReservationsPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { myReservations, isLoading, totalSpent, fetchMyReservations, cancelReservation, updateReservationStatus } = useReservationsStore();
+  const { paidIds, refresh: refreshPaid } = usePaidReservations();
   const { isConnected, subscribe, unsubscribe } = useWebsocketStore();
   const { showSuccess, showError, showInfo } = useToast();
 
@@ -66,20 +70,17 @@ function MyReservationsPage() {
     const handleReservationUpdate = (data: any) => {
       if (data?.id && data?.status) {
         updateReservationStatus(data.id, data.status);
-        showInfo(`Tu reserva ha sido ${data.status === 'confirmed' ? 'confirmada' : 'actualizada'}`);
+        // El aviso al cliente ahora llega como notificación persistente (campana)
         fetchMyReservations(); // Recargar para obtener datos actualizados
       }
     };
 
-    const handleReservationConfirmed = (data: any) => {
-      showSuccess(`¡Tu reserva para el espacio ${data.spaceNumber} ha sido confirmada!`);
+    // Confirmación y rechazo: aviso migrado al centro de notificaciones; acá solo se refresca la lista
+    const handleReservationConfirmed = () => {
       fetchMyReservations();
     };
 
-    const handleReservationCancelled = (data: any) => {
-      if (data?.cancelledBy === 'parking') {
-        showError(`Tu reserva fue cancelada por el estacionamiento${data.reason ? `: ${data.reason}` : ''}`);
-      }
+    const handleReservationCancelled = () => {
       fetchMyReservations();
     };
 
@@ -254,10 +255,14 @@ const formatCurrency = (amount: number | string) => {
       </div>
     );
   }
+  
 
   return (
     <div className='min-h-screen bg-gray-100'>
       <main className='max-w-6xl mx-auto p-6'>
+        {/* Vehículos estacionados (seguimiento), encima de "Mis Reservas" */}
+        <ParkedVehiclesSection />
+
         {/* Encabezado */}
         <div className='flex justify-between items-center mb-6 flex-wrap gap-4'>
           <div>
@@ -462,7 +467,8 @@ const formatCurrency = (amount: number | string) => {
                     </div>
                     
                     {/* Acciones */}
-                    <div className='flex gap-2'>
+                    <div className='flex gap-2 items-center'>
+                      <ReservationPayButton reservation={reservation} paid={paidIds.has(reservation.id)} onPaid={refreshPaid} />
                       <button
                         onClick={() => setExpandedReservation(expandedReservation === reservation.id ? null : reservation.id)}
                         className='p-2 text-gray-400 hover:text-blue-600 transition-colors'
@@ -552,4 +558,4 @@ const formatCurrency = (amount: number | string) => {
   );
 }
 
-export default MyReservationsPage;
+export default MyReservationsPage;

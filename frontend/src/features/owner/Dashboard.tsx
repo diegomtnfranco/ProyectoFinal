@@ -8,10 +8,12 @@ import { useOccupancyStore } from '../../stores/occupancyStore';
 import { useReservationsStore } from '../../stores/reservationStore';
 import { VehicleType, SpaceStatus } from '../../types/auth.types';
 import ParkingMap from '../../shared/components/parking/ParkingMap';
-import ReservationPanel from '../../shared/components/reservation/ReservationPanel';
+import DashboardSidePanel from '../../shared/components/activity/DashboardSidePanel';
 import { NoParkingMessage } from '../../shared/components/common/NoParkingMessage';
 import { useState } from 'react';
 import { DownloadTicketModal } from '../../shared/components/tickets/DownloadTicketModal';
+import CheckoutPaymentStatus from '../../shared/components/payments/CheckoutPaymentStatus';
+import CashRequestsPanel from '../../shared/components/payments/CashRequestsPanel';
 import { generateTicketPDF } from '../../shared/utils/GenerateTicketPDF';
 
 const DashboardOwner: React.FC = () => {
@@ -150,12 +152,14 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
   totalAmount: ticketData.occupancy.totalAmount,
 
   isAnonymous: ticketData.occupancy.isAnonymous,
+
+  breakdown: ticketData.breakdown,
 });
 
   setShowTicketModal(false);
 };
-
-  if (parkingLoading || spacesLoading) {
+// Agregue && spaces.length === 0 para reducir la carga del spinner en cada entrada y salida del estacionamiento.
+  if (parkingLoading || spacesLoading && spaces.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -255,6 +259,9 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
         </div>
       </div>
 
+      {/* Clientes que pidieron salir pagando en efectivo (tiempo real) */}
+      <CashRequestsPanel parkingLotId={currentParkingLot.id} />
+
       {/* Mapa y panel de reservas - responsive: columna en mobile, fila en desktop */}
       <div className="flex flex-col lg:flex-row gap-4 w-full">
         <ParkingMap
@@ -267,13 +274,23 @@ if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
           onManualCheckout={handleManualCheckout}
           className="w-full lg:w-4/6"
 />
-        <ReservationPanel className="w-full lg:w-2/6" />
+        <DashboardSidePanel parkingLotId={currentParkingLot.id} className="w-full lg:w-2/6" />
 
         <DownloadTicketModal
             isOpen={showTicketModal}
             onClose={() => setShowTicketModal(false)}
             onDownload={handleDownloadTicket}
-        />
+        >
+          {/* Importe final y estado del pago del egreso */}
+          {ticketData?.occupancy?.id && ticketData?.occupancy?.space?.parkingLot?.id && (
+            <CheckoutPaymentStatus
+              key={ticketData.occupancy.id}
+              parkingLotId={ticketData.occupancy.space.parkingLot.id}
+              occupancyId={ticketData.occupancy.id}
+              vehiclePlate={ticketData.occupancy.vehiclePlate ?? ''}
+            />
+          )}
+        </DownloadTicketModal>
       </div>
     </div>
   );

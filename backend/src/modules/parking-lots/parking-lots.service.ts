@@ -232,7 +232,7 @@ export class ParkingLotsService {
     }
 
     // ✅ Construir objeto de actualización con merge profundo para settings
-    const updateData: any = {};
+    const updateData: Partial<ParkingLot> = {};
 
     // Campos simples
     if (updateDto.name !== undefined) updateData.name = updateDto.name;
@@ -253,8 +253,14 @@ export class ParkingLotsService {
     }
 
     // Aplicar todos los cambios
+    // Se guardan solo las columnas modificadas: findOne() filtra las tarifas inactivas
+    // y un save() del objeto completo haría que TypeORM intente desvincularlas
+    // (parking_lot_id = NULL), lo que viola la restricción NOT NULL y devuelve 500.
+    if (Object.keys(updateData).length > 0) {
+      await this.parkingLotRepository.update(parkingLot.id, updateData);
+    }
     Object.assign(parkingLot, updateData);
-    return this.parkingLotRepository.save(parkingLot);
+    return parkingLot;
   }
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
@@ -525,8 +531,12 @@ export class ParkingLotsService {
 
     const parkingLot = await this.findOne(id);
 
+    // Se guardan solo las columnas modificadas: findOne() filtra las tarifas inactivas
+    // y un save() del objeto completo haría que TypeORM intente desvincularlas
+    // (parking_lot_id = NULL), lo que viola la restricción NOT NULL y devuelve 500.
+    await this.parkingLotRepository.update(parkingLot.id, { isActive });
     parkingLot.isActive = isActive;
-    return this.parkingLotRepository.save(parkingLot);
+    return parkingLot;
   }
 
   /**
@@ -555,8 +565,12 @@ export class ParkingLotsService {
       }
     }
 
+    // Se guardan solo las columnas modificadas: findOne() filtra las tarifas inactivas
+    // y un save() del objeto completo haría que TypeORM intente desvincularlas
+    // (parking_lot_id = NULL), lo que viola la restricción NOT NULL y devuelve 500.
+    await this.parkingLotRepository.update(parkingLot.id, { imageUrl });
     parkingLot.imageUrl = imageUrl;
-    return this.parkingLotRepository.save(parkingLot);
+    return parkingLot;
   }
 
   /**
@@ -598,7 +612,16 @@ export class ParkingLotsService {
     parkingLot.checkOutQrUrl = checkOutQR.qrUrl;
     parkingLot.qrUpdatedAt = new Date();
 
-    await this.parkingLotRepository.save(parkingLot);
+    // Se guardan solo las columnas modificadas: findOne() filtra las tarifas inactivas
+    // y un save() del objeto completo haría que TypeORM intente desvincularlas
+    // (parking_lot_id = NULL), lo que viola la restricción NOT NULL y devuelve 500.
+    await this.parkingLotRepository.update(parkingLot.id, {
+      checkInToken: checkInQR.token,
+      checkInQrUrl: checkInQR.qrUrl,
+      checkOutToken: checkOutQR.token,
+      checkOutQrUrl: checkOutQR.qrUrl,
+      qrUpdatedAt: parkingLot.qrUpdatedAt,
+    });
     return parkingLot;
   }
 
@@ -616,17 +639,17 @@ export class ParkingLotsService {
     }
 
     const qr = await this.qrService.generateQRForType(type);
+    const qrUpdatedAt = new Date();
+    const changes =
+      type === 'check-in'
+        ? { checkInToken: qr.token, checkInQrUrl: qr.qrUrl, qrUpdatedAt }
+        : { checkOutToken: qr.token, checkOutQrUrl: qr.qrUrl, qrUpdatedAt };
 
-    if (type === 'check-in') {
-      parkingLot.checkInToken = qr.token;
-      parkingLot.checkInQrUrl = qr.qrUrl;
-    } else {
-      parkingLot.checkOutToken = qr.token;
-      parkingLot.checkOutQrUrl = qr.qrUrl;
-    }
-    parkingLot.qrUpdatedAt = new Date();
-
-    await this.parkingLotRepository.save(parkingLot);
+    // Se guardan solo las columnas modificadas: findOne() filtra las tarifas inactivas
+    // y un save() del objeto completo haría que TypeORM intente desvincularlas
+    // (parking_lot_id = NULL), lo que viola la restricción NOT NULL y devuelve 500.
+    await this.parkingLotRepository.update(parkingLot.id, changes);
+    Object.assign(parkingLot, changes);
     return parkingLot;
   }
 

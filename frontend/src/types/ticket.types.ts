@@ -22,4 +22,7 @@ export interface TicketData {
   totalAmount: number;
 
   isAnonymous?: boolean;
+
+  /** Desglose opcional calculado por el backend (horas, noches y servicios) */
+  breakdown?: import('./occupancy-services.types').ChargeBreakdown;
 }

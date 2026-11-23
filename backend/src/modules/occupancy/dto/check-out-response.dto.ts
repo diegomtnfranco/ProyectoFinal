@@ -1,3 +1,4 @@
+import type { ChargeBreakdown } from '../../occupancy-services/charge-calculator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Occupancy } from '../entities/occupancy.entity';
 import { VehicleType } from '../../common/enums/vehicle-type.enum';
@@ -31,4 +32,6 @@ export class CheckOutResponseDto {
     VehicleType: VehicleType,
     pricePerHour: number,
   }
+  /** Desglose (horas, noches, servicios). Opcional: no cambia los campos existentes */
+  breakdown?: ChargeBreakdown;
 }

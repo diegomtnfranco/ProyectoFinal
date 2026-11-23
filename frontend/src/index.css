@@ -42,3 +42,79 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* ==================================================================
+ * Tarjetas de estacionamiento (Dashboard dueño / empleado)
+ * Referencia de diseño: 132 × 176 px. Las medidas internas se expresan
+ * en cqw (ancho de la celda) para que la tarjeta escale manteniendo la
+ * proporción vertical 3:4 y llene el recuadro en una cuadrícula de 8.
+ * ================================================================== */
+.spot-grid-wrap {
+  container-type: inline-size;
+}
+
+.spot-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* 8 columnas fijas; el número de filas lo da la cantidad de lugares.
+   Solo en recuadros muy angostos (celular) baja a 6 o 4 columnas. */
+@container (min-width: 380px) {
+  .spot-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@container (min-width: 500px) {
+  .spot-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+
+.spot-cell {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.spot-card {
+  border-radius: clamp(10px, 13.6cqw, 18px);            /* 18 / 132 */
+}
+
+.spot-pill-wrap {
+  top: 9.1cqw;                                          /* 12 / 132 */
+}
+
+.spot-pill {
+  font-size: clamp(9px, 9.85cqw, 13px);                 /* 13 / 132 */
+  padding: clamp(2px, 2.3cqw, 3px) clamp(4px, 7.6cqw, 10px);
+  border-radius: clamp(5px, 6cqw, 8px);
+}
+
+.spot-icon-wrap {
+  top: 34.8cqw;                                         /* 46 / 132 */
+}
+
+.spot-icon {
+  width: clamp(18px, 27.3cqw, 36px);                    /* 36 / 132 */
+  height: clamp(18px, 27.3cqw, 36px);
+}
+
+.spot-label {
+  bottom: 28.8cqw;                                      /* 38 / 132 */
+  font-size: clamp(8px, 10.6cqw, 14px);                 /* 14 / 132 */
+  white-space: nowrap;
+}
+
+.spot-actions {
+  padding: clamp(3px, 6cqw, 8px);                       /*  8 / 132 */
+  gap: clamp(2px, 4.5cqw, 6px);                         /*  6 / 132 */
+}
+
+.spot-btn {
+  font-size: clamp(8px, 9.85cqw, 13px);                 /* 13 / 132 */
+  min-height: 0;
+  white-space: nowrap;
+}
+
+.spot-btn-single {
+  flex: none;
+  height: clamp(24px, 33.3cqw, 44px);                   /* 44 / 132 */
+  font-size: clamp(9px, 10.6cqw, 14px);
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import NotificationBell from './notifications/NotificationBell';
 import { Link, useLocation } from 'react-router-dom';
 import ParkingLogo from '../../assets/logos/logo-eapp5.webp';
 import { ownerMenu } from '../components/OwnerMenu';
@@ -12,6 +13,7 @@ import {
   MapPin,
   Map as MapIcon,
   History,
+  QrCode,
 } from 'lucide-react';
 
 function Navbar() {
@@ -24,6 +26,7 @@ function Navbar() {
 
   const isMapView = location.pathname === '/client/map';
 const isParkingListView = location.pathname === '/client';
+  const isScanView = location.pathname === '/client/scan';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -88,6 +91,13 @@ const isParkingListView = location.pathname === '/client';
           />
         </Link>
 
+        {/* Centro de notificaciones (todos los roles autenticados) */}
+        {user && (
+          <div className="ml-auto mr-3 md:mr-5">
+            <NotificationBell />
+          </div>
+        )}
+
         {/* Menú de escritorio */}
         <div className="hidden md:flex items-center gap-6">
           {isClient &&
@@ -111,7 +121,8 @@ const isParkingListView = location.pathname === '/client';
                 src={
                   user?.avatarUrl
                     ? user.avatarUrl
-                    : 'https://i.pravatar.cc/40'
+                    : 'https://i.pinimg.com/474x/3c/13/98/3c139858ade16fe6bf2b3c8f7f2cd0fd.jpg?nii=t'
+                    // : 'https://i.pravatar.cc/40'
                 }
                 alt="Perfil"
                 className="w-10 h-10 rounded-full border-2 border-white"
@@ -202,7 +213,7 @@ const isParkingListView = location.pathname === '/client';
           aria-label="Navegación del cliente"
           className="md:hidden fixed bottom-0 inset-x-0 z-[1000] bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]"
         >
-          <div className="grid grid-cols-4 min-h-16">
+          <div className="grid grid-cols-5 min-h-16">
             {/* Estacionamientos */}
             <Link
               to="/client"
@@ -214,7 +225,7 @@ const isParkingListView = location.pathname === '/client';
               }`}
             >
               <MapPin size={22} />
-              <span>Estacionamientos</span>
+              <span className="max-w-full truncate px-1">Estacionamientos</span>
             </Link>
 
             {/* Mapa */}
@@ -229,6 +240,23 @@ const isParkingListView = location.pathname === '/client';
             >
               <MapIcon size={22} />
               <span>Mapa</span>
+            </Link>
+
+            {/* Lector QR (botón destacado) */}
+            <Link
+              to="/client/scan"
+              aria-label="Escanear QR"
+              aria-current={isScanView ? 'page' : undefined}
+              className="flex flex-col items-center justify-start text-xs"
+            >
+              <span
+                className={`-mt-6 flex h-14 w-14 items-center justify-center rounded-full border-4 border-white text-white shadow-lg transition-colors ${
+                  isScanView ? 'bg-blue-700' : 'bg-blue-600 active:bg-blue-700'
+                }`}
+              >
+                <QrCode size={26} strokeWidth={2.25} />
+              </span>
+              <span className="mt-0.5 font-semibold text-blue-600">Escanear</span>
             </Link>
 
             {/* Historial */}

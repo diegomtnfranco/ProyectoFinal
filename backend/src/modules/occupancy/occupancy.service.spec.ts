@@ -73,6 +73,8 @@ describe('OccupancyService', () => {
 
     dataSource.createQueryRunner.mockReturnValue(queryRunner);
     occupancyRepository.create.mockReturnValue(occupancy);
+    // El check-in manual ahora exige una tarifa para el tipo de vehículo
+    ratesService.findApplicableRate.mockResolvedValue({ id: 'rate-1', vehicleType: 'car', pricePerHour: 20 });
 
     const result = await service.checkIn(
       { spaceId: 'space-1', vehiclePlate: 'ABC123', vehicleType: 'car' } as any,

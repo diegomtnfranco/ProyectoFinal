@@ -4,6 +4,8 @@ import {
   Receipt,
   Users,
   Settings,
+  ListClock,
+  CircleDollarSign,
   type LucideIcon
 } from 'lucide-react'
 
@@ -38,5 +40,16 @@ export const ownerMenu: OwnerMenuItem[] = [
     name: 'Configuración',
     path: '/owner/settings',
     icon: Settings,
+  },
+  { 
+    name: 'Actividad',
+    path: '/owner/activity',
+    icon: ListClock,
+  },
+  {
+    name: 'Finanzas',
+    path: '/owner/finance',
+    icon: CircleDollarSign,
   }
-]
+  
+]

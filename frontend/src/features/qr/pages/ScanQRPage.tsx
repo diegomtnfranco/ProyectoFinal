@@ -1,27 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../../../shared/hooks/useToast';
 import { api } from '../../../services/api';
-import { Car, Truck, Bus, Loader2, CheckCircle, XCircle, ArrowLeft, Clock, Motorbike, Clipboard } from 'lucide-react';
+import { Car, Bus, Loader2, CheckCircle, XCircle, Motorbike, Clipboard } from 'lucide-react';
 import type { AnonymousCheckOutResponse } from '../../../types/parking.types';
 import { DownloadTicketModal } from '../../../shared/components/tickets/DownloadTicketModal';
 import { generateTicketPDF } from '../../../shared/utils/GenerateTicketPDF';
-
-// Mapeo de tipos de vehículo
-const vehicleIcons = {
-  car: <Car size={28} />,
-  motorcycle: <Motorbike size={28} />,
-  van: <Truck size={28} />,
-  truck: <Bus size={28} />,
-};
-
-const vehicleLabels = {
-  car: 'Auto',
-  motorcycle: 'Moto',
-  van: 'Camioneta',
-  truck: 'Camioneta',
-};
+import { occupancyServicesService } from '../../../services/occupancy-services.service';
+import ServiceCheckboxList from '../../../shared/components/occupancy/ServiceCheckboxList';
+import ChargeBreakdownView from '../../../shared/components/occupancy/ChargeBreakdownView';
+import type { OfferedService } from '../../../types/occupancy-services.types';
+import QrCheckoutFlow from '../components/QrCheckoutFlow';
+import QrCheckInFlow from '../components/QrCheckInFlow';
+import { useAuthStore } from '../../../stores/authStore';
+import { UserRole } from '../../../types/auth.types';
+import { rememberQrReturn } from '../qrReturn';
 
 const vehicleTypes = [
   { id: 'car', label: 'Auto', icon: <Car size={24} />, color: 'blue' },
@@ -29,13 +23,28 @@ const vehicleTypes = [
   { id: 'truck', label: 'Camioneta', icon: <Bus size={24} />, color: 'orange' },
 ];
 
+/**
+ * El interceptor de api.ts rechaza con el mensaje del backend (string),
+ * no con el error de axios; se contemplan ambos casos.
+ */
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'string' && error) return error;
+  if (Array.isArray(error)) return error.join('. ');
+  const message = (error as any)?.response?.data?.message;
+  if (Array.isArray(message)) return message.join('. ');
+  return message || fallback;
+};
+
 function ScanQRPage() {
   const { type } = useParams<{ type: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
 
   const token = searchParams.get('token');
+  const location = useLocation();
+  // Cliente con sesión: ingresa eligiendo uno de sus vehículos registrados (no escribe patente ni tipo)
+  const isClient = useAuthStore((st) => !!st.token && st.user?.role === UserRole.CLIENT);
 
   const [selectedVehicle, setSelectedVehicle] = useState<string>('car');
   const [vehiclePlate, setVehiclePlate] = useState<string>('');
@@ -44,6 +53,22 @@ function ScanQRPage() {
   const [message, setMessage] = useState('');
   const [responseData, setResponseData] = useState<AnonymousCheckOutResponse | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  // Servicios opcionales del ingreso por QR (configurados por el dueño)
+  const [qrServices, setQrServices] = useState<OfferedService[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [checkInServices, setCheckInServices] = useState<{ key: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (type !== 'check-in' || !token) return;
+    let cancelled = false;
+    occupancyServicesService
+      .getQrServices(token)
+      .then((list) => !cancelled && setQrServices(list))
+      .catch(() => !cancelled && setQrServices([])); // si falla, el ingreso sigue sin servicios
+    return () => {
+      cancelled = true;
+    };
+  }, [type, token]);
 
   // Validar token al cargar
   useEffect(() => {
@@ -80,49 +105,19 @@ function ScanQRPage() {
         token,
         vehicleType: selectedVehicle,
         vehiclePlate: plate,
+        ...(selectedServices.length ? { serviceKeys: selectedServices } : {}),
       });
+      setCheckInServices(response.data.services ?? []);
+      if (response.data.ignoredServiceKeys?.length) {
+        showWarning('Algún servicio elegido ya no estaba disponible y no se registró');
+      }
       
       setResponseData(response.data);
       setStatus('success');
       setMessage(`✅ ¡Check-in registrado! Espacio asignado: ${response.data.spaceNumber}`);
       showSuccess('Entrada registrada exitosamente');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al registrar entrada';
-      setStatus('error');
-      setMessage(`❌ ${errorMsg}`);
-      showError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Check-out: confirmar salida
-  const handleCheckOut = async () => {
-    const plate = vehiclePlate.trim().toUpperCase();
-    if (!plate) {
-      showError('Ingresá la patente del vehículo');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await api.post<AnonymousCheckOutResponse>('/occupancy/anonymous/check-out', {
-        token,
-        vehiclePlate: plate,
-      });
-      
-      setResponseData(response.data);
-
-      setShowTicketModal(true);
-
-      setStatus('success');
-
-      setMessage(`✅ ¡Check-out registrado! Total: $${response.data.totalAmount}`);
-
-      showSuccess(`Salida registrada. Total: $${response.data.totalAmount}`);
-
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al registrar salida';
+      const errorMsg = getErrorMessage(error, 'Error al registrar entrada');
       setStatus('error');
       setMessage(`❌ ${errorMsg}`);
       showError(errorMsg);
@@ -154,10 +149,16 @@ function ScanQRPage() {
     totalAmount: responseData.totalAmount,
 
     isAnonymous: true,
+
+    breakdown: responseData.breakdown,
   });
 
   setShowTicketModal(false);
 };
+
+  if (type === 'check-in' && token && isClient) {
+    return <QrCheckInFlow token={token} />;
+  }
 
   // Pantalla de éxito
   if (status === 'success') {
@@ -192,7 +193,22 @@ function ScanQRPage() {
             </div>
           )}
           
-          {responseData?.totalAmount && (
+          {isCheckIn && checkInServices.length > 0 && (
+            <div className="bg-blue-50 rounded-xl p-3 mb-4 text-left">
+              <p className="text-sm font-semibold text-blue-800 mb-1">Servicios solicitados</p>
+              <ul className="text-sm text-blue-700 list-disc pl-5">
+                {checkInServices.map((s) => (
+                  <li key={s.key}>{s.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {responseData?.breakdown ? (
+            <div className="bg-green-50 rounded-xl p-4 mb-4">
+              <ChargeBreakdownView breakdown={responseData.breakdown} />
+            </div>
+          ) : responseData?.totalAmount && (
             <div className="bg-green-50 rounded-xl p-4 mb-4">
               <p className="text-green-700 font-semibold text-lg">
                 Total: ${responseData.totalAmount}
@@ -304,6 +320,24 @@ function ScanQRPage() {
               </div>
             </div>
 
+            {qrServices.length > 0 && (
+              <div className="mb-6">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
+                  Servicios adicionales <span className="font-normal text-gray-400">(opcional)</span>
+                </p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Elegí los que quieras usar. Los incluidos no tienen cargo; los adicionales se suman al total al salir.
+                </p>
+                <ServiceCheckboxList
+                  options={qrServices}
+                  selected={selectedServices}
+                  onChange={setSelectedServices}
+                  disabled={isLoading}
+                  showDetails
+                />
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading || !selectedVehicle || !vehiclePlate.trim()}
@@ -320,6 +354,21 @@ function ScanQRPage() {
             </button>
           </form>
 
+          {/* Con cuenta, el ingreso se hace con los vehículos registrados */}
+          <div className="mt-4 rounded-xl bg-white p-4 text-center shadow-sm">
+            <p className="text-sm text-gray-600">¿Tenés cuenta en EstacionApp?</p>
+            <button
+              type="button"
+              onClick={() => {
+                rememberQrReturn(`${location.pathname}${location.search}`);
+                navigate('/login');
+              }}
+              className="mt-1 text-sm font-semibold text-blue-600 hover:underline"
+            >
+              Iniciá sesión para ingresar con tus vehículos registrados
+            </button>
+          </div>
+
           {/* Información adicional */}
           <div className="mt-6 bg-white/80 backdrop-blur-sm rounded-xl p-4">
             <p className="text-xs text-gray-500 text-center">
@@ -332,75 +381,9 @@ function ScanQRPage() {
     );
   }
 
-  // Pantalla de confirmación para Check-out
-  if (type === 'check-out') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Car size={40} className="text-green-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">Registrar salida</h1>
-            <p className="text-gray-500 mt-2">Ingresá tu patente para finalizar la estadía</p>
-          </div>
-
-          {/* Confirmación */}
-          <div className="bg-white rounded-3xl shadow-xl p-6">
-            {/* Campo de patente */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clipboard size={16} className="inline mr-1" />
-                Patente del vehículo <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={vehiclePlate}
-                onChange={handlePlateChange}
-                placeholder="Ingresá la patente"
-                maxLength={10}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all uppercase text-lg font-mono"
-                disabled={isLoading}
-                autoFocus
-              />
-            </div>
-
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Clock size={32} className="text-yellow-600" />
-              </div>
-              <p className="text-gray-600 text-center">
-                Al confirmar tu salida, se calculará el tiempo de estadía y el monto a pagar.
-              </p>
-            </div>
-
-            <button
-              onClick={handleCheckOut}
-              disabled={isLoading || !vehiclePlate.trim()}
-              className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                'Confirmar salida'
-              )}
-            </button>
-          </div>
-
-          {/* Información adicional */}
-          <div className="mt-6 bg-white/80 backdrop-blur-sm rounded-xl p-4">
-            <p className="text-xs text-gray-500 text-center">
-              Al escanear este QR, se registrará la salida de tu vehículo.
-              El sistema calculará automáticamente el monto según el tiempo de estadía.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+  // Salida: cliente autenticado; el backend identifica el vehículo por las patentes del perfil
+  if (type === 'check-out' && token) {
+    return <QrCheckoutFlow token={token} />;
   }
 
   // Tipo de QR no válido

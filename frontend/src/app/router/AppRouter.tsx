@@ -32,7 +32,11 @@ import AdminParkingDetailPage from '../../features/admin/pages/AdminParkingDetai
 import UsersPage from '../../features/admin/pages/UsersPage';
 import AdminUserEditPage from '../../features/admin/pages/AdminUserEditPage';
 import ParkingMapPage from '../../features/parking-lots/pages/ParkingMapPage';
-
+import ActivityPage from '../../features/owner/ActivityPage';
+import WalletPage from '../../features/payments/pages/WalletPage';
+import PaymentResultPage from '../../features/payments/pages/PaymentResultPage';
+import FinancePage from '../../features/owner/FinancePage';
+import ClientQrScannerPage from '../../features/qr/pages/ClientQrScannerPage';
 
 
 // Actualizado al 18/06/2026
@@ -64,6 +68,9 @@ function AppRouter() {
             <Route path="my-reservations" element={<MyReservationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="map" element={<ParkingMapPage />} />
+            <Route path="wallet" element={<WalletPage />} />
+            <Route path="payments/result" element={<PaymentResultPage />} />
+            <Route path="scan" element={<ClientQrScannerPage />} />
           </Route>
         </Route>
 
@@ -77,6 +84,8 @@ function AppRouter() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
             <Route path="settings" element={<ParkingSettingsPage />} />
+            <Route path="activity" element={<ActivityPage />} />
+            <Route path="finance" element={<FinancePage />} />
           </Route>
         </Route>
 
@@ -101,6 +110,7 @@ function AppRouter() {
             <Route path="rates" element={<RatesPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="qr" element={<QRManagementPage />} />
+            <Route path="activity" element={<ActivityPage />} />
           </Route>
         </Route>
       </Routes>
@@ -108,4 +118,4 @@ function AppRouter() {
   );
 }
 
-export default AppRouter;
+export default AppRouter;

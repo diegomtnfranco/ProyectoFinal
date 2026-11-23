@@ -8,16 +8,32 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { RatesModule } from '../rates/rates.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import {ParkingLotsModule} from '../parking-lots/parking-lots.module';
+import { RateHistoryModule } from '../rate-history/rate-history.module';
+import { OccupancyServicesModule } from '../occupancy-services/occupancy-services.module';
+import { ClientTrackingModule } from '../client-tracking/client-tracking.module';
+import { PaymentsModule } from '../payments/payments.module';
+import { UserNotificationsModule } from '../user-notifications/user-notifications.module';
+import { TrackingNotifierModule } from '../tracking-notifier/tracking-notifier.module';
+import { CheckoutRequest } from './checkout/entities/checkout-request.entity';
+import { CheckoutService } from './checkout/checkout.service';
+import { CheckoutController } from './checkout/checkout.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Occupancy, Space, Reservation]),
+    TypeOrmModule.forFeature([Occupancy, Space, Reservation, CheckoutRequest]),
     RatesModule,
     WebsocketModule,
-    ParkingLotsModule
+    ParkingLotsModule,
+    RateHistoryModule,
+    OccupancyServicesModule,
+    ClientTrackingModule,
+    // Egreso con pago (checkout QR + egreso del personal)
+    PaymentsModule,
+    UserNotificationsModule,
+    TrackingNotifierModule,
   ],
-  controllers: [OccupancyController],
-  providers: [OccupancyService],
+  controllers: [OccupancyController, CheckoutController],
+  providers: [OccupancyService, CheckoutService],
   exports: [OccupancyService],
 })
 export class OccupancyModule {}
