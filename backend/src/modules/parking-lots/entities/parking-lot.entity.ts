@@ -50,7 +50,7 @@ export class ParkingLot {
     reservationHoldMinutes: 120,
     blockSpaceHoursBefore: 2,
     maxReservationHours: 24,
-    maxAdvanceDays: 7
+    maxAdvanceDays: 15
   } })
   settings!: {
     allowOnlineReservations: boolean;
@@ -59,6 +59,8 @@ export class ParkingLot {
     blockSpaceHoursBefore: number;
     maxReservationHours?: number;
     maxAdvanceDays?: number;
+    /** % de descuento para reservas programadas (>= 24 h de anticipación). Default 10 */
+    scheduledReservationDiscountPercent?: number;
   };
 
    @Column({ name: 'check_in_token', nullable: true, unique: true })

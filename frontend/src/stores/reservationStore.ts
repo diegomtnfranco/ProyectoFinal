@@ -15,7 +15,7 @@ interface ReservationsState {
   // Acciones
   fetchMyReservations: () => Promise<void>;
   fetchParkingReservations: (parkingLotId: string) => Promise<void>;
-  createReservation: (data: CreateReservationDto) => Promise<void>;
+  createReservation: (data: CreateReservationDto) => Promise<Reservation>;
   cancelReservation: (id: string) => Promise<void>;
   confirmReservation: (id: string) => Promise<void>;
   cancelByParking: (id: string, reason?: string) => Promise<void>;
@@ -68,6 +68,7 @@ export const useReservationsStore = create<ReservationsState>((set, get) => ({
         isLoading: false,
       }));
       get().calculateTotalSpent();
+      return newReservation;
     } catch (error) {
       set({ error: error as string, isLoading: false });
       throw error;

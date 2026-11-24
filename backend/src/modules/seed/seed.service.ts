@@ -338,7 +338,7 @@ export class SeedService implements OnModuleInit {
       reservationHoldMinutes: 120,
       blockSpaceHoursBefore: 2,
       maxReservationHours: 24,
-      maxAdvanceDays: 7,
+      maxAdvanceDays: 15,
     };
 
     const checkInQR = await this.qrService.generateQRForType('check-in');

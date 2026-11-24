@@ -132,6 +132,66 @@ export interface Reservation {
   clientName?: string;  // ← Agregar (opcional, para mostrar en UI)
   expiresAt?: string;   // ← Agregar (para saber si expira pronto)
   avatarUrl?:string;
+  /** Reserva programada (>= 24 h de anticipación, tarifa diferencial) */
+  isScheduled?: boolean;
+  baseAmount?: number;
+  discountPercent?: number;
+  parkingLotAddress?: string;
+  /** 'YYYY-MM-DD HH:mm' en hora local del estacionamiento */
+  startLocal?: string;
+  endLocal?: string;
+}
+
+// ============================================
+// RESERVAS PROGRAMADAS: HORARIOS HABILITADOS
+// ============================================
+
+export interface EntrySlot {
+  startTime: string; // ISO
+  label: string; // 'HH:00'
+  scheduled: boolean;
+  freeSpaces: number;
+}
+
+export interface ExitSlot {
+  endTime: string; // ISO
+  label: string;
+  hours: number;
+  baseAmount: number;
+  discountPercent: number;
+  totalAmount: number;
+  scheduled: boolean;
+}
+
+export interface DaySlots<T> {
+  date: string; // 'YYYY-MM-DD'
+  slots: T[];
+}
+
+export interface ReservationAvailability {
+  parkingLotId: string;
+  parkingLotName: string;
+  address: string;
+  openTime: string;
+  closeTime: string;
+  timeZone: string;
+  vehicleType: UserVehicleType;
+  pricePerHour: number | null;
+  minLeadMinutes: number;
+  scheduledThresholdHours: number;
+  scheduledDiscountPercent: number;
+  maxReservationHours: number;
+  maxAdvanceDays: number;
+  days: DaySlots<EntrySlot>[];
+}
+
+export interface ReservationExitOptions {
+  startTime: string;
+  startLocal: string;
+  scheduled: boolean;
+  pricePerHour: number | null;
+  scheduledDiscountPercent: number;
+  days: DaySlots<ExitSlot>[];
 }
 
 export interface CreateReservationDto {

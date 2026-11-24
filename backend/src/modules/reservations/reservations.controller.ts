@@ -14,6 +14,8 @@ import { UserRole } from '../users/entities/user.entity';
 import { RequiresClientVehicle } from '../client-vehicles/vehicle-required.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ReservationResponseDto } from './dto/reservation-response.dto';
+import { AvailabilityQueryDto, ExitOptionsQueryDto } from './dto/availability-query.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('reservations')
 @ApiBearerAuth()
@@ -52,6 +54,48 @@ export class ReservationsController {
   @Roles(UserRole.ADMIN)
   async findAll(@Query() filters: FilterReservationsDto) {
     return this.reservationsService.findAll(filters);
+  }
+
+  /**
+   * Horarios de ingreso habilitados (botón "Reservar")
+   * GET /reservations/availability/:parkingLotId?vehicleType=car
+   */
+  @Get('availability/:parkingLotId')
+  @Public()
+  @ApiOperation({
+    summary: 'Horarios de ingreso disponibles para reservar',
+    description:
+      'Devuelve SOLO horarios futuros en hora en punto, dentro del horario de atención, con al menos 1 h de anticipación ' +
+      'si es el mismo día y con espacio libre. Los horarios con >= 24 h de anticipación son reservas programadas (tarifa diferencial).',
+  })
+  @ApiParam({ name: 'parkingLotId', type: String })
+  @ApiQuery({ name: 'vehicleType', required: true })
+  @ApiResponse({ status: 200, description: 'Horarios agrupados por día' })
+  async getAvailability(
+    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+    @Query() query: AvailabilityQueryDto,
+  ) {
+    return this.reservationsService.getAvailability(parkingLotId, query.vehicleType);
+  }
+
+  /**
+   * Horarios de egreso posibles para un ingreso elegido
+   * GET /reservations/availability/:parkingLotId/exits?vehicleType=car&startTime=ISO
+   */
+  @Get('availability/:parkingLotId/exits')
+  @Public()
+  @ApiOperation({
+    summary: 'Horarios de egreso disponibles',
+    description: 'Para el ingreso elegido, devuelve día y hora aproximada de egreso posibles con el precio estimado.',
+  })
+  @ApiParam({ name: 'parkingLotId', type: String })
+  @ApiResponse({ status: 200, description: 'Egresos agrupados por día' })
+  @ApiResponse({ status: 400, description: 'Ingreso inválido' })
+  async getExitOptions(
+    @Param('parkingLotId', ParseUUIDPipe) parkingLotId: string,
+    @Query() query: ExitOptionsQueryDto,
+  ) {
+    return this.reservationsService.getExitOptions(parkingLotId, query.vehicleType, query.startTime);
   }
 
   /**

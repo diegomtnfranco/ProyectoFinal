@@ -1,5 +1,5 @@
 // backend - src/modules/parking-lots/dto/update-parking-lot.dto.ts
-import { IsBoolean, IsOptional, IsObject, IsString, IsNumber, IsLatitude, IsLongitude, IsMilitaryTime } from 'class-validator';
+import { IsBoolean, IsOptional, IsObject, IsString, IsNumber, IsLatitude, IsLongitude, IsMilitaryTime, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 // ✅ DTO para settings con todas las propiedades opcionales
@@ -29,10 +29,17 @@ export class UpdateSettingsDto {
   @IsOptional()
   maxReservationHours?: number;
 
-  @ApiPropertyOptional({ example: 7 })
+  @ApiPropertyOptional({ example: 15 })
   @IsNumber()
   @IsOptional()
   maxAdvanceDays?: number;
+
+  @ApiPropertyOptional({ example: 10, description: '% de descuento para reservas programadas (>= 24 h de anticipación)' })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  scheduledReservationDiscountPercent?: number;
 }
 
 // ✅ DTO de actualización DEFINIDO EXPLÍCITAMENTE (sin extender)
