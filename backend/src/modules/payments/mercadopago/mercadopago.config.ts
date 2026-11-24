@@ -12,6 +12,8 @@ export interface MercadoPagoConfig {
   frontendUrl: string;
   ttlMinutes: number;
   sandbox: boolean;
+  /** Id del usuario VENDEDOR DE PRUEBA de Mercado Pago (opcional, solo para demo local) */
+  testSellerId: string;
   apiBaseUrl: string;
 }
 
@@ -21,6 +23,7 @@ export const mercadoPagoConfig = (): MercadoPagoConfig => ({
   notificationUrl: (process.env.MP_NOTIFICATION_URL || '').trim(),
   frontendUrl: (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, ''),
   ttlMinutes: Math.max(5, Number(process.env.MP_PREFERENCE_TTL_MINUTES || 30)),
+  testSellerId: (process.env.MP_TEST_SELLER_ID || '').trim(),
   sandbox: (process.env.MP_SANDBOX ?? 'true').toLowerCase() === 'true',
   apiBaseUrl: (process.env.MP_API_BASE_URL || 'https://api.mercadopago.com').replace(/\/$/, ''),
 });

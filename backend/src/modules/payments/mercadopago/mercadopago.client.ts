@@ -25,6 +25,8 @@ export interface MpPayment {
   transaction_amount?: number;
   currency_id?: string;
   live_mode?: boolean;
+  /** Id de la cuenta vendedora que cobró (se usa para reconocer la cuenta de prueba) */
+  collector_id?: number | string | null;
   date_approved?: string | null;
 }
 
