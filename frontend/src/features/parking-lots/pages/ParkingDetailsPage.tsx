@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   DollarSign,
   Calendar,
-  CreditCard
+  CheckCircle2,
+  Tag,
 } from 'lucide-react';
 import { useParkingLotsStore } from '../../../stores/parkingStore';
 import { useReservationsStore } from '../../../stores/reservationStore';
@@ -18,6 +19,10 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../shared/hooks/useToast';
 import { VehicleType, type UserVehicleType } from '../../../types/auth.types';
 import ParkingPublicInfo from '../components/ParkingPublicInfo';
+import ScheduledReservationPicker, {
+  type ScheduledSelection,
+} from '../../../shared/components/reservation/ScheduledReservationPicker';
+import type { Reservation } from '../../../types/parking.types';
 
 function ParkingDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,8 +41,10 @@ function ParkingDetailsPage() {
   // Estados del formulario
   const [vehicleType, setVehicleType] = useState<string>('car');
   const [vehiclePlate, setVehiclePlate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  // Reserva programada: el sistema devuelve solo horarios habilitados
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [selection, setSelection] = useState<ScheduledSelection | null>(null);
+  const [createdReservation, setCreatedReservation] = useState<Reservation | null>(null);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
   // Cargar datos del parking
@@ -88,57 +95,45 @@ function ParkingDetailsPage() {
 
   const pricePerHour = getRateForVehicle(vehicleType);
 
-  // Cálculo de horas y precio
-  const totalHours = startTime && endTime && new Date(endTime) > new Date(startTime)
-    ? Math.ceil((new Date(endTime).getTime() - new Date(startTime).getTime()) / (1000 * 60 * 60))
-    : 0;
-
-  const totalPrice = totalHours * pricePerHour;
-
-  // Validaciones en tiempo real
-  const validateForm = () => {
+  // Validaciones (los horarios ya vienen validados por el backend)
+  const validateForm = (requireSchedule = true) => {
     const errors: { [key: string]: string } = {};
-    
+
     if (!vehiclePlate.trim()) {
       errors.vehiclePlate = 'La patente es obligatoria';
     } else if (vehiclePlate.length < 4) {
       errors.vehiclePlate = 'La patente debe tener al menos 4 caracteres';
     }
-    
-    if (!startTime) {
-      errors.startTime = 'Seleccioná una fecha y hora de inicio';
-    } else {
-      const start = new Date(startTime);
-      const now = new Date();
-      if (start < now) {
-        errors.startTime = 'La fecha de inicio no puede ser en el pasado';
-      }
+
+    if (requireSchedule && !selection) {
+      errors.schedule = 'Elegí el horario de ingreso y el de egreso';
     }
-    
-    if (!endTime) {
-      errors.endTime = 'Seleccioná una fecha y hora de fin';
-    } else if (startTime && new Date(endTime) <= new Date(startTime)) {
-      errors.endTime = 'La fecha de fin debe ser posterior a la de inicio';
-    }
-    
-    if (totalHours > 24) {
-      errors.endTime = 'La reserva no puede exceder las 24 horas';
-    }
-    
+
     if (pricePerHour === 0 && rates.length > 0) {
       errors.vehicleType = 'No hay tarifa disponible para este tipo de vehículo';
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Actualizar validaciones cuando cambian los campos
-  useEffect(() => {
-    if (startTime || endTime || vehiclePlate) {
-      validateForm();
+  const clearFieldError = (field: string) =>
+    setValidationErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+
+  // Botón "Reservar": muestra los horarios habilitados
+  const handleOpenSchedule = () => {
+    if (!user) {
+      showError('Debés iniciar sesión para reservar');
+      navigate('/');
+      return;
     }
-  }, [vehicleType, vehiclePlate, startTime, endTime]);
+    if (!validateForm(false)) return;
+    setShowSchedule(true);
+  };
 
   // Crear reserva
   const handleReserve = async () => {
@@ -148,13 +143,8 @@ function ParkingDetailsPage() {
       return;
     }
 
-    if (availability.available === 0) {
-      showError('Este estacionamiento no tiene lugares disponibles');
-      return;
-    }
-
-    if (!validateForm()) {
-      showError('Por favor, corregí los errores del formulario');
+    if (!validateForm() || !selection) {
+      showError('Por favor, completá los datos y elegí los horarios');
       return;
     }
 
@@ -163,17 +153,13 @@ function ParkingDetailsPage() {
         parkingLotId: id!,
         vehicleType: vehicleType as UserVehicleType,
         vehiclePlate: vehiclePlate.toUpperCase().trim(),
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
+        startTime: selection.startTime,
+        endTime: selection.endTime,
       };
 
-      await createReservation(reservationData);
-      showSuccess('¡Reserva creada exitosamente! Esperá la confirmación del estacionamiento.');
-      
-      // Redirigir a mis reservas después de 2 segundos
-      setTimeout(() => {
-        navigate('/client/my-reservations');
-      }, 2000);
+      const created = await createReservation(reservationData);
+      setCreatedReservation(created);
+      showSuccess('¡Reserva creada! Esperá la confirmación del estacionamiento.');
     } catch (err: any) {
       console.error('Error creating reservation:', err);
       const errorMsg = typeof err === 'string' ? err : err?.message || 'Error al crear la reserva';
@@ -323,28 +309,54 @@ function ParkingDetailsPage() {
               {getRateDisplay()}
             </div>
 
-            {/* RESUMEN DEL COSTO */}
-            {totalHours > 0 && (
-              <div className='bg-green-50 border border-green-200 rounded-2xl p-4 transition-all'>
-                <h3 className='font-bold text-lg flex items-center gap-2'>
-                  <CreditCard size={18} className="text-green-600" />
-                  Resumen de la reserva
-                </h3>
-                <div className="mt-2 space-y-1">
-                  <p className="text-gray-600">Horas: <span className="font-semibold">{totalHours}</span></p>
-                  <p className="text-gray-600">Tarifa: <span className="font-semibold">${pricePerHour}/h</span></p>
-                  <p className='font-semibold text-green-700 text-lg mt-2'>
-                    Total estimado: ${totalPrice}
+            {/* CONFIRMACIÓN: dónde está la reserva y cuándo empieza/termina la tarifa */}
+            {createdReservation && selection ? (
+              <div className='rounded-2xl border border-green-300 bg-green-50 p-6'>
+                <h2 className='flex items-center gap-2 text-2xl font-bold text-green-800'>
+                  <CheckCircle2 size={24} /> ¡Reserva registrada!
+                </h2>
+                <div className='mt-4 grid gap-3 sm:grid-cols-2 text-gray-700'>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Estacionamiento</span>
+                    <strong>{createdReservation.parkingLotName || parking.name}</strong>
+                    <span className='block text-sm'>{createdReservation.parkingLotAddress || parking.address}</span>
+                  </p>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Espacio asignado</span>
+                    <strong className='text-xl'>{createdReservation.spaceNumber}</strong>
+                  </p>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Tu tarifa empieza a contar</span>
+                    <strong className='capitalize'>{selection.startLabel}</strong>
+                  </p>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Termina (aprox.)</span>
+                    <strong className='capitalize'>{selection.endLabel}</strong>
+                  </p>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Total estimado</span>
+                    <strong>${Number(createdReservation.totalAmount ?? selection.exit.totalAmount).toLocaleString('es-AR', { maximumFractionDigits: 2 })}</strong>
+                    {createdReservation.isScheduled && !!createdReservation.discountPercent && (
+                      <span className='ml-2 inline-flex items-center gap-1 rounded-full bg-green-600 px-2 py-0.5 text-xs text-white'>
+                        <Tag size={12} /> Programada -{createdReservation.discountPercent}%
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    <span className='block text-sm text-gray-500'>Patente</span>
+                    <strong className='font-mono'>{createdReservation.vehiclePlate}</strong>
                   </p>
                 </div>
-              </div>
-            )}
-
-            {/* FORMULARIO DE RESERVA */}
-            {availability.available === 0 ? (
-              <div className='bg-red-100 border border-red-300 text-red-700 p-4 rounded-xl flex items-center gap-3'>
-                <AlertCircle size={20} />
-                <span>Este estacionamiento se encuentra completo actualmente.</span>
+                <p className='mt-4 text-sm text-gray-600'>
+                  No hace falta que ingreses ahora: el lugar queda reservado para ese horario. Te avisaremos cuando el
+                  estacionamiento confirme la reserva.
+                </p>
+                <button
+                  onClick={() => navigate('/client/my-reservations')}
+                  className='mt-4 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700'
+                >
+                  Ver mis reservas
+                </button>
               </div>
             ) : (
               <>
@@ -352,6 +364,13 @@ function ParkingDetailsPage() {
                   <Calendar size={22} />
                   Reservar espacio
                 </h2>
+
+                {availability.available === 0 && (
+                  <div className='bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl flex items-center gap-3 text-sm'>
+                    <AlertCircle size={18} />
+                    <span>Ahora está completo, pero podés reservar para un horario futuro.</span>
+                  </div>
+                )}
 
                 <div className='grid md:grid-cols-2 gap-4'>
                   {/* TIPO DE VEHÍCULO */}
@@ -365,7 +384,11 @@ function ParkingDetailsPage() {
                         validationErrors.vehicleType ? 'border-red-500' : 'border-gray-300'
                       }`}
                       value={vehicleType}
-                      onChange={(e) => setVehicleType(e.target.value)}
+                      onChange={(e) => {
+                        setVehicleType(e.target.value);
+                        setSelection(null);
+                        clearFieldError('vehicleType');
+                      }}
                     >
                       <option value='car'>Auto</option>
                       <option value='motorcycle'>Moto</option>
@@ -386,7 +409,10 @@ function ParkingDetailsPage() {
                       type='text'
                       placeholder='ABC123'
                       value={vehiclePlate}
-                      onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        setVehiclePlate(e.target.value.toUpperCase());
+                        clearFieldError('vehiclePlate');
+                      }}
                       className={`w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase ${
                         validationErrors.vehiclePlate ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -395,66 +421,53 @@ function ParkingDetailsPage() {
                       <p className='text-red-500 text-xs mt-1'>{validationErrors.vehiclePlate}</p>
                     )}
                   </div>
-
-                  {/* FECHA INICIO */}
-                  <div>
-                    <label className='block mb-2 font-medium'>
-                      Fecha y hora de inicio
-                    </label>
-                    <input
-                      type='datetime-local'
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className={`w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        validationErrors.startTime ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {validationErrors.startTime && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.startTime}</p>
-                    )}
-                  </div>
-
-                  {/* FECHA FIN */}
-                  <div>
-                    <label className='block mb-2 font-medium'>
-                      Fecha y hora de fin
-                    </label>
-                    <input
-                      type='datetime-local'
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className={`w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        validationErrors.endTime ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {validationErrors.endTime && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.endTime}</p>
-                    )}
-                  </div>
                 </div>
 
-                {/* BOTÓN RESERVAR */}
-                <button
-                  onClick={handleReserve}
-                  disabled={isCreatingReservation || availability.available === 0}
-                  className={`py-4 rounded-xl font-semibold transition-all text-white flex items-center justify-center gap-2
-                    ${availability.available > 0 && !isCreatingReservation
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                  {isCreatingReservation ? (
-                    <>
-                      <div className='animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent'></div>
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <Calendar size={18} />
-                      {availability.available > 0 ? 'Reservar espacio' : 'Sin disponibilidad'}
-                    </>
-                  )}
-                </button>
+                {!showSchedule ? (
+                  <button
+                    onClick={handleOpenSchedule}
+                    className='py-4 rounded-xl font-semibold transition-all text-white flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700'
+                  >
+                    <Calendar size={18} />
+                    Reservar
+                  </button>
+                ) : (
+                  <>
+                    {id && (
+                      <ScheduledReservationPicker
+                        key={vehicleType}
+                        parkingLotId={id}
+                        vehicleType={vehicleType}
+                        onChange={setSelection}
+                      />
+                    )}
+                    {validationErrors.schedule && !selection && (
+                      <p className='text-red-500 text-sm'>{validationErrors.schedule}</p>
+                    )}
+
+                    <button
+                      onClick={handleReserve}
+                      disabled={isCreatingReservation || !selection}
+                      className={`py-4 rounded-xl font-semibold transition-all text-white flex items-center justify-center gap-2
+                        ${selection && !isCreatingReservation
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-gray-400 cursor-not-allowed'
+                        }`}
+                    >
+                      {isCreatingReservation ? (
+                        <>
+                          <div className='animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent'></div>
+                          Procesando...
+                        </>
+                      ) : (
+                        <>
+                          <Calendar size={18} />
+                          Confirmar reserva
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
 
                 {/* Información adicional */}
                 <div className='bg-gray-50 rounded-xl p-4 text-sm text-gray-500'>

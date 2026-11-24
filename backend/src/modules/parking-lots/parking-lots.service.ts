@@ -60,7 +60,7 @@ export class ParkingLotsService {
       reservationHoldMinutes: 120,
       blockSpaceHoursBefore: 2,
       maxReservationHours: 24,
-      maxAdvanceDays: 7,
+      maxAdvanceDays: 15,
     };
 
     // Combinar settings enviados con defaults

@@ -4,6 +4,8 @@ import type {
   CreateReservationDto,
   UpdateReservationDto,
   FilterReservationsDto,
+  ReservationAvailability,
+  ReservationExitOptions,
 } from '../types/parking.types';
 
 export const reservationsService = {
@@ -12,6 +14,26 @@ export const reservationsService = {
    */
   async create(data: CreateReservationDto): Promise<Reservation> {
     const response = await api.post<Reservation>('/reservations', data);
+    return response.data;
+  },
+
+  /**
+   * Horarios de ingreso habilitados (solo futuros, horas en punto, dentro del horario de atención)
+   */
+  async getAvailability(parkingLotId: string, vehicleType: string): Promise<ReservationAvailability> {
+    const response = await api.get<ReservationAvailability>(`/reservations/availability/${parkingLotId}`, {
+      params: { vehicleType },
+    });
+    return response.data;
+  },
+
+  /**
+   * Horarios de egreso posibles para el ingreso elegido (con precio estimado)
+   */
+  async getExitOptions(parkingLotId: string, vehicleType: string, startTime: string): Promise<ReservationExitOptions> {
+    const response = await api.get<ReservationExitOptions>(`/reservations/availability/${parkingLotId}/exits`, {
+      params: { vehicleType, startTime },
+    });
     return response.data;
   },
 

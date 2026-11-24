@@ -84,4 +84,16 @@ export class Reservation {
 
   @Column({ name: 'block_space_at', type: 'timestamp', nullable: true })
   blockSpaceAt?: Date;
+
+  /** Reserva programada: hecha con >= 24 h de anticipación (tarifa diferencial) */
+  @Column({ name: 'is_scheduled', type: 'boolean', default: false })
+  isScheduled!: boolean;
+
+  /** Importe sin descuento (horas × tarifa) */
+  @Column({ name: 'base_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  baseAmount?: number;
+
+  /** Descuento aplicado por reserva programada (0 si no corresponde) */
+  @Column({ name: 'discount_percent', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  discountPercent?: number;
 }

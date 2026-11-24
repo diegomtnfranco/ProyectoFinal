@@ -20,6 +20,30 @@ import { UserRole } from '../users/entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { ParkingLot } from '../parking-lots/entities/parking-lot.entity';
+import { VehicleType } from '../common/enums/vehicle-type.enum';
+import { BUSINESS_TIME_ZONE } from '../parking-profiles/parking-profiles.constants';
+import {
+  DEFAULT_MAX_ADVANCE_DAYS,
+  DEFAULT_MAX_RESERVATION_HOURS,
+  DEFAULT_SCHEDULED_DISCOUNT_PERCENT,
+  HOUR_MS,
+  MIN_LEAD_MINUTES,
+  SCHEDULED_THRESHOLD_HOURS,
+  ScheduleSettings,
+  SpaceBusy,
+  entrySlots,
+  exitSlots,
+  freeSpaces,
+  isScheduled,
+  localDateKey,
+  localHourLabel,
+  quote,
+  validateEntry,
+  validateExit,
+} from './reservation-schedule';
+
+const toLocalLabel = (ms: number) =>
+  `${localDateKey(ms, BUSINESS_TIME_ZONE)} ${localHourLabel(ms, BUSINESS_TIME_ZONE)}`;
 
 @Injectable()
 export class ReservationsService {
@@ -39,6 +63,164 @@ export class ReservationsService {
   ) { }
 
   // ============================
+  // DISPONIBILIDAD (reservas programadas)
+  // ============================
+
+  /** Estados que retienen un espacio en un horario */
+  private static readonly HOLDING_STATUSES = [
+    ReservationStatus.PENDING_PAYMENT,
+    ReservationStatus.PENDING_CONFIRMATION,
+    ReservationStatus.CONFIRMED,
+  ];
+
+  private scheduleSettings(parkingLot: ParkingLot): ScheduleSettings {
+    const st = parkingLot.settings ?? ({} as ParkingLot['settings']);
+    return {
+      openTime: parkingLot.openTime,
+      closeTime: parkingLot.closeTime,
+      timeZone: BUSINESS_TIME_ZONE,
+      maxAdvanceDays: st.maxAdvanceDays || DEFAULT_MAX_ADVANCE_DAYS,
+      maxReservationHours: st.maxReservationHours || DEFAULT_MAX_RESERVATION_HOURS,
+    };
+  }
+
+  private discountPercentFor(parkingLot: ParkingLot): number {
+    const v = parkingLot.settings?.scheduledReservationDiscountPercent;
+    return typeof v === 'number' && v >= 0 ? Math.min(100, v) : DEFAULT_SCHEDULED_DISCOUNT_PERCENT;
+  }
+
+  private imminentMsFor(parkingLot: ParkingLot): number {
+    return (parkingLot.settings?.blockSpaceHoursBefore ?? 2) * HOUR_MS;
+  }
+
+  private async loadReservableParkingLot(parkingLotId: string, withOwner = false): Promise<ParkingLot> {
+    const parkingLot = await this.parkingLotRepository.findOne({
+      where: { id: parkingLotId },
+      relations: withOwner ? ['owner', 'owner.user'] : [],
+    });
+    if (!parkingLot) throw new NotFoundException('Estacionamiento no encontrado');
+    if (!parkingLot.settings?.allowOnlineReservations)
+      throw new BadRequestException('Este estacionamiento no permite reservas online');
+    return parkingLot;
+  }
+
+  /** Espacios compatibles + reservas activas que los ocupan dentro de [from, to] */
+  private async loadSpaceBusy(
+    parkingLotId: string,
+    vehicleType: VehicleType,
+    from: Date,
+    to: Date,
+  ): Promise<{ spaces: Space[]; busy: SpaceBusy[] }> {
+    const candidates = await this.spaceRepository.find({
+      where: { parkingLotId, allowsReservations: true, isActive: true },
+    });
+    const spaces = candidates
+      .filter(sp => sp.status !== SpaceStatus.MAINTENANCE)
+      .filter(sp => (sp.allowedVehicleTypes ?? []).includes(vehicleType))
+      .sort((a, b) => {
+        const numA = parseInt(a.spaceNumber.match(/\d+/)?.[0] || '0');
+        const numB = parseInt(b.spaceNumber.match(/\d+/)?.[0] || '0');
+        return numA - numB;
+      });
+    if (spaces.length === 0) return { spaces, busy: [] };
+
+    const reservations = await this.reservationRepository.find({
+      where: {
+        spaceId: In(spaces.map(sp => sp.id)),
+        status: In(ReservationsService.HOLDING_STATUSES),
+        startTime: LessThan(to),
+        endTime: MoreThan(from),
+      },
+    });
+    const bySpace = new Map<string, Array<{ start: number; end: number }>>();
+    for (const r of reservations) {
+      if (!bySpace.has(r.spaceId)) bySpace.set(r.spaceId, []);
+      bySpace.get(r.spaceId)!.push({ start: new Date(r.startTime).getTime(), end: new Date(r.endTime).getTime() });
+    }
+    const busy: SpaceBusy[] = spaces.map(sp => ({
+      spaceId: sp.id,
+      spaceNumber: sp.spaceNumber,
+      currentlyOccupied: sp.status === SpaceStatus.OCCUPIED,
+      busy: bySpace.get(sp.id) ?? [],
+    }));
+    return { spaces, busy };
+  }
+
+  /**
+   * GET /reservations/availability/:parkingLotId
+   * Devuelve SOLO los horarios de ingreso habilitados a futuro (horas en punto,
+   * dentro del horario de atención, >= 1 h desde ahora y con espacio libre).
+   */
+  async getAvailability(parkingLotId: string, vehicleType: VehicleType, nowMs = Date.now()) {
+    const parkingLot = await this.loadReservableParkingLot(parkingLotId);
+    const settings = this.scheduleSettings(parkingLot);
+    const discountPercent = this.discountPercentFor(parkingLot);
+    const horizonEnd = new Date(nowMs + (settings.maxAdvanceDays * 24 + settings.maxReservationHours) * HOUR_MS);
+
+    const { busy } = await this.loadSpaceBusy(parkingLotId, vehicleType, new Date(nowMs), horizonEnd);
+    const rate = await this.ratesService.findApplicableRate(parkingLotId, vehicleType, new Date(nowMs));
+
+    const days = busy.length > 0 ? entrySlots(nowMs, settings, busy, this.imminentMsFor(parkingLot)) : [];
+
+    return {
+      parkingLotId,
+      parkingLotName: parkingLot.name,
+      address: parkingLot.address,
+      openTime: settings.openTime?.slice(0, 5),
+      closeTime: settings.closeTime?.slice(0, 5),
+      timeZone: settings.timeZone,
+      vehicleType,
+      pricePerHour: rate ? Number(rate.pricePerHour) : null,
+      minLeadMinutes: MIN_LEAD_MINUTES,
+      scheduledThresholdHours: SCHEDULED_THRESHOLD_HOURS,
+      scheduledDiscountPercent: discountPercent,
+      maxReservationHours: settings.maxReservationHours,
+      maxAdvanceDays: settings.maxAdvanceDays,
+      days,
+    };
+  }
+
+  /**
+   * GET /reservations/availability/:parkingLotId/exits
+   * Egresos posibles (día + hora aproximada) para el ingreso elegido, con precio estimado.
+   */
+  async getExitOptions(parkingLotId: string, vehicleType: VehicleType, startTimeIso: string, nowMs = Date.now()) {
+    const parkingLot = await this.loadReservableParkingLot(parkingLotId);
+    const settings = this.scheduleSettings(parkingLot);
+    const start = new Date(startTimeIso).getTime();
+    if (Number.isNaN(start)) throw new BadRequestException('Horario de ingreso inválido');
+    const entryError = validateEntry(nowMs, start, settings);
+    if (entryError) throw new BadRequestException(entryError);
+
+    const { busy } = await this.loadSpaceBusy(
+      parkingLotId,
+      vehicleType,
+      new Date(start),
+      new Date(start + settings.maxReservationHours * HOUR_MS),
+    );
+    const rate = await this.ratesService.findApplicableRate(parkingLotId, vehicleType, new Date(start));
+    const pricePerHour = rate ? Number(rate.pricePerHour) : 0;
+    const discountPercent = this.discountPercentFor(parkingLot);
+
+    const days = exitSlots(nowMs, start, settings, busy, this.imminentMsFor(parkingLot)).map(d => ({
+      date: d.date,
+      slots: d.slots.map(sl => ({
+        ...sl,
+        ...quote(nowMs, start, new Date(sl.endTime).getTime(), pricePerHour, discountPercent),
+      })),
+    }));
+
+    return {
+      startTime: new Date(start).toISOString(),
+      startLocal: `${localDateKey(start, settings.timeZone)} ${localHourLabel(start, settings.timeZone)}`,
+      scheduled: isScheduled(nowMs, start),
+      pricePerHour: rate ? pricePerHour : null,
+      scheduledDiscountPercent: discountPercent,
+      days,
+    };
+  }
+
+  // ============================
   // CREATE
   // ============================
   async create(createDto: CreateReservationDto, userId: string): Promise<ReservationResponseDto> {
@@ -48,73 +230,46 @@ export class ReservationsService {
     const startTime = new Date(createDto.startTime);
     const endTime = new Date(createDto.endTime);
     const now = new Date();
+    const nowMs = now.getTime();
 
+    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()))
+      throw new BadRequestException('Fechas de reserva inválidas');
     if (startTime < now) throw new BadRequestException('La fecha de inicio no puede ser en el pasado');
     if (endTime <= startTime) throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio');
 
-    const parkingLot = await this.parkingLotRepository.findOne({
-      where: { id: createDto.parkingLotId },
-      relations: ['owner', 'owner.user'],
-    });
-    if (!parkingLot) throw new NotFoundException('Estacionamiento no encontrado');
+    const parkingLot = await this.loadReservableParkingLot(createDto.parkingLotId, true);
+    const settings = this.scheduleSettings(parkingLot);
 
-    const settings = parkingLot.settings;
-    if (!settings.allowOnlineReservations) throw new BadRequestException('Este estacionamiento no permite reservas online');
+    // Reglas de horario: hora en punto, >= 1 h desde ahora, dentro del horario de atención
+    const entryError = validateEntry(nowMs, startTime.getTime(), settings);
+    if (entryError) throw new BadRequestException(entryError);
+    const exitError = validateExit(startTime.getTime(), endTime.getTime(), settings);
+    if (exitError) throw new BadRequestException(exitError);
 
-    const daysInAdvance = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    const maxAdvanceDays = settings.maxAdvanceDays || 30;
-    if (daysInAdvance > maxAdvanceDays)
-      throw new BadRequestException(`No se puede reservar con más de ${maxAdvanceDays} días de anticipación`);
-
-    const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-    const maxReservationHours = settings.maxReservationHours || 24;
-    if (durationHours > maxReservationHours)
-      throw new BadRequestException(`La reserva no puede exceder las ${maxReservationHours} horas`);
-
-    const allAvailableSpaces = await this.spaceRepository.find({
-      where: {
-        parkingLotId: createDto.parkingLotId,
-        status: SpaceStatus.AVAILABLE,
-        allowsReservations: true,
-        isActive: true,
-      },
-    });
-    if (allAvailableSpaces.length === 0) throw new NotFoundException('No hay espacios disponibles en este estacionamiento');
-
-    const compatibleSpaces = allAvailableSpaces.filter(space =>
-      space.allowedVehicleTypes.includes(createDto.vehicleType),
-    );
-    if (compatibleSpaces.length === 0)
-      throw new BadRequestException(`No hay espacios disponibles para vehículos tipo ${createDto.vehicleType}`);
-
-    const spaceIds = compatibleSpaces.map(s => s.id);
-    const conflictingReservations = await this.reservationRepository.find({
-      where: {
-        spaceId: In(spaceIds),
-        status: In([ReservationStatus.PENDING_CONFIRMATION, ReservationStatus.CONFIRMED]),
-        startTime: LessThan(endTime),
-        endTime: MoreThan(startTime),
-      },
-    });
-    const conflictingSpaceIds = new Set(conflictingReservations.map(r => r.spaceId));
-    const freeSpaces = compatibleSpaces.filter(space => !conflictingSpaceIds.has(space.id));
-    if (freeSpaces.length === 0) throw new ConflictException('No hay espacios disponibles en el horario seleccionado');
-
-    const selectedSpace = freeSpaces.sort((a, b) => {
-      const numA = parseInt(a.spaceNumber.match(/\d+/)?.[0] || '0');
-      const numB = parseInt(b.spaceNumber.match(/\d+/)?.[0] || '0');
-      return numA - numB;
-    })[0];
+    // Espacio asegurado: el primero libre durante TODO el intervalo (no solo "disponible ahora")
+    const { spaces, busy } = await this.loadSpaceBusy(createDto.parkingLotId, createDto.vehicleType, startTime, endTime);
+    if (spaces.length === 0)
+      throw new BadRequestException(`No hay espacios reservables para vehículos tipo ${createDto.vehicleType}`);
+    const free = freeSpaces(busy, startTime.getTime(), endTime.getTime(), nowMs, this.imminentMsFor(parkingLot));
+    if (free.length === 0) throw new ConflictException('No hay espacios disponibles en el horario seleccionado');
+    const selectedSpace = spaces.find(sp => sp.id === free[0].spaceId)!;
 
     const rate = await this.ratesService.findApplicableRate(parkingLot.id, createDto.vehicleType, startTime);
     if (!rate) throw new BadRequestException('No hay tarifa configurada para este tipo de vehículo');
-    const hours = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
-    const totalAmount = rate.pricePerHour * Math.max(1, hours);
+    const price = quote(
+      nowMs,
+      startTime.getTime(),
+      endTime.getTime(),
+      Number(rate.pricePerHour),
+      this.discountPercentFor(parkingLot),
+    );
 
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + (settings.reservationHoldMinutes || 120));
+    expiresAt.setMinutes(expiresAt.getMinutes() + (parkingLot.settings.reservationHoldMinutes || 120));
+    // nunca expira después de la hora de ingreso
+    if (expiresAt > startTime) expiresAt.setTime(startTime.getTime());
     const blockSpaceAt = new Date(startTime);
-    blockSpaceAt.setHours(blockSpaceAt.getHours() - (settings.blockSpaceHoursBefore || 2));
+    blockSpaceAt.setHours(blockSpaceAt.getHours() - (parkingLot.settings.blockSpaceHoursBefore || 2));
 
     const reservation = new Reservation();
     reservation.clientId = client.id;
@@ -124,7 +279,10 @@ export class ReservationsService {
     reservation.startTime = startTime;
     reservation.endTime = endTime;
     reservation.status = ReservationStatus.PENDING_CONFIRMATION;
-    reservation.totalAmount = totalAmount;
+    reservation.totalAmount = price.totalAmount;
+    reservation.baseAmount = price.baseAmount;
+    reservation.discountPercent = price.discountPercent;
+    reservation.isScheduled = price.scheduled;
     reservation.appliedRateId = rate.id;
     reservation.expiresAt = expiresAt;
     reservation.blockSpaceAt = blockSpaceAt;
@@ -146,13 +304,18 @@ export class ReservationsService {
       relations: ['client', 'space', 'space.parkingLot'],
     });
 
-    await this.notificationsService.sendNewReservationNotification(parkingLot.owner.user.email, {
-      reservationId: savedReservation!.id,
-      spaceNumber: selectedSpace.spaceNumber,
-      startTime,
-      endTime,
-      vehiclePlate: createDto.vehiclePlate,
-    });
+    // La reserva ya está guardada: un fallo del mail al dueño no debe devolver error al cliente
+    try {
+      await this.notificationsService.sendNewReservationNotification(parkingLot.owner.user.email, {
+        reservationId: savedReservation!.id,
+        spaceNumber: selectedSpace.spaceNumber,
+        startTime,
+        endTime,
+        vehiclePlate: createDto.vehiclePlate,
+      });
+    } catch (error) {
+      console.error(`[CREATE] No se pudo enviar el mail de nueva reserva ${savedReservation!.id}:`, error);
+    }
     this.websocketGateway.emitNewReservation(parkingLot.id, {
       id: savedReservation!.id,
       spaceNumber: selectedSpace.spaceNumber,
@@ -785,7 +948,13 @@ export class ReservationsService {
       createdAt: formatDate(reservation.createdAt) || reservation.createdAt.toISOString(),
       expiresAt: formatDate(reservation.expiresAt) || reservation.expiresAt?.toISOString(),
       clientName: reservation.client?.name,
-      avatarUrl:reservation.client?.user?.avatarUrl || ''
+      avatarUrl:reservation.client?.user?.avatarUrl || '',
+      isScheduled: reservation.isScheduled ?? false,
+      baseAmount: reservation.baseAmount != null ? Number(reservation.baseAmount) : undefined,
+      discountPercent: reservation.discountPercent != null ? Number(reservation.discountPercent) : undefined,
+      parkingLotAddress: reservation.space?.parkingLot?.address,
+      startLocal: reservation.startTime ? toLocalLabel(new Date(reservation.startTime).getTime()) : undefined,
+      endLocal: reservation.endTime ? toLocalLabel(new Date(reservation.endTime).getTime()) : undefined,
     };
 
   }
