@@ -59,6 +59,10 @@ function useRegisteredVehicleTypes(): string[] | null | "loading" {
 
 function ParkingCard({ parking, isClosest = false }: Props) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const goToDetails = () => navigate(`/client/parking-lots/${parking.id}`);
+  // Tipo de vehículo del cliente (Perfil > Vehículos). Si no hay, se muestran todas las tarifas
+  const clientVehicleType = user?.role === 'client' ? user?.clientProfile?.defaultVehicleType : undefined;
   const available = parking.availability.available;
   const total = parking.availability.total;
   const occupancyPercentage =

@@ -226,6 +226,7 @@ export class MercadoPagoService implements OnModuleInit {
       mpStatus: mp.status,
       mpStatusDetail: mp.status_detail ?? null,
       liveMode: mp.live_mode ?? null,
+      collectorId: mp.collector_id ?? null,
       amount: mp.transaction_amount ?? null,
       currency: mp.currency_id ?? null,
     };
@@ -256,7 +257,11 @@ export class MercadoPagoService implements OnModuleInit {
         }
 
         // Solo dinero ficticio: un pago real (live_mode = true) nunca se aplica
-        if (mp.live_mode === true) {
+        // Excepción: algunas cuentas de prueba devuelven live_mode = true. Solo se acepta si el cobro
+        // lo recibió el vendedor de PRUEBA indicado en MP_TEST_SELLER_ID (nunca una cuenta real).
+        const testSellerId = mercadoPagoConfig().testSellerId;
+        const isTestSeller = !!testSellerId && String(mp.collector_id ?? '') === testSellerId;
+        if (mp.live_mode === true && !isTestSeller) {
           await log('LIVE_MODE_REJECTED');
           this.logger.error(`Pago real (live_mode) recibido para ${payment.id} (mp ${mpId}). Solo se admite Sandbox; no se aplica.`);
           return { payment, changed: false };
